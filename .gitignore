@@ -1,0 +1,14 @@
+/.vs
+/.vscode
+/GL
+/SDL*
+*.png
+*.jpg
+*.ttf
+freetype*
+ft2build.h
+glew*
+/glm
+*.sln
+*.vcxproj*
+/x64
