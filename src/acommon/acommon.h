@@ -4,6 +4,15 @@
 
 #define countof(a) (sizeof((a)) / sizeof(*(a))) 
 
+#define SIZE_BIT ((size_t)((size_t)CHAR_BIT * sizeof(size_t)))
+
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
+size_t A_npow2(size_t n);
+size_t A_ppow2(size_t n);
+
 typedef struct str_s {
     const char* __data;
     size_t      __len;
@@ -12,6 +21,7 @@ typedef struct str_s {
 typedef struct string_s {
     char*  __data;
     size_t __len;
+    size_t __cap;
 } string_t;
 
 #define A_NPOS SIZE_MAX
@@ -19,10 +29,10 @@ typedef struct string_s {
 str_t A_str_Literal(const char* s, size_t c);
 str_t A_str_String(string_t s);
 
+#define A_literal(s) A_str_Literal(s, countof(s))
+
 #define A_str(s) (_Generic((s), \
-    const char*: A_str_Literal(s, countof(s)), \
-    str_t:       A_str_Str(s), \
-    string_t:    A_str_String(s) \
+    string_t:      A_str_String(s) \
 ))
 
 string_t A_string_Str(str_t s);
@@ -30,6 +40,7 @@ string_t A_string_String(string_t s);
 string_t A_string_SizeT(size_t c);
 
 #define A_string(s) (_Generic((s), \
+    int:      A_string_SizeT, \
     size_t:   A_string_SizeT, \
     str_t:    A_string_Str, \
     string_t: A_string_String \
@@ -78,6 +89,10 @@ string_t A_strdup_String(string_t s);
 ))(s)
 
 bool A_strext(string_t s, size_t n);
+bool A_strpush(string_t s, char c);
+
+bool A_strshrnk(string_t s, size_t n);
+char A_strpop(string_t s);
 
 bool A_strcat_Str(string_t dest, str_t src);
 bool A_strcat_String(string_t dest, string_t src);
@@ -223,3 +238,17 @@ string_t A_substring_String(string_t s, size_t i);
     str_t:    A_substring_Str, \
     string_t: A_substring_String \
 ))((s), (i))
+
+char     A_tolower_Char(char c);
+string_t A_tolower_Str(str_t s);
+string_t A_tolower_String(string_t s);
+
+#define A_tolower(s) (_Generic((s), \
+    char:     A_tolower_Char, \
+    str_t:    A_tolower_Str, \
+    string_t: A_tolower_String \
+))(s)
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus

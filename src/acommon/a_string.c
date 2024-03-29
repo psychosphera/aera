@@ -2,6 +2,11 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
 
 int A_memcmp(const void* a, const void* b, size_t n) {
     return memcmp(a, b, n);
@@ -47,10 +52,15 @@ string_t A_string_String(string_t s) {
 }
 
 string_t A_string_SizeT(size_t c) {
+    size_t cap = c;
+    if(cap < 7)
+        cap = 7;
+
     string_t n;
     n.__data = malloc(c + 1);
     if(n.__data != NULL) {
         n.__len = c;
+        n.__cap = cap;
         n.__data[c] = '\0';
     } else {
         n.__len = 0;
@@ -123,7 +133,10 @@ string_t A_strdup_String(string_t s) {
 }
 
 bool A_strext(string_t s, size_t n) {
-    s.__data = realloc(s.__data, A_strlen(s) + 1 + n);
+    size_t newlen = s.__len + n;
+    if(newlen + 1 > s.__cap)
+        s.__data = realloc(s.__data, A_npow2(newlen + 1));
+    
     if(s.__data != NULL) {
         s.__len += n;
         return true;
@@ -131,6 +144,40 @@ bool A_strext(string_t s, size_t n) {
         s.__len = 0;
         return false;
     }
+}
+
+bool A_strpush(string_t s, char c) {
+    if(!A_strext(s, 1))
+        return false;
+    
+    s.__data[s.__len - 1] = c;
+    s.__data[s.__len]     = '\0';
+
+    return true;
+}
+
+bool A_strshrnk(string_t s, size_t n) {
+    size_t newlen = n >= s.__len ? 0 : s.__len - n;
+    if(newlen + 1 < A_ppow2(s.__cap))
+        s.__data = realloc(s.__data, A_npow2(newlen + 1));
+    
+    if(s.__data != NULL) {
+        s.__len -= n;
+        return true;
+    } else {
+        s.__len = 0;
+        return false;
+    }
+}
+
+char A_strpop(string_t s) {
+    char c = A_strat(s, A_strlen(s) - 1);
+    s.__data[s.__len - 1] = '\0';
+
+    if(!A_strshrnk(s, 1))
+        return '\0';
+
+    return c;
 }
 
 bool A_strcat_Str(string_t dest, str_t src) {
@@ -582,3 +629,29 @@ string_t A_substring_String(string_t s, size_t i) {
     A_strcpyz(n, 0, s, i);
     return n;
 }
+
+char A_tolower_Char(char c) {
+    return (char)tolower(c);
+}
+
+string_t A_tolower_Str(str_t s) {
+    string_t n = A_string(0);
+    for(size_t i = 0; i < A_strlen(s); i++) {
+        A_strpush(n, A_tolower(A_strat(s, i)));
+    }
+
+    return n;
+}
+
+string_t A_tolower_String(string_t s) {
+    string_t n = A_string(0);
+    for(size_t i = 0; i < A_strlen(s); i++) {
+        A_strpush(n, A_tolower(A_strat(s, i)));
+    }
+
+    return n;
+}
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus

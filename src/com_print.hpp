@@ -8,6 +8,8 @@
 
 #include <glm/glm.hpp>
 
+#include "acommon/acommon.h"
+
 #include "com_defs.hpp"
 
 enum print_msg_dest_t {
@@ -40,13 +42,6 @@ std::string inline Com_Format(std::string_view fmt, Args&&... args) {
     return std::vformat(fmt, std::make_format_args(args...));
 }
 
-std::string inline Com_ToLower(std::string_view sv) {
-    std::string s;
-    for (auto c : sv)
-        s.push_back((char)tolower((int)c));
-    return s;
-}
-
 bool inline Com_Split(std::string_view s, OUT std::deque<std::string>& v) {
     v = std::deque<std::string>(); 
 
@@ -59,8 +54,11 @@ bool inline Com_Split(std::string_view s, OUT std::deque<std::string>& v) {
     while ((pos_end = s.find(' ', pos_start)) != std::string::npos) {
         token = s.substr(pos_start, pos_end - pos_start);
         pos_start = pos_end + 1;
-        if ((token.find_first_not_of(" \n") != std::string::npos) && !token.empty())
+        if ((token.find_first_not_of(" \n") != std::string::npos) 
+            && !token.empty()
+        ) {
             v.push_back(token);
+        }
     }
 
     token = s.substr(pos_start);
@@ -79,10 +77,11 @@ bool inline Com_Parse(std::string_view s, OUT bool& value) {
         value = i != 0;
         return true;
     } else if (r.ec == std::errc::invalid_argument) {
-        if (Com_ToLower(s) == "true") {
+        str_t n = A_str_Literal(s.data(), s.length());
+        if (A_streq(A_tolower(n), A_literal("true"))) {
             value = true;
             return true;
-        } else if (Com_ToLower(s) == "false") {
+        } else if (A_streq(A_tolower(n), A_literal("false"))) {
             value = false;
             return true;
         }
@@ -102,31 +101,20 @@ bool inline Com_Parse(std::string_view s, OUT int& value) {
 }
 
 bool inline Com_Parse(std::string_view s, OUT float& value) {
-    value = 0.0f;
-    //auto r = std::from_chars(s.data(), s.data() + s.size(), value);
-    //if (r.ec == std::errc()) {
-    //    return true;
-    //}
-
-    return false;
+    value = (float)atof(std::string(s).data());
+    return true;
 }
 
-bool inline Com_Parse(const std::array<std::string_view, 2>& v, OUT glm::vec2& value) {
+bool inline Com_Parse(
+    const std::array<std::string_view, 2>& v, OUT glm::vec2& value
+) {
     value = glm::vec2(0.0f, 0.0f);
 
-    float x = 0.0f;
-    //std::string_view xs = std::string_view(v[0]);
-    //auto rx = std::from_chars(xs.data(), xs.data() + xs.size(), x);
-    //if (rx.ec != std::errc()) {
-    //    return false;
-    //}
+    std::string_view xs = std::string_view(v[0]);
+    float x = (float)atof(std::string(xs).data());
 
-    float y = 0.0f;
-    //std::string_view ys = std::string_view(v[1]);
-    //auto ry = std::from_chars(ys.data(), ys.data() + ys.size(), y);
-    //if (ry.ec != std::errc()) {
-    //    return false;
-    //}
+    std::string_view ys = std::string_view(v[1]);
+    float y = (float)atof(std::string(ys).data());
 
     value = glm::vec2(x, y);
 
@@ -143,29 +131,19 @@ bool inline Com_Parse(std::string_view s, OUT glm::vec2& value) {
     return Com_Parse(std::array<std::string_view, 2> { v[0], v[1] }, value);
 }
 
-bool inline Com_Parse(const std::array<std::string_view, 3>& v, OUT glm::vec3& value) {
+bool inline Com_Parse(
+    const std::array<std::string_view, 3>& v, OUT glm::vec3& value
+) {
     value = glm::vec3(0.0f, 0.0f, 0.0f);
 
-    float x = 0.0f;
-    //std::string_view xs = std::string_view(v[0]);
-    //auto rx = std::from_chars(xs.data(), xs.data() + xs.size(), x);
-    //if (rx.ec != std::errc()) {
-    //    return false;
-    //}
-
-    float y = 0.0f;
-    //std::string_view ys = std::string_view(v[1]);
-    //auto ry = std::from_chars(ys.data(), ys.data() + ys.size(), y);
-    //if (ry.ec != std::errc()) {
-    //    return false;
-    //}
-
-    float z = 0.0f;
-    //std::string_view zs = std::string_view(v[2]);
-    //auto rz = std::from_chars(zs.data(), zs.data() + zs.size(), z);
-    //if (rz.ec != std::errc()) {
-    //    return false;
-    //}
+    std::string_view xs = std::string_view(v[0]);
+    float x = (float)atof(std::string(xs).data());
+    
+    std::string_view ys = std::string_view(v[1]);
+    float y = (float)atof(std::string(ys).data());
+    
+    std::string_view zs = std::string_view(v[2]);
+    float z = (float)atof(std::string(zs).data());
 
     value = glm::vec3(x, y, z);
 
@@ -179,39 +157,27 @@ bool inline Com_Parse(std::string_view s, OUT glm::vec3& value) {
     if (v.size() < 3)
         return false;
 
-    return Com_Parse(std::array<std::string_view, 3> { v[0], v[1], v[2] }, value);
+    return Com_Parse(
+        std::array<std::string_view, 3> { v[0], v[1], v[2] }, value
+    );
 }
 
-bool inline Com_Parse(const std::array<std::string_view, 4>& v, OUT glm::vec4& value) {
+bool inline Com_Parse(
+    const std::array<std::string_view, 4>& v, OUT glm::vec4& value
+) {
     value = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 
-    float x = 0.0f;
-    //std::string_view xs = std::string_view(v[0]);
-    //auto rx = std::from_chars(xs.data(), xs.data() + xs.size(), x);
-    //if (rx.ec != std::errc()) {
-    //    return false;
-    //}
+    std::string_view xs = std::string_view(v[0]);
+    float x = (float)atof(std::string(xs).data());
+    
+    std::string_view ys = std::string_view(v[1]);
+    float y = (float)atof(std::string(ys).data());
+    
+    std::string_view zs = std::string_view(v[2]);
+    float z = (float)atof(std::string(zs).data());
 
-    float y = 0.0f;
-    //std::string_view ys = std::string_view(v[1]);
-    //auto ry = std::from_chars(ys.data(), ys.data() + ys.size(), y);
-    //if (ry.ec != std::errc()) {
-    //    return false;
-    //}
-
-    float z = 0.0f;
-    //std::string_view zs = std::string_view(v[2]);
-    //auto rz = std::from_chars(zs.data(), zs.data() + zs.size(), z);
-    //if (rz.ec != std::errc()) {
-    //    return false;
-    //}
-
-    float w = 0.0f;
-    //std::string_view ws = std::string_view(v[3]);
-    //auto rw = std::from_chars(ws.data(), ws.data() + ws.size(), w);
-    //if (rw.ec != std::errc()) {
-    //    return false;
-    //}
+    std::string_view ws = std::string_view(v[3]);
+    float w = (float)atof(std::string(ws).data());
 
     value = glm::vec4(x, y, z, w);
 
@@ -225,7 +191,9 @@ bool inline Com_Parse(std::string_view s, OUT glm::vec4& value) {
     if (v.size() < 4)
         return false;
 
-    return Com_Parse(std::array<std::string_view, 4> { v[0], v[1], v[2], v[3] }, value);
+    return Com_Parse(
+        std::array<std::string_view, 4> { v[0], v[1], v[2], v[3] }, value
+    );
 }
 
 template<>
