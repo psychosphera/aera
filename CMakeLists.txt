@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.19)
 project(h1_map_viewer)
 
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_REQUIRED ON)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -28,7 +28,7 @@ find_package(glm CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
 
 add_executable(h1_map_viewer
-    src/acommon/a_string.c
+    src/acommon/a_string.c src/acommon/a_common.c
  
 	src/cg_cgame.cpp src/com.cpp src/font.cpp src/fs_files.cpp src/gfx.cpp 
 	src/gfx_backend.cpp  src/in_input.cpp src/main.cpp src/sys.cpp
@@ -92,5 +92,5 @@ if(CLANG AND APPLE)
 endif()
 
 if(CLANG OR GCC)
-	target_compile_options(h1_map_viewer PRIVATE "-pedantic-errors")
+	target_compile_options(h1_map_viewer PRIVATE "-pedantic-errors" "-Wno-c11-extensions")
 endif()
