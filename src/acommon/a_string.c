@@ -1,26 +1,21 @@
-#include "acommon.h"
+#include "a_string.h"
 
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif // __cplusplus
-
-int A_memcmp(const void* a, const void* b, size_t n) {
+EXTERN_C int A_memcmp(const void* a, const void* b, size_t n) {
     return memcmp(a, b, n);
 }
 
-void* A_memcpy(void* dest, const void* src, size_t n) {
+EXTERN_C void* A_memcpy(void* dest, const void* src, size_t n) {
     return memcpy(dest, src, n);
 }
 
-void* A_memchr(const void* p, int c, size_t n) {
+EXTERN_C void* A_memchr(const void* p, int c, size_t n) {
     return memchr(p, c, n);
 }
 
-void* A_memrchr(const void* p, int c, size_t n) {
+EXTERN_C void* A_memrchr(const void* p, int c, size_t n) {
     for(int i = n; i > 0; i--) {
         if(((char*)p)[i] == (char)c)
             return (void*)((const char*)p + i);
@@ -29,25 +24,29 @@ void* A_memrchr(const void* p, int c, size_t n) {
     return NULL;
 }
 
-str_t A_str_Literal(const char* s, size_t c) {
+EXTERN_C void* A_memset(void* p, int c, size_t n) {
+    return memset(p, c, n);
+}
+
+str_t A_literal_internal(const char* s, size_t c) {
     str_t n;
     n.__data = s;
     n.__len  = c;
     return n;
 }
 
-str_t A_str_String(string_t s) {
+str_t A_str(const string_t* s) {
     str_t n;
-    n.__data = s.__data;
-    n.__len  = s.__len;
+    n.__data = A_cstr(s);
+    n.__len  = A_strlen(s);
     return n;
 }
 
-string_t A_string_Str(str_t s) {
+string_t A_string_Str(const str_t* s) {
     return A_strdup(s);
 }
 
-string_t A_string_String(string_t s) {
+string_t A_string_String(const string_t* s) {
     return A_strdup(s);
 }
 
@@ -68,111 +67,144 @@ string_t A_string_SizeT(size_t c) {
     return n;   
 }
 
-const char* A_cstr_Str(str_t s) {
-    return s.__data;
+const char* A_cstr_Str(const str_t* s) {
+    return s->__data;
 }
 
-const char* A_cstr_String(string_t s) {
-    return (const char*)s.__data;
+char* A_cstr_String(string_t* s) {
+    return s->__data;
 }
 
-size_t A_strlen_Str(str_t s) {
-    return s.__len;
+const char* A_cstr_StringC(const string_t* s) {
+    return (const char*)s->__data;
 }
 
-size_t A_strlen_String(string_t s) {
-    return s.__len;
+size_t A_strlen_Str(const str_t* s) {
+    return s->__len;
 }
 
-char A_strat_Str(str_t s, size_t i) {
+size_t A_strlen_String(const string_t* s) {
+    return s->__len;
+}
+
+size_t A_strcap(const string_t* s) {
+    return s->__cap;
+}
+
+char A_strat_Str(const str_t* s, size_t i) {
+    if(i > A_strlen(s))
+        return '\0';
+
     return A_cstr(s)[i];
 }
 
-char A_strat_String(string_t s, size_t i) {
+char A_strat_String(const string_t* s, size_t i) {
+    if(i > A_strlen(s))
+        return '\0';
+    
     return A_cstr(s)[i];
 }
 
-bool A_strcpyz_Str(string_t dest, size_t dest_off, str_t src, size_t src_off) {
-    size_t c = A_strlen(src) - src_off;
-
-    if(dest_off + c > A_strlen(dest))
-        return false;
-
-    memcpy(dest.__data + dest_off, src.__data + src_off, c);
-
-    dest.__data[A_strlen(dest)] = '\0';
-
-    return true;
+const char* A_stratp_Str(const str_t* s, size_t i) {
+    if(i > A_strlen(s))
+        return '\0';
+    
+    return &A_cstr(s)[i];
 }
 
-bool A_strcpyz_String(
-    string_t dest, size_t dest_off, string_t src, size_t src_off
+char* A_stratp_String(string_t* s, size_t i) {
+    return &A_cstr(s)[i];
+}
+
+const char* A_stratp_StringC(const string_t* s, size_t i) {
+    return &A_cstr(s)[i];
+}
+
+bool A_strcpyz_Str(
+    string_t* dest, size_t dest_off, const str_t* src, size_t src_off
 ) {
     size_t c = A_strlen(src) - src_off;
 
     if(dest_off + c > A_strlen(dest))
         return false;
 
-    memcpy(dest.__data + dest_off, src.__data + src_off, c);
+    memcpy(A_stratp(dest, dest_off), A_stratp(src, src_off), c);
 
-    dest.__data[A_strlen(dest)] = '\0';
+    *A_stratp(dest, A_strlen(dest)) = '\0';
 
     return true;
 }
 
-string_t A_strdup_Str(str_t s) {
+bool A_strcpyz_String(
+    string_t* dest, size_t dest_off, const string_t* src, size_t src_off
+) {
+    size_t c = A_strlen(src) - src_off;
+
+    if(dest_off + c > A_strlen(dest))
+        return false;
+
+    memcpy(A_stratp(dest, dest_off), A_stratp(src, src_off), c);
+
+    *A_stratp(dest, A_strlen(dest)) = '\0';
+
+    return true;
+}
+
+string_t A_strdup_Str(const str_t* s) {
     string_t n = A_string(A_strlen(s));
-    A_strcpyz(n, 0, s, 0);
+    A_strcpyz(&n, 0, s, 0);
     return n;
 }
 
-string_t A_strdup_String(string_t s) {
+string_t A_strdup_String(const string_t* s) {
     string_t n = A_string(A_strlen(s));
-    A_strcpyz(n, 0, s, 0);
+    A_strcpyz(&n, 0, s, 0);
     return n;
 }
 
-bool A_strext(string_t s, size_t n) {
-    size_t newlen = s.__len + n;
-    if(newlen + 1 > s.__cap)
-        s.__data = realloc(s.__data, A_npow2(newlen + 1));
+bool A_strext(string_t* s, size_t n) {
+    size_t newlen = A_strlen(s) + n;
+    if(newlen + 1 > A_strcap(s))
+        s->__data = realloc(s->__data, A_npow2(newlen + 1));
     
-    if(s.__data != NULL) {
-        s.__len += n;
+    if(s->__data != NULL) {
+        s->__len += n;
         return true;
     } else {
-        s.__len = 0;
+        s->__len = 0;
+        s->__cap = 0;
         return false;
     }
 }
 
-bool A_strpush(string_t s, char c) {
+bool A_strpush(string_t* s, char c) {
     if(!A_strext(s, 1))
         return false;
     
-    s.__data[s.__len - 1] = c;
-    s.__data[s.__len]     = '\0';
+    *A_stratp(s, A_strlen(s) - 1) = c;
+    *A_stratp(s, A_strlen(s))     = '\0';
 
     return true;
 }
 
-bool A_strshrnk(string_t s, size_t n) {
-    size_t newlen = n >= s.__len ? 0 : s.__len - n;
-    if(newlen + 1 < A_ppow2(s.__cap))
-        s.__data = realloc(s.__data, A_npow2(newlen + 1));
+bool A_strshrnk(string_t* s, size_t n) {
+    size_t newlen = n >= A_strlen(s) ? 0 : A_strlen(s) - n;
+    if(newlen + 1 < A_ppow2(A_strcap(s)))
+        s->__data = realloc(s->__data, A_npow2(newlen + 1));
     
-    if(s.__data != NULL) {
-        s.__len -= n;
+    if(s->__data != NULL) {
+        s->__len -= n;
         return true;
     } else {
-        s.__len = 0;
+        s->__len = 0;
+        s->__cap = 0;
         return false;
     }
 }
 
-char A_strpop(string_t s) {
+char A_strpop(string_t* s) {
     char c = A_strat(s, A_strlen(s) - 1);
-    s.__data[s.__len - 1] = '\0';
+    *A_stratp(s, A_strlen(s) - 1) = '\0';
 
     if(!A_strshrnk(s, 1))
         return '\0';
@@ -180,7 +212,7 @@ char A_strpop(string_t s) {
     return c;
 }
 
-bool A_strcat_Str(string_t dest, str_t src) {
+bool A_strcat_Str(string_t* dest, const str_t* src) {
     size_t off = A_strlen(dest);
 
     if(!A_strext(dest, A_strlen(src)))
@@ -190,7 +222,7 @@ bool A_strcat_Str(string_t dest, str_t src) {
     return true;
 }
 
-bool A_strcat_String(string_t dest, string_t src) {
+bool A_strcat_String(string_t* dest, const string_t* src) {
     size_t off = A_strlen(dest);
 
     if(!A_strext(dest, A_strlen(src)))
@@ -200,235 +232,235 @@ bool A_strcat_String(string_t dest, string_t src) {
     return true;
 }
 
-size_t A_strchr_Str(str_t s, char c) {
+size_t A_strchr_Str(const str_t* s, char c) {
     const char* p = (const char*)A_memchr(A_cstr(s), (int)c, A_strlen(s));
     if(!p)
         return A_NPOS;
     return (size_t)(p - A_cstr(s));
 }
 
-size_t A_strchr_String(string_t s, char c) {
+size_t A_strchr_String(const string_t* s, char c) {
     const char* p = (const char*)A_memchr(A_cstr(s), (int)c, A_strlen(s));
     if(!p)
         return A_NPOS;
     return (size_t)(p - A_cstr(s));
 }
 
-size_t A_strrchr_Str(str_t s, char c) {
+size_t A_strrchr_Str(const str_t* s, char c) {
     const char* p = (const char*)A_memrchr(A_cstr(s), (int)c, A_strlen(s));
     if(!p)
         return A_NPOS;
     return (size_t)(p - A_cstr(s));
 }
 
-size_t A_strrchr_String(string_t s, char c) {
+size_t A_strrchr_String(const string_t* s, char c) {
     const char* p = (const char*)A_memrchr(A_cstr(s), (int)c, A_strlen(s));
     if(!p)
         return A_NPOS;
     return (size_t)(p - A_cstr(s));
 }
 
-bool A_strcont_Str(str_t s, char c) {
+bool A_strcont_Str(const str_t* s, char c) {
     return A_strchr(s, c) != A_NPOS;
 }
 
-bool A_strcont_String(string_t s, char c) {
+bool A_strcont_String(const string_t* s, char c) {
     return A_strchr(s, c) != A_NPOS;
 }
 
-bool A_streq_Str_Str(str_t a, str_t b) {
+bool A_streq_Str_Str(const str_t* a, const str_t* b) {
     return A_cstr(a) == A_cstr(b);
 }
 
-bool A_streq_Str_String(str_t a, string_t b) {
+bool A_streq_Str_String(const str_t* a, const string_t* b) {
     return A_cstr(a) == A_cstr(b);
 }
 
-bool A_streq_String_Str(string_t a, str_t b) {
+bool A_streq_String_Str(const string_t* a, const str_t* b) {
     return A_cstr(a) == A_cstr(b);
 }
 
-bool A_streq_String_String(string_t a, string_t b) {
+bool A_streq_String_String(const string_t* a, const string_t* b) {
     return A_cstr(a) == A_cstr(b);
 }
 
-size_t A_strpbrk_Str_Str(str_t a, str_t b) {
-    for(int i = 0; i < A_strlen(a); i++) {
-        for(int j = 0; j < A_strlen(b); j++) {
+size_t A_strpbrk_Str_Str(const str_t* a, const str_t* b) {
+    for(size_t i = 0; i < A_strlen(a); i++) {
+        for(size_t j = 0; j < A_strlen(b); j++) {
             if(A_strat(a, i) == A_strat(b, j))
-                return (size_t)i;
+                return i;
         }
     }
 
     return A_NPOS;
 }
 
-size_t A_strpbrk_Str_String(str_t a, string_t b) {
-    for(int i = 0; i < A_strlen(a); i++) {
-        for(int j = 0; j < A_strlen(b); j++) {
+size_t A_strpbrk_Str_String(const str_t* a, const string_t* b) {
+    for(size_t i = 0; i < A_strlen(a); i++) {
+        for(size_t j = 0; j < A_strlen(b); j++) {
             if(A_strat(a, i) == A_strat(b, j))
-                return (size_t)i;
+                return i;
         }
     }
 
     return A_NPOS;
 }
 
-size_t A_strpbrk_String_Str(string_t a, str_t b) {
-    for(int i = 0; i < A_strlen(a); i++) {
-        for(int j = 0; j < A_strlen(b); j++) {
+size_t A_strpbrk_String_Str(const string_t* a, const str_t* b) {
+    for(size_t i = 0; i < A_strlen(a); i++) {
+        for(size_t j = 0; j < A_strlen(b); j++) {
             if(A_strat(a, i) == A_strat(b, j))
-                return (size_t)i;
+                return i;
         }
     }
 
     return A_NPOS;
 }
 
-size_t A_strpbrk_String_String(string_t a, string_t b) {
-    for(int i = 0; i < A_strlen(a); i++) {
-        for(int j = 0; j < A_strlen(b); j++) {
+size_t A_strpbrk_String_String(const string_t* a, const string_t* b) {
+    for(size_t i = 0; i < A_strlen(a); i++) {
+        for(size_t j = 0; j < A_strlen(b); j++) {
             if(A_strat(a, i) == A_strat(b, j))
-                return (size_t)i;
+                return i;
         }
     }
 
     return A_NPOS;
 }
 
-size_t A_strrpbrk_Str_Str(str_t a, str_t b) {
-    for(int i = A_strlen(a); i > 0; i--) {
-        for(int j = A_strlen(b); j > 0; j--) {
+size_t A_strrpbrk_Str_Str(const str_t* a, const str_t* b) {
+    for(size_t i = A_strlen(a); i > 0; i--) {
+        for(size_t j = A_strlen(b); j > 0; j--) {
             if(A_strat(a, i) == A_strat(b, j))
-                return (size_t)i;
+                return i;
         }
     }
 
     return A_NPOS;
 }
 
-size_t A_strrpbrk_Str_String(str_t a, string_t b) {
-    for(int i = A_strlen(a); i > 0; i--) {
-        for(int j = A_strlen(b); j > 0; j--) {
+size_t A_strrpbrk_Str_String(const str_t* a, const string_t* b) {
+    for(size_t i = A_strlen(a); i > 0; i--) {
+        for(size_t j = A_strlen(b); j > 0; j--) {
             if(A_strat(a, i) == A_strat(b, j))
-                return (size_t)i;
+                return i;
         }
     }
 
     return A_NPOS;
 }
 
-size_t A_strrpbrk_String_Str(string_t a, str_t b) {
-    for(int i = A_strlen(a); i > 0; i--) {
-        for(int j = A_strlen(b); j > 0; j--) {
+size_t A_strrpbrk_String_Str(const string_t* a, const str_t* b) {
+    for(size_t i = A_strlen(a); i > 0; i--) {
+        for(size_t j = A_strlen(b); j > 0; j--) {
             if(A_strat(a, i) == A_strat(b, j))
-                return (size_t)i;
+                return i;
         }
     }
 
     return A_NPOS;
 }
 
-size_t A_strrpbrk_String_String(string_t a, string_t b) {
-    for(int i = A_strlen(a); i > 0; i--) {
-        for(int j = A_strlen(b); j > 0; j--) {
+size_t A_strrpbrk_String_String(const string_t* a, const string_t* b) {
+    for(size_t i = A_strlen(a); i > 0; i--) {
+        for(size_t j = A_strlen(b); j > 0; j--) {
             if(A_strat(a, i) == A_strat(b, j))
-                return (size_t)i;
+                return i;
         }
     }
 
     return A_NPOS;
 }
 
-size_t A_strpcnt_Str_Str(str_t a, str_t b) {
-    for(int i = 0; i < A_strlen(a); i++) {
-        for(int j = 0; j < A_strlen(b); j++) {
+size_t A_strpcnt_Str_Str(const str_t* a, const str_t* b) {
+    for(size_t i = 0; i < A_strlen(a); i++) {
+        for(size_t j = 0; j < A_strlen(b); j++) {
             if(A_strat(a, i) != A_strat(b, j))
-                return (size_t)i;
+                return i;
         }
     }
 
     return A_NPOS;
 }
 
-size_t A_strpcnt_Str_String(str_t a, string_t b) {
-    for(int i = 0; i < A_strlen(a); i++) {
-        for(int j = 0; j < A_strlen(b); j++) {
+size_t A_strpcnt_Str_String(const str_t* a, const string_t* b) {
+    for(size_t i = 0; i < A_strlen(a); i++) {
+        for(size_t j = 0; j < A_strlen(b); j++) {
             if(A_strat(a, i) != A_strat(b, j))
-                return (size_t)i;
+                return i;
         }
     }
 
     return A_NPOS;
 }
 
-size_t A_strpcnt_String_Str(string_t a, str_t b) {
-    for(int i = 0; i < A_strlen(a); i++) {
-        for(int j = 0; j < A_strlen(b); j++) {
+size_t A_strpcnt_String_Str(const string_t* a, const str_t* b) {
+    for(size_t i = 0; i < A_strlen(a); i++) {
+        for(size_t j = 0; j < A_strlen(b); j++) {
             if(A_strat(a, i) != A_strat(b, j))
-                return (size_t)i;
+                return i;
         }
     }
 
     return A_NPOS;
 }
 
-size_t A_strpcnt_String_String(string_t a, string_t b) {
-    for(int i = 0; i < A_strlen(a); i++) {
-        for(int j = 0; j < A_strlen(b); j++) {
+size_t A_strpcnt_String_String(const string_t* a, const string_t* b) {
+    for(size_t i = 0; i < A_strlen(a); i++) {
+        for(size_t j = 0; j < A_strlen(b); j++) {
             if(A_strat(a, i) != A_strat(b, j))
-                return (size_t)i;
+                return i;
         }
     }
 
     return A_NPOS;
 }
 
-size_t A_strrpcnt_Str_Str(str_t a, str_t b) {
-    for(int i = A_strlen(a); i > 0; i--) {
-        for(int j = A_strlen(b); j > 0; j--) {
+size_t A_strrpcnt_Str_Str(const str_t* a, const str_t* b) {
+    for(size_t i = A_strlen(a); i > 0; i--) {
+        for(size_t j = A_strlen(b); j > 0; j--) {
             if(A_strat(a, i) != A_strat(b, j))
-                return (size_t)i;
+                return i;
         }
     }
 
     return A_NPOS;
 }
 
-size_t A_strrpcnt_Str_String(str_t a, string_t b) {
-    for(int i = A_strlen(a); i > 0; i--) {
-        for(int j = A_strlen(b); j > 0; j--) {
+size_t A_strrpcnt_Str_String(const str_t* a, const string_t* b) {
+    for(size_t i = A_strlen(a); i > 0; i--) {
+        for(size_t j = A_strlen(b); j > 0; j--) {
             if(A_strat(a, i) != A_strat(b, j))
-                return (size_t)i;
+                return i;
         }
     }
 
     return A_NPOS;
 }
 
-size_t A_strrpcnt_String_Str(string_t a, str_t b) {
-    for(int i = A_strlen(a); i > 0; i--) {
-        for(int j = A_strlen(b); j > 0; j--) {
+size_t A_strrpcnt_String_Str(const string_t* a, const str_t* b) {
+    for(size_t i = A_strlen(a); i > 0; i--) {
+        for(size_t j = A_strlen(b); j > 0; j--) {
             if(A_strat(a, i) != A_strat(b, j))
-                return (size_t)i;
+                return i;
         }
     }
 
     return A_NPOS;
 }
 
-size_t A_strrpcnt_String_String(string_t a, string_t b) {
-    for(int i = A_strlen(a); i > 0; i--) {
-        for(int j = A_strlen(b); j > 0; j--) {
+size_t A_strrpcnt_String_String(const string_t* a, const string_t* b) {
+    for(size_t i = A_strlen(a); i > 0; i--) {
+        for(size_t j = A_strlen(b); j > 0; j--) {
             if(A_strat(a, i) != A_strat(b, j))
-                return (size_t)i;
+                return i;
         }
     }
 
     return A_NPOS;
 }
 
-size_t A_strstr_Str_Str(str_t a, str_t b) {
+size_t A_strstr_Str_Str(const str_t* a, const str_t* b) {
     if(A_strlen(b) > A_strlen(a))
         return A_NPOS;
 
@@ -436,7 +468,7 @@ size_t A_strstr_Str_Str(str_t a, str_t b) {
         return A_streq(a, b);
 
     char c = A_strat(b, 0);
-    for(int i = 0; i < A_strlen(a) - A_strlen(b); i++) {
+    for(size_t i = 0; i < A_strlen(a) - A_strlen(b); i++) {
         if(A_strat(a, i) == c) {
             if(A_memcmp(A_cstr(a), A_cstr(b), A_strlen(b)) == 0)
                 return i;
@@ -446,7 +478,7 @@ size_t A_strstr_Str_Str(str_t a, str_t b) {
     return A_NPOS;
 }
 
-size_t A_strstr_Str_String(str_t a, string_t b) {
+size_t A_strstr_Str_String(const str_t* a, const string_t* b) {
     if(A_strlen(b) > A_strlen(a))
         return A_NPOS;
 
@@ -454,7 +486,7 @@ size_t A_strstr_Str_String(str_t a, string_t b) {
         return A_streq(a, b);
 
     char c = A_strat(b, 0);
-    for(int i = 0; i < A_strlen(a) - A_strlen(b); i++) {
+    for(size_t i = 0; i < A_strlen(a) - A_strlen(b); i++) {
         if(A_strat(a, i) == c) {
             if(A_memcmp(A_cstr(a), A_cstr(b), A_strlen(b)) == 0)
                 return i;
@@ -464,7 +496,7 @@ size_t A_strstr_Str_String(str_t a, string_t b) {
     return A_NPOS;
 }
 
-size_t A_strstr_String_Str(string_t a, str_t b) {
+size_t A_strstr_String_Str(const string_t* a, const str_t* b) {
     if(A_strlen(b) > A_strlen(a))
         return A_NPOS;
 
@@ -472,7 +504,7 @@ size_t A_strstr_String_Str(string_t a, str_t b) {
         return A_streq(a, b);
 
     char c = A_strat(b, 0);
-    for(int i = 0; i < A_strlen(a) - A_strlen(b); i++) {
+    for(size_t i = 0; i < A_strlen(a) - A_strlen(b); i++) {
         if(A_strat(a, i) == c) {
             if(A_memcmp(A_cstr(a), A_cstr(b), A_strlen(b)) == 0)
                 return i;
@@ -482,7 +514,7 @@ size_t A_strstr_String_Str(string_t a, str_t b) {
     return A_NPOS;
 }
 
-size_t A_strstr_String_String(string_t a, string_t b) {
+size_t A_strstr_String_String(const string_t* a, const string_t* b) {
     if(A_strlen(b) > A_strlen(a))
         return A_NPOS;
 
@@ -490,7 +522,7 @@ size_t A_strstr_String_String(string_t a, string_t b) {
         return A_streq(a, b);
 
     char c = A_strat(b, 0);
-    for(int i = 0; i < A_strlen(a) - A_strlen(b); i++) {
+    for(size_t i = 0; i < A_strlen(a) - A_strlen(b); i++) {
         if(A_strat(a, i) == c) {
             if(A_memcmp(A_cstr(a), A_cstr(b), A_strlen(b)) == 0)
                 return i;
@@ -500,7 +532,7 @@ size_t A_strstr_String_String(string_t a, string_t b) {
     return A_NPOS;
 }
 
-size_t A_strrstr_Str_Str(str_t a, str_t b) {
+size_t A_strrstr_Str_Str(const str_t* a, const str_t* b) {
     if(A_strlen(b) > A_strlen(a))
         return A_NPOS;
 
@@ -508,7 +540,7 @@ size_t A_strrstr_Str_Str(str_t a, str_t b) {
         return A_streq(a, b);
 
     char c = A_strat(b, 0);
-    for(int i = A_strlen(a); i > A_strlen(a) - A_strlen(b); i--) {
+    for(size_t i = A_strlen(a); i > A_strlen(a) - A_strlen(b); i--) {
         if(A_strat(a, i) == c) {
             if(A_memcmp(A_cstr(a), A_cstr(b), A_strlen(b)) == 0)
                 return i;
@@ -518,7 +550,7 @@ size_t A_strrstr_Str_Str(str_t a, str_t b) {
     return A_NPOS;
 }
 
-size_t A_strrstr_Str_String(str_t a, string_t b) {
+size_t A_strrstr_Str_String(const str_t* a, const string_t* b) {
     if(A_strlen(b) > A_strlen(a))
         return A_NPOS;
 
@@ -526,7 +558,7 @@ size_t A_strrstr_Str_String(str_t a, string_t b) {
         return A_streq(a, b);
 
     char c = A_strat(b, 0);
-    for(int i = A_strlen(a); i > A_strlen(a) - A_strlen(b); i--) {
+    for(size_t i = A_strlen(a); i > A_strlen(a) - A_strlen(b); i--) {
         if(A_strat(a, i) == c) {
             if(A_memcmp(A_cstr(a), A_cstr(b), A_strlen(b)) == 0)
                 return i;
@@ -536,7 +568,7 @@ size_t A_strrstr_Str_String(str_t a, string_t b) {
     return A_NPOS;
 }
 
-size_t A_strrstr_String_Str(string_t a, str_t b) {
+size_t A_strrstr_String_Str(const string_t* a, const str_t* b) {
     if(A_strlen(b) > A_strlen(a))
         return A_NPOS;
 
@@ -544,7 +576,7 @@ size_t A_strrstr_String_Str(string_t a, str_t b) {
         return A_streq(a, b);
 
     char c = A_strat(b, 0);
-    for(int i = A_strlen(a); i > A_strlen(a) - A_strlen(b); i--) {
+    for(size_t i = A_strlen(a); i > A_strlen(a) - A_strlen(b); i--) {
         if(A_strat(a, i) == c) {
             if(A_memcmp(A_cstr(a), A_cstr(b), A_strlen(b)) == 0)
                 return i;
@@ -554,7 +586,7 @@ size_t A_strrstr_String_Str(string_t a, str_t b) {
     return A_NPOS;
 }
 
-size_t A_strrstr_String_String(string_t a, string_t b) {
+size_t A_strrstr_String_String(const string_t* a, const string_t* b) {
     if(A_strlen(b) > A_strlen(a))
         return A_NPOS;
 
@@ -562,7 +594,7 @@ size_t A_strrstr_String_String(string_t a, string_t b) {
         return A_streq(a, b);
 
     char c = A_strat(b, 0);
-    for(int i = A_strlen(a); i > A_strlen(a) - A_strlen(b); i--) {
+    for(size_t i = A_strlen(a); i > A_strlen(a) - A_strlen(b); i--) {
         if(A_strat(a, i) == c) {
             if(A_memcmp(A_cstr(a), A_cstr(b), A_strlen(b)) == 0)
                 return i;
@@ -572,7 +604,7 @@ size_t A_strrstr_String_String(string_t a, string_t b) {
     return A_NPOS;
 }
 
-str_t A_substr_Str(str_t s, size_t i) {
+str_t A_substr_Str(const str_t* s, size_t i) {
     str_t n;
 
     if(i >= A_strlen(s)) {
@@ -581,12 +613,12 @@ str_t A_substr_Str(str_t s, size_t i) {
         return n;
     }
 
-    n.__data = s.__data + i;
-    n.__len  = s.__len  - i;    
+    n.__data = s->__data + i;
+    n.__len  = s->__len  - i;    
     return n;
 }
 
-str_t A_substr_String(string_t s, size_t i) {
+str_t A_substr_String(const string_t* s, size_t i) {
     str_t n;
 
     if(i >= A_strlen(s)) {
@@ -595,12 +627,12 @@ str_t A_substr_String(string_t s, size_t i) {
         return n;
     }
 
-    n.__data = s.__data + i;
-    n.__len  = s.__len  - i;    
+    n.__data = s->__data + i;
+    n.__len  = s->__len  - i;    
     return n;
 }
 
-string_t A_substring_Str(str_t s, size_t i) {
+string_t A_substring_Str(const str_t* s, size_t i) {
     string_t n;
 
     if(i >= A_strlen(s)) {
@@ -610,12 +642,12 @@ string_t A_substring_Str(str_t s, size_t i) {
     }
 
     size_t len = A_strlen(s) - i;
-    A_strext(n, len);
-    A_strcpyz(n, 0, s, i);
+    A_strext(&n, len);
+    A_strcpyz(&n, 0, s, i);
     return n;
 }
 
-string_t A_substring_String(string_t s, size_t i) {
+string_t A_substring_String(const string_t* s, size_t i) {
     string_t n;
 
     if(i >= A_strlen(s)) {
@@ -625,33 +657,17 @@ string_t A_substring_String(string_t s, size_t i) {
     }
 
     size_t len = A_strlen(s) - i;
-    A_strext(n, len);
-    A_strcpyz(n, 0, s, i);
+    A_strext(&n, len);
+    A_strcpyz(&n, 0, s, i);
     return n;
 }
 
-char A_tolower_Char(char c) {
-    return (char)tolower(c);
+void A_strclear(string_t* s) {
+   *A_stratp(s, 0) = '\0';
+   s->__len = 0;
 }
 
-string_t A_tolower_Str(str_t s) {
-    string_t n = A_string(0);
-    for(size_t i = 0; i < A_strlen(s); i++) {
-        A_strpush(n, A_tolower(A_strat(s, i)));
-    }
-
-    return n;
+void A_strdrop(string_t* s) {
+    A_strshrnk(s, A_strlen(s) + 1);
 }
 
-string_t A_tolower_String(string_t s) {
-    string_t n = A_string(0);
-    for(size_t i = 0; i < A_strlen(s); i++) {
-        A_strpush(n, A_tolower(A_strat(s, i)));
-    }
-
-    return n;
-}
-
-#ifdef __cplusplus
-}
-#endif // __cplusplus

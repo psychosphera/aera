@@ -1,14 +1,24 @@
-#include "acommon.h"
+#include "a_type.h"
 
 #include <ctype.h>
 
-char A_tolower_Char(char c) {
-    return tolower(c);
+EXTERN_C char A_tolower_Char(char c) {
+    return (char)tolower(c);
 }
 
-string_t A_tolower_Str(str_t s) {
-    std::string s;
-    for (auto c : sv)
-        s.push_back((char)tolower((int)c));
-    return s;
+EXTERN_C string_t A_tolower_Str(const str_t* s) {
+    string_t n = A_string(0);
+    for(size_t i = 0; i < A_strlen(s); i++) 
+        A_strpush(&n, A_tolower(A_strat(s, i)));
+
+    return n;
 }
+
+EXTERN_C string_t A_tolower_String(const string_t* s) {
+    string_t n = A_string(0);
+    for(size_t i = 0; i < A_strlen(s); i++) 
+        A_strpush(&n, A_tolower(A_strat(s, i)));
+
+    return n;
+}
+
