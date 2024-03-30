@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <array>
 
+#include "acommon/a_string.h"
+
 #include "m_math.hpp"
 
 std::array<pm_t, 4> s_pm;
@@ -12,7 +14,7 @@ pm_t& PM_GetLocalClientGlobals(int localClientNum) {
 }
 
 void PM_Init() {
-	for (int i = 0; i < MAX_LOCAL_CLIENTS; i++) {
+	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		pm_t& pm = PM_GetLocalClientGlobals(i);
 		pm.pm.ps = &pm.ps;
 	}
@@ -77,7 +79,7 @@ void PM_UpdateViewAngles(INOUT playerState_t& ps, const usercmd_t& cmd) {
 }
 
 void PmoveSingle(INOUT pmove_t& pm, INOUT pml_t& pml) {
-	memset(&pml, 0, sizeof(pml));
+	A_memset(&pml, 0, sizeof(pml));
 
 	pml.msec = std::clamp((uint64_t)((float)pm.cmd.serverTime - (float)pm.ps->commandTime), (uint64_t)1, (uint64_t)200);
 	pm.ps->commandTime = pm.cmd.serverTime;
@@ -87,11 +89,11 @@ void PmoveSingle(INOUT pmove_t& pm, INOUT pml_t& pml) {
 	M_AngleVectors(pm.ps->viewyaw, pm.ps->viewpitch, pm.ps->viewroll, &pml.forward, &pml.right, &pml.up);
 
 	if (pm.cmd.vel.y < 10.0f)
-		pm.ps->pm_flags &= ~PMF_JUMP_HELD;
+	    pm.ps->pm_flags &= ~PMF_JUMP_HELD;
 
 	if (pm.ps->pm_type == PM_NOCLIP) {
-		PM_NoclipMove(pm, pml);
+	    PM_NoclipMove(pm, pml);
 	}
 
-	memset(&pm.cmd, 0, sizeof(pm.cmd));
+	A_memset(&pm.cmd, 0, sizeof(pm.cmd));
 }
