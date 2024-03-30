@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.19)
-project(h1_map_viewer)
+project(h1_map_viewer C CXX)
 
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_REQUIRED ON)
@@ -24,11 +24,12 @@ endif()
 
 find_package(Freetype REQUIRED)
 find_package(GLEW REQUIRED)
+find_package(OpenGL REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
 
 add_executable(h1_map_viewer
-    src/acommon/a_string.c src/acommon/a_common.c
+    src/acommon/a_string.c src/acommon/a_common.c src/acommon/a_type.c
  
 	src/cg_cgame.cpp src/com.cpp src/font.cpp src/fs_files.cpp src/gfx.cpp 
 	src/gfx_backend.cpp  src/in_input.cpp src/main.cpp src/sys.cpp
@@ -37,8 +38,6 @@ add_executable(h1_map_viewer
 	src/con_console.cpp src/pm_pmove.cpp src/m_math.cpp
 )
 
-
-# GLM is header-only, nothing to link
 
 # SDL3 and SDL3_image aren't available from vcpkg. SDL_image contains SDL as a
 # dependency, so it can be used instead of downloading another copy.
@@ -57,6 +56,7 @@ target_link_libraries(h1_map_viewer PRIVATE SDL3::SDL3)
 target_link_libraries(h1_map_viewer PRIVATE SDL3_image::SDL3_image)
 target_link_libraries(h1_map_viewer PRIVATE Freetype::Freetype)
 target_link_libraries(h1_map_viewer PRIVATE GLEW::GLEW)
+target_link_libraries(h1_map_viewer PRIVATE OpenGL::OpenGL)
 target_link_libraries(h1_map_viewer PRIVATE ZLIB::ZLIB)
 
 target_include_directories(h1_map_viewer PRIVATE SDL3::SDL3)
@@ -92,5 +92,8 @@ if(CLANG AND APPLE)
 endif()
 
 if(CLANG OR GCC)
-	target_compile_options(h1_map_viewer PRIVATE "-pedantic-errors" "-Wno-c11-extensions")
+    target_compile_options(h1_map_viewer PRIVATE 
+        "-Wall" "-Wextra" "-Werror" "-pedantic" "-pedantic-errors" 
+        "-Wno-type-limits" 
+    ) 
 endif()
