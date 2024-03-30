@@ -48,7 +48,7 @@ bool Com_Frame() {
     CG_Frame(s_deltaTime);
     CL_Frame();
     DevGui_Frame();
-    for (int i = 0; i < MAX_LOCAL_CLIENTS; i++) {
+    for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
         if(!CG_LocalClientIsActive(i))
             continue;
 

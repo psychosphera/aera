@@ -1216,6 +1216,6 @@ void Dvar_Shutdown() {
 	Cmd_RemoveCommand("seta");
 
 	Dvar_ClearDvars();
-	for(int i = 0; i < MAX_LOCAL_CLIENTS; i++)
+	for(size_t i = 0; i < MAX_LOCAL_CLIENTS; i++)
 		Dvar_ClearLocalDvars(i);
 }

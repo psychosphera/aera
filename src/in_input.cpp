@@ -128,7 +128,7 @@ void IN_Init() {
 }
 
 void IN_Key_Init() {
-	for (int i = 0; i < MAX_LOCAL_CLIENTS; i++)
+	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++)
 		IN_GetLocalClientLocals(i).keys.clear();
 }
 
@@ -213,7 +213,7 @@ static void IN_Key_ClearCurrent(int localClientNum) {
 }
 
 void IN_Key_Frame() {
-	for (int i = 0; i < MAX_LOCAL_CLIENTS; i++) {
+	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		if (CL_HasKbmFocus(i)) {
 			IN_Key_ClearCurrent(i);
 			break;
@@ -222,7 +222,7 @@ void IN_Key_Frame() {
 }
 
 void IN_Key_Shutdown() {
-	for (int i = 0; i < MAX_LOCAL_CLIENTS; i++) {
+	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		inl_t& inl = IN_GetLocalClientLocals(i);
 		inl.keys.clear();
 		inl.keysPressedOnCurrentFrame.clear();
@@ -230,7 +230,7 @@ void IN_Key_Shutdown() {
 }
 
 void IN_Mouse_Init() {
-	for (int i = 0; i < MAX_LOCAL_CLIENTS; i++) {
+	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		inl_t& inl = IN_GetLocalClientLocals(i);
 		inl.mouse.x = (float)Dvar_GetInt(*vid_width)  / 2.0f;
 		inl.mouse.y = (float)Dvar_GetInt(*vid_height) / 2.0f;
@@ -279,7 +279,7 @@ void IN_Mouse_Frame() {
 }
 
 void IN_Mouse_Shutdown() {
-	for (int i = 0; i < MAX_LOCAL_CLIENTS; i++) {
+	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		inl_t& inl = IN_GetLocalClientLocals(i);
 		inl.mouse = Mouse{};
 		inl.mouse.x = (float)Dvar_GetInt(*vid_width)  / 2.0f;

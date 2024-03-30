@@ -18,7 +18,7 @@ dgl_t& DevGui_GetLocalClientLocals(int localClientNum) {
 }
 
 void DevGui_Init() {
-	for (int i = 0; i < MAX_LOCAL_CLIENTS; i++) {
+	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		dgl_t& dgl = DevGui_GetLocalClientLocals(i);
 		dgl.buffer = "> ";
 
@@ -45,7 +45,7 @@ std::string DevGui_TakeText(int localClientNum) {
 }
 
 void DevGui_Frame() {
-	for (int i = 0; i < MAX_LOCAL_CLIENTS; i++) {
+	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		dgl_t& dgl = DevGui_GetLocalClientLocals(i);
 		if (CL_KeyFocus(i) != KF_DEVGUI) {
 			R_ActivateTextDraw(i, dgl.promptDrawId, false);
@@ -68,7 +68,7 @@ void DevGui_Frame() {
 }
 
 void DevGui_Shutdown() {
-	for (int i = 0; i < MAX_LOCAL_CLIENTS; i++) {
+	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		dgl_t& dgl = DevGui_GetLocalClientLocals(i);
 		R_RemoveTextDraw(i, dgl.promptDrawId);
 		dgl.buffer.clear();
