@@ -14,7 +14,6 @@ static std::array<cg_t, MAX_LOCAL_CLIENTS> s_cg;
 
 
 cg_t& CG_GetLocalClientGlobals(int localClientNum) {
-	assert(localClientNum < MAX_LOCAL_CLIENTS);
 	return s_cg.at(localClientNum);
 }
 
@@ -35,7 +34,7 @@ void CG_Init() {
 	s_lastMouseX = IN_Mouse_X(0);
 	s_lastMouseY = IN_Mouse_Y(0);
 
-	for (int i = 0; i < MAX_LOCAL_CLIENTS; i++) {
+	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		cg_t& cg = CG_GetLocalClientGlobals(i);
 		cg.camera.pos = glm::vec3(0.0f, 0.0f, 0.0f);
 		cg.camera.worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -66,55 +65,9 @@ void CG_Init() {
 extern dvar_t* r_fullscreen;
 extern dvar_t* r_noBorder;
 extern dvar_t* cl_splitscreen;
-
-static void CL_EnterSplitscreen(int activeLocalClient) {
-	cg_t& cg0 = CG_GetLocalClientGlobals(0);
-
-	cg0.viewport.x = 0.0f;
-	cg0.viewport.y = 0.5f;
-	cg0.viewport.w = 1.0f;
-	cg0.viewport.h = 0.5f;
-
-	float w0 = cg0.viewport.w * Dvar_GetInt(*vid_width);
-	float h0 = cg0.viewport.h * Dvar_GetInt(*vid_height);
-	cg0.fovy = FOV_HORZ_TO_VERTICAL(Dvar_GetFloat(*cg0.fov), h0 / w0);
-
-	cg_t& cg1 = CG_GetLocalClientGlobals(1);
-
-	cg1.viewport.x = 0.0f;
-	cg1.viewport.y = 0.0f;
-	cg1.viewport.w = 1.0f;
-	cg1.viewport.h = 0.5f;
-
-	float w1 = cg1.viewport.w * Dvar_GetInt(*vid_width);
-	float h1 = cg1.viewport.h * Dvar_GetInt(*vid_height);
-	cg1.fovy = FOV_HORZ_TO_VERTICAL(Dvar_GetFloat(*cg1.fov), h1 / w1);
-
-	if (activeLocalClient != 0)
-		CG_ActivateLocalClient(0);
-	if (activeLocalClient != 1)
-		CG_ActivateLocalClient(1);
-}
-
-static void CL_LeaveSplitscreen(int activeLocalClient) {
-	for (int i = 0; i < MAX_LOCAL_CLIENTS; i++) {
-		cg_t& cg = CG_GetLocalClientGlobals(i);
-		cg.viewport.x = 0.0f;
-		cg.viewport.y = 0.0f;
-		cg.viewport.w = 1.0f;
-		cg.viewport.h = 1.0f;
-
-		float w = cg.viewport.w * Dvar_GetInt(*vid_width);
-		float h = cg.viewport.h * Dvar_GetInt(*vid_height);
-		cg.fovy = FOV_HORZ_TO_VERTICAL(Dvar_GetFloat(*cg.fov), h / w);
-
-		if (i != activeLocalClient)
-			CG_DectivateLocalClient(i);
-	}
-}
-
+ 
 void CG_Frame(uint64_t) {
-	for (int i = 0; i < MAX_LOCAL_CLIENTS; i++) {
+	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		cg_t& cg = CG_GetLocalClientGlobals(i);
 		float w = cg.viewport.w * (float)Dvar_GetInt(*vid_width);
 		float h = cg.viewport.h * (float)Dvar_GetInt(*vid_height);

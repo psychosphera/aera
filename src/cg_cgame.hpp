@@ -17,7 +17,9 @@ struct cg_t {
 
 void  CG_Init();
 cg_t& CG_GetLocalClientGlobals(int localClientNum);
-bool  CG_LocalClientIsActive(int localClientNum);
-	  
+bool  CG_LocalClientIsActive  (int localClientNum);
+void  CG_ActivateLocalClient  (int localClientNum);
+void  CG_DectivateLocalClient (int localClientNum);
+
 void  CG_Frame(uint64_t deltaTime);
 void  CG_Shutdown();

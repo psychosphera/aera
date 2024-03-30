@@ -10,6 +10,8 @@ enum KeyFocus {
 void     CL_Init();
 void     CL_EnableFpsCounter(int localClientNum, bool enable);
 void     CL_Frame();
+void     CL_EnterSplitscreen(int activeLocalClient);
+void     CL_LeaveSplitscreen(int activeLocalClient);
 void	 CL_GiveKbmFocus(int localClientNum);
 bool	 CL_HasKbmFocus(int localClientNum);
 int      CL_ClientWithKbmFocus();

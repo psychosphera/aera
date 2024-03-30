@@ -40,7 +40,7 @@ cl_t& CL_GetLocalClientGlobals(int localClientNum) {
 void CL_Init() {
 	cl_splitscreen = &Dvar_RegisterBool("cl_splitscreen", DVAR_FLAG_NONE, false);
 
-	for (int i = 0; i < MAX_LOCAL_CLIENTS; i++) {
+	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		cl_t& cl = CL_GetLocalClientGlobals(i);
 		cl.drawfps = Dvar_RegisterLocalBool(i, "cl_drawfps", DVAR_FLAG_NONE, false);
 		CL_GetLocalClientLocals(i).drawDevGui = false;
@@ -72,7 +72,7 @@ void CL_DrawFps(int localClientNum) {
 }
 
 void CL_Frame() {
-	for (int i = 0; i < MAX_LOCAL_CLIENTS; i++) {
+	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		cl_t& cl = CL_GetLocalClientGlobals(i);
 		cll_t& cll = CL_GetLocalClientLocals(i);
 		R_ActivateTextDraw(i, cll.fpsTextDrawId, Dvar_GetBool(*cl.drawfps));
@@ -93,9 +93,56 @@ void CL_Frame() {
 	}	
 } 
 
+void CL_EnterSplitscreen(int activeLocalClient) {
+	cg_t& cg0 = CG_GetLocalClientGlobals(0);
+
+	cg0.viewport.x = 0.0f;
+	cg0.viewport.y = 0.5f;
+	cg0.viewport.w = 1.0f;
+	cg0.viewport.h = 0.5f;
+
+	float w0 = cg0.viewport.w * Dvar_GetInt(*vid_width);
+	float h0 = cg0.viewport.h * Dvar_GetInt(*vid_height);
+	cg0.fovy = FOV_HORZ_TO_VERTICAL(Dvar_GetFloat(*cg0.fov), h0 / w0);
+
+	cg_t& cg1 = CG_GetLocalClientGlobals(1);
+
+	cg1.viewport.x = 0.0f;
+	cg1.viewport.y = 0.0f;
+	cg1.viewport.w = 1.0f;
+	cg1.viewport.h = 0.5f;
+
+	float w1 = cg1.viewport.w * Dvar_GetInt(*vid_width);
+	float h1 = cg1.viewport.h * Dvar_GetInt(*vid_height);
+	cg1.fovy = FOV_HORZ_TO_VERTICAL(Dvar_GetFloat(*cg1.fov), h1 / w1);
+
+	if (activeLocalClient != 0)
+		CG_ActivateLocalClient(0);
+	if (activeLocalClient != 1)
+		CG_ActivateLocalClient(1);
+}
+
+void CL_LeaveSplitscreen(int activeLocalClient) {
+	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
+		cg_t& cg = CG_GetLocalClientGlobals(i);
+		cg.viewport.x = 0.0f;
+		cg.viewport.y = 0.0f;
+		cg.viewport.w = 1.0f;
+		cg.viewport.h = 1.0f;
+
+		float w = cg.viewport.w * Dvar_GetInt(*vid_width);
+		float h = cg.viewport.h * Dvar_GetInt(*vid_height);
+		cg.fovy = FOV_HORZ_TO_VERTICAL(Dvar_GetFloat(*cg.fov), h / w);
+
+		if ((int)i != activeLocalClient)
+			CG_DectivateLocalClient(i);
+	}
+}
+
+
 void CL_GiveKbmFocus(int localClientNum) {
-	for (int i = 0; i < MAX_LOCAL_CLIENTS; i++)
-		CL_GetLocalClientGlobals(i).hasKbmFocus = i == localClientNum;
+	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++)
+		CL_GetLocalClientGlobals(i).hasKbmFocus = (int)i == localClientNum;
 }
 
 bool CL_HasKbmFocus(int localClientNum) {
@@ -103,7 +150,7 @@ bool CL_HasKbmFocus(int localClientNum) {
 }
 
 int CL_ClientWithKbmFocus() {
-	for (int i = 0; i < MAX_LOCAL_CLIENTS; i++) {
+	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		if (CL_HasKbmFocus(i))
 			return i;
 	}
@@ -257,7 +304,7 @@ void CL_Shutdown() {
 	Dvar_Unregister("cl_splitscreen");
 	cl_splitscreen = nullptr;
 
-	for (int i = 0; i < MAX_LOCAL_CLIENTS; i++) {
+	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		cl_t& cl = CL_GetLocalClientGlobals(i);
 		Dvar_SetBool(*cl.drawfps, false);
 		Dvar_UnregisterLocal(i, "cl_drawfps");
