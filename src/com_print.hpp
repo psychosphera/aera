@@ -8,7 +8,7 @@
 
 #include <glm/glm.hpp>
 
-#include "acommon/acommon.h"
+#include "acommon/a_type.h"
 
 #include "com_defs.hpp"
 
@@ -77,11 +77,14 @@ bool inline Com_Parse(std::string_view s, OUT bool& value) {
         value = i != 0;
         return true;
     } else if (r.ec == std::errc::invalid_argument) {
-        str_t n = A_str_Literal(s.data(), s.length());
-        if (A_streq(A_tolower(n), A_literal("true"))) {
+        str_t n        = A_literal_internal(s.data(), s.length());
+        string_t lower = A_tolower(&n);
+        str_t ltrue    = A_literal("true");
+        str_t lfalse   = A_literal("false");
+        if (A_streq(&lower, &ltrue)) {
             value = true;
             return true;
-        } else if (A_streq(A_tolower(n), A_literal("false"))) {
+        } else if (A_streq(&lower, &lfalse)) {
             value = false;
             return true;
         }
