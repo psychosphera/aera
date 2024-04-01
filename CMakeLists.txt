@@ -30,7 +30,8 @@ find_package(ZLIB REQUIRED)
 
 add_executable(h1_map_viewer
     src/acommon/a_string.c src/acommon/a_common.c src/acommon/a_type.c
- 
+    src/acommon/z_mem.c
+
 	src/cg_cgame.cpp src/com.cpp src/font.cpp src/fs_files.cpp src/gfx.cpp 
 	src/gfx_backend.cpp  src/in_input.cpp src/main.cpp src/sys.cpp
  	src/db_files.cpp src/cmd_commands.cpp src/cl_client.cpp src/devgui.cpp 

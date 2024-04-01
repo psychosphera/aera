@@ -1,21 +1,22 @@
 #include "a_string.h"
 
-#include <stdlib.h>
 #include <string.h>
 
-EXTERN_C int A_memcmp(const void* a, const void* b, size_t n) {
+#include "z_mem.h"
+
+int A_memcmp(const void* a, const void* b, size_t n) {
     return memcmp(a, b, n);
 }
 
-EXTERN_C void* A_memcpy(void* dest, const void* src, size_t n) {
+void* A_memcpy(void* dest, const void* src, size_t n) {
     return memcpy(dest, src, n);
 }
 
-EXTERN_C void* A_memchr(const void* p, int c, size_t n) {
+void* A_memchr(const void* p, int c, size_t n) {
     return memchr(p, c, n);
 }
 
-EXTERN_C void* A_memrchr(const void* p, int c, size_t n) {
+void* A_memrchr(const void* p, int c, size_t n) {
     for(int i = n; i > 0; i--) {
         if(((char*)p)[i] == (char)c)
             return (void*)((const char*)p + i);
@@ -24,14 +25,14 @@ EXTERN_C void* A_memrchr(const void* p, int c, size_t n) {
     return NULL;
 }
 
-EXTERN_C void* A_memset(void* p, int c, size_t n) {
+void* A_memset(void* p, int c, size_t n) {
     return memset(p, c, n);
 }
 
 str_t A_literal_internal(const char* s, size_t c) {
     str_t n;
     n.__data = s;
-    n.__len  = c;
+    n.__len  = c - 1; // sizeof(literal) includes the null-terminator
     return n;
 }
 
@@ -56,7 +57,7 @@ string_t A_string_SizeT(size_t c) {
         cap = 7;
 
     string_t n;
-    n.__data = malloc(c + 1);
+    n.__data = Z_Alloc(c + 1);
     if(n.__data != NULL) {
         n.__len = c;
         n.__cap = cap;
@@ -165,7 +166,7 @@ string_t A_strdup_String(const string_t* s) {
 bool A_strext(string_t* s, size_t n) {
     size_t newlen = A_strlen(s) + n;
     if(newlen + 1 > A_strcap(s))
-        s->__data = realloc(s->__data, A_npow2(newlen + 1));
+        s->__data = Z_Realloc(s->__data, A_npow2(newlen + 1));
     
     if(s->__data != NULL) {
         s->__len += n;
@@ -190,7 +191,7 @@ bool A_strpush(string_t* s, char c) {
 bool A_strshrnk(string_t* s, size_t n) {
     size_t newlen = n >= A_strlen(s) ? 0 : A_strlen(s) - n;
     if(newlen + 1 < A_ppow2(A_strcap(s)))
-        s->__data = realloc(s->__data, A_npow2(newlen + 1));
+        s->__data = Z_Realloc(s->__data, A_npow2(newlen + 1));
     
     if(s->__data != NULL) {
         s->__len -= n;
