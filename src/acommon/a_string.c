@@ -108,7 +108,7 @@ char A_strat_String(const string_t* s, size_t i) {
 
 const char* A_stratp_Str(const str_t* s, size_t i) {
     if(i > A_strlen(s))
-        return '\0';
+        return NULL;
     
     return &A_cstr(s)[i];
 }
