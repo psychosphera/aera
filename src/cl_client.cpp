@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include "acommon/a_format.hpp"
+
 #include "cg_cgame.hpp"
 #include "db_files.hpp"
 #include "dvar.hpp"
@@ -47,7 +49,7 @@ void CL_Init() {
 		CL_SetKeyFocus(i, KF_GAME);
 		assert(R_AddTextDraw(
 			i, NULL,
-			Com_Format("FPS: {:.0f}", 1000.0f / s_lastFpsDrawDelta),
+			A_Format("FPS: {:.0f}", 1000.0f / s_lastFpsDrawDelta),
 			0.9502f, 0.9502f, 0.5f, 0.5f,
 			glm::vec3(0.5, 0.8f, 0.2f), Dvar_GetBool(*cl.drawfps), true,
 			CL_GetLocalClientLocals(i).fpsTextDrawId
@@ -67,7 +69,7 @@ void CL_EnableFpsCounter(int localClientNum, bool enable) {
 void CL_DrawFps(int localClientNum) {
 	R_UpdateTextDraw(
 		localClientNum, CL_GetLocalClientLocals(localClientNum).fpsTextDrawId,
-		Com_Format("FPS: {:.0f}", 1000.0f / (float)s_lastFpsDrawDelta)
+		A_Format("FPS: {:.0f}", 1000.0f / (float)s_lastFpsDrawDelta)
 	);
 }
 

@@ -2,8 +2,9 @@
 
 #include <unordered_map>
 
+#include "acommon/a_parse.hpp"
+
 #include "cmd_commands.hpp"
-#include "com_print.hpp"
 
 enum DvarType {
 	DVAR_TYPE_NONE,
@@ -56,7 +57,7 @@ struct dvar_t {
 	inline dvar_t(dvarFlags_t flags, bool value) {
 		type = DVAR_TYPE_BOOL;
 		this->value.b = value;
-		e.push_back(Com_Format("{}", value));
+		e.push_back(A_Format("{}", value));
 		this->flags = flags;
 		modified = false;
 		hasLatched = false;
@@ -69,7 +70,7 @@ struct dvar_t {
 		this->flags = flags;
 		domain.i.min = min;
 		domain.i.max = max;
-		e.push_back(Com_Format("{}", value));
+		e.push_back(A_Format("{}", value));
 		hasLatched = false;
 
 		Dvar_SetInt(*this, value);
@@ -83,7 +84,7 @@ struct dvar_t {
 		domain.f.min = min;
 		domain.f.max = max;
 		this->flags = flags;
-		e.push_back(Com_Format("{}", value));
+		e.push_back(A_Format("{}", value));
 		hasLatched = false;
 
 		Dvar_SetFloat(*this, value);
@@ -93,7 +94,7 @@ struct dvar_t {
 	inline dvar_t(dvarFlags_t flags, std::string value) {
 		type = DVAR_TYPE_STRING;
 		this->flags = flags;
-		e.push_back(Com_Format("{}", value));
+		e.push_back(A_Format("{}", value));
 		hasLatched = false;
 
 		Dvar_SetString(*this, value);
@@ -107,7 +108,7 @@ struct dvar_t {
 		this->value.e = value;
 		this->e = domain;
 		this->flags = flags;
-		e.push_back(Com_Format("{}", value));
+		e.push_back(A_Format("{}", value));
 		modified = false;
 		hasLatched = false;
 	}
@@ -120,7 +121,7 @@ struct dvar_t {
 		domain.f.min = min;
 		domain.f.max = max;
 		this->flags = flags;
-		e.push_back(Com_Format("{}", value));
+		e.push_back(A_Format("{}", value));
 		hasLatched = false;
 
 		Dvar_SetVec2(*this, value);
@@ -135,7 +136,7 @@ struct dvar_t {
 		domain.f.min = min;
 		domain.f.max = max;
 		this->flags = flags;
-		e.push_back(Com_Format("{}", value));
+		e.push_back(A_Format("{}", value));
 		hasLatched = false;
 
 		Dvar_SetVec3(*this, value);
@@ -150,7 +151,7 @@ struct dvar_t {
 		domain.f.min = min;
 		domain.f.max = max;
 		this->flags = flags;
-		e.push_back(Com_Format("{}", value));
+		e.push_back(A_Format("{}", value));
 		hasLatched = false;
 
 		Dvar_SetVec4(*this, value);
@@ -281,7 +282,7 @@ glm::vec4 Dvar_GetVec4(const dvar_t& d) {
 void Dvar_SetBool(INOUT dvar_t& d, bool b) {
 	if (d.type == DVAR_TYPE_BOOL) {
 		d.value.b = b;
-		d.e[0] = Com_Format("{}", b);
+		d.e[0] = A_Format("{}", b);
 		d.modified = true;
 	}
 }
@@ -291,7 +292,7 @@ void Dvar_SetInt(INOUT dvar_t& d, int i) {
 		(i <= d.domain.i.max && i >= d.domain.i.min)
 	) {
 		d.value.i = i;
-		d.e[0] = Com_Format("{}", i);
+		d.e[0] = A_Format("{}", i);
 		d.modified = true;
 	}
 }
@@ -301,7 +302,7 @@ void Dvar_SetFloat(INOUT dvar_t& d, float f) {
 		(f <= d.domain.f.max && f >= d.domain.f.min)
 	) {
 		d.value.f = f;
-		d.e[0] = Com_Format("{}", f);
+		d.e[0] = A_Format("{}", f);
 		d.modified = true;
 	}
 }
@@ -321,7 +322,7 @@ void Dvar_SetVec2(INOUT dvar_t& d, const glm::vec2& v) {
 		(v.y <= d.domain.f.max && v.y >= d.domain.f.min)
 	) {
 		d.value.v2 = v;
-		d.e[0] = Com_Format("{}", v);
+		d.e[0] = A_Format("{}", v);
 		d.modified = true;
 	}
 }
@@ -333,7 +334,7 @@ void Dvar_SetVec3(INOUT dvar_t& d, const glm::vec3& v) {
 		(v.z <= d.domain.f.max && v.z >= d.domain.f.min)
 	) {
 		d.value.v3 = v;
-		d.e[0] = Com_Format("{}", v);
+		d.e[0] = A_Format("{}", v);
 		d.modified = true;
 	}
 }
@@ -346,7 +347,7 @@ void Dvar_SetVec4(INOUT dvar_t& d, const glm::vec4& v) {
 		(v.w <= d.domain.f.max && v.w >= d.domain.f.min)
 	) {
 		d.value.v4 = v;
-		d.e[0] = Com_Format("{}", v);
+		d.e[0] = A_Format("{}", v);
 		d.modified = true;
 	}
 }
@@ -922,7 +923,7 @@ bool Dvar_SetFromString(
 		return false;
 
 	glm::vec4 v4;
-	if (v.size() >= 4 && Com_Parse({ v[0], v[1], v[2], v[3] }, v4)) {
+	if (v.size() >= 4 && A_Parse({ v[0], v[1], v[2], v[3] }, v4)) {
 		if (dvar.type == DVAR_TYPE_NONE) {
 			dvar.type = DVAR_TYPE_VEC4;
 			dvar.domain.f.min = FLT_MIN;
@@ -938,7 +939,7 @@ bool Dvar_SetFromString(
 	}
 
 	glm::vec3 v3;
-	if (v.size() >= 3 && Com_Parse({ v[0], v[1], v[2] }, v3)) {
+	if (v.size() >= 3 && A_Parse({ v[0], v[1], v[2] }, v3)) {
 		if (dvar.type == DVAR_TYPE_NONE) {
 			dvar.type = DVAR_TYPE_VEC3;
 			dvar.domain.f.min = FLT_MIN;
@@ -954,7 +955,7 @@ bool Dvar_SetFromString(
 	}
 
 	glm::vec2 v2;
-	if (v.size() >= 2 && Com_Parse({ v[0], v[1] }, v2)) {
+	if (v.size() >= 2 && A_Parse({ v[0], v[1] }, v2)) {
 		if (dvar.type == DVAR_TYPE_NONE) {
 			dvar.type = DVAR_TYPE_VEC2;
 			dvar.domain.f.min = FLT_MIN;
@@ -970,7 +971,7 @@ bool Dvar_SetFromString(
 	}
 
 	bool b;
-	if (v.size() >= 1 && Com_Parse(v[0], b)) {
+	if (v.size() >= 1 && A_Parse(v[0], b)) {
 		if (dvar.type == DVAR_TYPE_NONE) {
 			dvar.type = DVAR_TYPE_BOOL;
 			Dvar_SetBool(dvar, b);
@@ -987,7 +988,7 @@ bool Dvar_SetFromString(
 	}
 
 	int i;
-	if (v.size() >= 1 && Com_Parse(v[0], i)) {
+	if (v.size() >= 1 && A_Parse(v[0], i)) {
 		if (dvar.type == DVAR_TYPE_NONE) {
 			dvar.type = DVAR_TYPE_INT;
 			dvar.domain.i.min = INT_MIN;
@@ -1005,7 +1006,7 @@ bool Dvar_SetFromString(
 	}
 
 	float f;
-	if (v.size() >= 1 && Com_Parse(v[0], f)) {
+	if (v.size() >= 1 && A_Parse(v[0], f)) {
 		if (dvar.type == DVAR_TYPE_NONE) {
 			dvar.type = DVAR_TYPE_FLOAT;
 			dvar.domain.f.min = FLT_MIN;
@@ -1029,7 +1030,7 @@ bool Dvar_SetFromString(
 	INOUT dvar_t& dvar, dvarFlags_t flags, std::string_view value
 ) {
 	std::deque<std::string> v;
-	if (!Com_Split(value, v))
+	if (!A_Split(value, v))
 		return false;
 
 	return Dvar_SetFromString(dvar, flags, v);

@@ -4,6 +4,8 @@
 #include <string_view>
 #include <unordered_map>
 
+#include "acommon/a_parse.hpp"
+
 #include "com_print.hpp"
 
 std::unordered_map<std::string_view, std::function<void(void)>> s_cmds;
@@ -62,7 +64,7 @@ std::string_view Cmd_Argv(int i) {
 bool Cmd_TakeInput(std::string_view input) {	
 	cmd_args.args.clear();
 
-	return Com_Split(input, cmd_args.args);
+	return A_Split(input, cmd_args.args);
 }
 
 void Cmd_Shutdown() {
