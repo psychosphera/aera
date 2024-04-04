@@ -129,10 +129,16 @@ void R_DrawText(
 
     cg_t& cg = CG_GetLocalClientGlobals(localClientNum);
 
-    float x = rect.x;
-    float y = rect.y + rect.h;
-    x *= cg.viewport.w * Dvar_GetInt(*vid_width);
-    y *= cg.viewport.h * Dvar_GetInt(*vid_height);
+    const float screenScaleX = cg.viewport.w * Dvar_GetInt(*vid_width);
+    const float screenScaleY = cg.viewport.h * Dvar_GetInt(*vid_height);
+
+    const float min_x = rect.x * screenScaleX;
+    const float max_x = (rect.x + rect.w) * screenScaleX;
+    const float min_y = (rect.y + rect.h) * screenScaleY - font->atlas_height;
+    const float max_y = rect.y * screenScaleY;
+
+    float x = min_x;
+    float y = min_y;
 
     GL_CALL(glUseProgram, font->prog.program);
     GL_CALL(glEnable, GL_BLEND);
@@ -164,9 +170,9 @@ void R_DrawText(
 
         if (c == '\n') {
             y -= font->atlas_height;
-            if (y < rect.y)
+            if (y < max_y)
                 break;
-            x = rect.x;
+            x = min_x;
             right ? i-- : i++;
             continue;
         }
@@ -198,12 +204,12 @@ void R_DrawText(
         }
 
         // Wrap the text if it goes beyond the boundaries of rect
-        if (x + g->advance_x > rect.x + rect.w) {
+        if (x + g->advance_x > max_x) {
             y -= font->atlas_height;
-            if (y < rect.y)
+            if (y < max_y)
                 break;
 
-            x = rect.x;
+            x = min_x;
         }
 
         // Scale the width and height and update the last ones, or reuse the 
@@ -303,15 +309,15 @@ bool R_AddTextDraw(
     if (!R_FindFreeTextDraw(localClientNum, id, d))
         return false;
 
-    d->free = false;
-    d->font = font;
-    d->text = text;
-    d->rect = rect;
+    d->free   = false;
+    d->font   = font;
+    d->text   = text;
+    d->rect   = rect;
     d->xscale = xscale;
     d->yscale = yscale;
-    d->color = color;
+    d->color  = color;
     d->active = active;
-    d->right = right;
+    d->right  = right;
 
     return true;
 }
@@ -341,7 +347,7 @@ bool R_RemoveTextDraw(size_t localClientNum, size_t id) {
     if (d->free == true)
         return false;
 
-    d->free = true;
+    d->free   = true;
     d->active = false;
     return true;
 }
@@ -349,7 +355,7 @@ bool R_RemoveTextDraw(size_t localClientNum, size_t id) {
 void R_ClearTextDraws(size_t localClientNum) {
     for (auto& c : r_textDraws.at(localClientNum)) {
         c.active = false;
-        c.free = true;
+        c.free   = true;
     }
 }
 
