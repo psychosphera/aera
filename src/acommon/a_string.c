@@ -17,7 +17,7 @@ void* A_memchr(const void* p, int c, size_t n) {
 }
 
 void* A_memrchr(const void* p, int c, size_t n) {
-    for(int i = n; i > 0; i--) {
+    for(size_t i = n; i > 0; i--) {
         if(((char*)p)[i] == (char)c)
             return (void*)((const char*)p + i);
     }
