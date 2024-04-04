@@ -53,13 +53,13 @@ inline bool A_Parse(std::string_view s, OUT bool& value) {
         string_t lower = A_tolower(&n);
         str_t ltrue    = A_literal("true");
         str_t lfalse   = A_literal("false");
-        if (A_streq(&lower, &ltrue)) {
+        if (A_streq(&lower, &ltrue))
             value = true;
-            return true;
-        } else if (A_streq(&lower, &lfalse)) {
+        else if (A_streq(&lower, &lfalse))
             value = false;
-            return true;
-        }
+
+        A_strdrop(&lower);
+        return true;
     }
     return false;
 }
