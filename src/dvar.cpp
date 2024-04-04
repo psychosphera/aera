@@ -170,56 +170,56 @@ void Dvar_Init() {
 	Cmd_AddCommand("seta", Dvar_SetA_f);
 }
 
-NO_DISCARD bool Dvar_WasModified(const dvar_t& d) {
+A_NO_DISCARD bool Dvar_WasModified(const dvar_t& d) {
 	return d.modified;
 }
 
-void Dvar_SetModified(INOUT dvar_t& d) {
+void Dvar_SetModified(A_INOUT dvar_t& d) {
 	d.modified = true;
 }
 
-void Dvar_ClearModified(INOUT dvar_t& d) {
+void Dvar_ClearModified(A_INOUT dvar_t& d) {
 	d.modified = false;
 }
 
-NO_DISCARD bool Dvar_IsBool(const dvar_t& d) {
+A_NO_DISCARD bool Dvar_IsBool(const dvar_t& d) {
 	return d.type == DVAR_TYPE_BOOL;
 }
 
-NO_DISCARD bool Dvar_IsInt(const dvar_t& d) {
+A_NO_DISCARD bool Dvar_IsInt(const dvar_t& d) {
 	return d.type == DVAR_TYPE_INT;
 }
 
-NO_DISCARD bool Dvar_IsFloat(const dvar_t& d) {
+A_NO_DISCARD bool Dvar_IsFloat(const dvar_t& d) {
 	return d.type == DVAR_TYPE_FLOAT;
 }
 
-NO_DISCARD bool Dvar_IsString(const dvar_t& d) {
+A_NO_DISCARD bool Dvar_IsString(const dvar_t& d) {
 	return d.type == DVAR_TYPE_STRING;
 }
 
-NO_DISCARD bool Dvar_IsEnum(const dvar_t& d) {
+A_NO_DISCARD bool Dvar_IsEnum(const dvar_t& d) {
 	return d.type == DVAR_TYPE_ENUM;
 }
 
-NO_DISCARD bool Dvar_IsVec2(const dvar_t& d) {
+A_NO_DISCARD bool Dvar_IsVec2(const dvar_t& d) {
 	return d.type == DVAR_TYPE_VEC2;
 }
 
-NO_DISCARD bool Dvar_IsVec3(const dvar_t& d) {
+A_NO_DISCARD bool Dvar_IsVec3(const dvar_t& d) {
 	return d.type == DVAR_TYPE_VEC3;
 }
 
-NO_DISCARD bool Dvar_IsVec4(const dvar_t& d) {
+A_NO_DISCARD bool Dvar_IsVec4(const dvar_t& d) {
 	return d.type == DVAR_TYPE_VEC4;
 }
 
-void Dvar_LatchValue(INOUT dvar_t& d) {
+void Dvar_LatchValue(A_INOUT dvar_t& d) {
 	d.latched = d.value;
 	d.hasLatched = true;
 }
 
-bool Dvar_RestoreValue(INOUT dvar_t& d) {
+bool Dvar_RestoreValue(A_INOUT dvar_t& d) {
 	if (d.hasLatched) {
 		d.value = d.latched;
 		d.hasLatched = false;
@@ -279,7 +279,7 @@ glm::vec4 Dvar_GetVec4(const dvar_t& d) {
 	return d.value.v4;
 }
 
-void Dvar_SetBool(INOUT dvar_t& d, bool b) {
+void Dvar_SetBool(A_INOUT dvar_t& d, bool b) {
 	if (d.type == DVAR_TYPE_BOOL) {
 		d.value.b = b;
 		d.e[0] = A_Format("{}", b);
@@ -287,7 +287,7 @@ void Dvar_SetBool(INOUT dvar_t& d, bool b) {
 	}
 }
 
-void Dvar_SetInt(INOUT dvar_t& d, int i) {
+void Dvar_SetInt(A_INOUT dvar_t& d, int i) {
 	if (d.type == DVAR_TYPE_INT &&
 		(i <= d.domain.i.max && i >= d.domain.i.min)
 	) {
@@ -297,7 +297,7 @@ void Dvar_SetInt(INOUT dvar_t& d, int i) {
 	}
 }
 
-void Dvar_SetFloat(INOUT dvar_t& d, float f) {
+void Dvar_SetFloat(A_INOUT dvar_t& d, float f) {
 	if (d.type == DVAR_TYPE_FLOAT &&
 		(f <= d.domain.f.max && f >= d.domain.f.min)
 	) {
@@ -307,7 +307,7 @@ void Dvar_SetFloat(INOUT dvar_t& d, float f) {
 	}
 }
 
-void Dvar_SetString(INOUT dvar_t& d, const std::string& s) {
+void Dvar_SetString(A_INOUT dvar_t& d, const std::string& s) {
 	if (d.type == DVAR_TYPE_STRING) {
 		d.e[0] = s;
 		d.modified = true;
@@ -316,7 +316,7 @@ void Dvar_SetString(INOUT dvar_t& d, const std::string& s) {
 
 // TODO - SetEnum
 
-void Dvar_SetVec2(INOUT dvar_t& d, const glm::vec2& v) {
+void Dvar_SetVec2(A_INOUT dvar_t& d, const glm::vec2& v) {
 	if (d.type == DVAR_TYPE_VEC2 &&
 		(v.x <= d.domain.f.max && v.x >= d.domain.f.min) &&
 		(v.y <= d.domain.f.max && v.y >= d.domain.f.min)
@@ -327,7 +327,7 @@ void Dvar_SetVec2(INOUT dvar_t& d, const glm::vec2& v) {
 	}
 }
 
-void Dvar_SetVec3(INOUT dvar_t& d, const glm::vec3& v) {
+void Dvar_SetVec3(A_INOUT dvar_t& d, const glm::vec3& v) {
 	if (d.type == DVAR_TYPE_VEC3 &&
 		(v.x <= d.domain.f.max && v.x >= d.domain.f.min) &&
 		(v.y <= d.domain.f.max && v.y >= d.domain.f.min) &&
@@ -339,7 +339,7 @@ void Dvar_SetVec3(INOUT dvar_t& d, const glm::vec3& v) {
 	}
 }
 
-void Dvar_SetVec4(INOUT dvar_t& d, const glm::vec4& v) {
+void Dvar_SetVec4(A_INOUT dvar_t& d, const glm::vec4& v) {
 	if (d.type == DVAR_TYPE_VEC4 &&
 		(v.x <= d.domain.f.max && v.x >= d.domain.f.min) &&
 		(v.y <= d.domain.f.max && v.y >= d.domain.f.min) &&
@@ -352,11 +352,11 @@ void Dvar_SetVec4(INOUT dvar_t& d, const glm::vec4& v) {
 	}
 }
 
-void Dvar_AddFlags(INOUT dvar_t& d, dvarFlags_t flags) {
+void Dvar_AddFlags(A_INOUT dvar_t& d, dvarFlags_t flags) {
 	d.flags = (dvarFlags_t)((int)d.flags | flags);
 }
 
-void Dvar_ClearFlags(INOUT dvar_t& d, dvarFlags_t flags) {
+void Dvar_ClearFlags(A_INOUT dvar_t& d, dvarFlags_t flags) {
 	d.flags = (dvarFlags_t)(~((int)d.flags & flags));
 }
 
@@ -915,7 +915,7 @@ void Dvar_ClearLocalDvars(size_t localClientNum) {
 }
 
 bool Dvar_SetFromString(
-	INOUT dvar_t& dvar, dvarFlags_t flags, const std::deque<std::string>& v
+	A_INOUT dvar_t& dvar, dvarFlags_t flags, const std::deque<std::string>& v
 ) {
 	dvar.flags = flags;
 
@@ -1027,7 +1027,7 @@ bool Dvar_SetFromString(
 }
 
 bool Dvar_SetFromString(
-	INOUT dvar_t& dvar, dvarFlags_t flags, std::string_view value
+	A_INOUT dvar_t& dvar, dvarFlags_t flags, std::string_view value
 ) {
 	std::deque<std::string> v;
 	if (!A_Split(value, v))

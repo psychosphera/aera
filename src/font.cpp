@@ -12,7 +12,7 @@ void Font_Init() {
 }
 
 bool Font_Load(
-	std::string_view font_name, int width, int height, OUT FontDef& fd
+	std::string_view font_name, int width, int height, A_OUT FontDef& fd
 ) {
 	fd = FontDef{};
 

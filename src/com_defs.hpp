@@ -6,7 +6,7 @@
 #include "acommon/acommon.h"
 
 // can't #include sys.hpp because sys.hpp #includes this file
-NO_RETURN Sys_NormalExit(int ec);
+A_NO_RETURN Sys_NormalExit(int ec);
 uint64_t Sys_Milliseconds();
 
 constexpr size_t MAX_LOCAL_CLIENTS = 4;

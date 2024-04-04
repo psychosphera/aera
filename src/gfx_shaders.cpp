@@ -1,8 +1,8 @@
 #include "gfx_shaders.hpp"
 
-NO_DISCARD bool R_CompileShader(
+A_NO_DISCARD bool R_CompileShader(
     const std::string& shaderSource, int type,
-    OPTIONAL_OUT std::string* log, OUT unsigned int& shader
+    A_OPTIONAL_OUT std::string* log, A_OUT unsigned int& shader
 ) {
     shader = GL_CALL(glCreateShader, type);
 
@@ -24,9 +24,9 @@ NO_DISCARD bool R_CompileShader(
     return success == GL_TRUE;
 }
 
-NO_DISCARD bool R_LinkShaders(
+A_NO_DISCARD bool R_LinkShaders(
     vertex_shader_t vertShader, fragment_shader_t fragShader,
-    OPTIONAL_OUT std::string* log, OUT shader_program_t& program
+    A_OPTIONAL_OUT std::string* log, A_OUT shader_program_t& program
 ) {
     program = GL_CALL(glCreateProgram);
     GL_CALL(glAttachShader, program, vertShader);
@@ -47,9 +47,9 @@ NO_DISCARD bool R_LinkShaders(
     return success == GL_TRUE;
 }
 
-NO_DISCARD bool R_CreateShaderProgram(
+A_NO_DISCARD bool R_CreateShaderProgram(
     const std::string& vertexSource, const std::string& fragmentSource,
-    OPTIONAL_OUT std::string* log, OUT GfxShaderProgram& prog
+    A_OPTIONAL_OUT std::string* log, A_OUT GfxShaderProgram& prog
 ) {
     prog = GfxShaderProgram{};
 

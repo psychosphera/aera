@@ -8,9 +8,9 @@
 #define SIZE_BIT ((size_t)((size_t)CHAR_BIT * sizeof(size_t)))
 
 #ifdef __cplusplus
-#define EXTERN_C extern "C"
+#define A_EXTERN_C extern "C"
 #else
-#define EXTERN_C
+#define A_EXTERN_C
 #endif // __cplusplus
 
 #ifdef __cplusplus
@@ -20,54 +20,60 @@
 #endif // __cplusplus
 
 #ifdef __cplusplus
-#define NO_RETURN [[noreturn]] void
+#define A_NO_RETURN [[noreturn]] void
 #else
 #include <stdnoreturn.h>
-#define NO_RETURN _Noreturn void
+#define A_NO_RETURN _Noreturn void
 #endif // __cplusplus
 
 #ifdef __cplusplus
-#define NO_DISCARD [[nodiscard]]
+#define A_NO_DISCARD [[nodiscard]]
 #else
-#define NO_DISCARD
+#define A_NO_DISCARD
 #endif // __cpluslplus
 
 #ifdef _WIN32
-#define TARGET_OS_IS_WINDOWS 1
+#define A_TARGET_OS_IS_WINDOWS 1
 #else 
-#define TARGET_OS_IS_WINDOWS 0
+#define A_TARGET_OS_IS_WINDOWS 0
 #endif // _WIN32
 
-#if TARGET_OS_IS_WINDOWS
-#define IN _In_
+#ifdef _MSC_VER
+#define A_COMPILER_IS_MSVC 1
 #else
-#define IN
-#endif // TARGET_OS_IS_WINDOWS
+#define A_COMPILER_IS_MSVC 0
+#endif // _MSC_VER
 
-#if TARGET_OS_IS_WINDOWS
-#define OUT _Out_
+#if A_COMPILER_IS_MSVC
+#define A_IN _In_
 #else
-#define OUT
-#endif // TARGET_OS_IS_WINDOWS
+#define A_IN
+#endif // A_TARGET_OS_IS_WINDOWS
 
-#if TARGET_OS_IS_WINDOWS
-#define INOUT _Inout_
+#if A_COMPILER_IS_MSVC
+#define A_OUT _Out_
 #else
-#define INOUT
-#endif // TARGET_OS_IS_WINDOWS
+#define A_OUT
+#endif // A_TARGET_OS_IS_WINDOWS
 
-#if TARGET_OS_IS_WINDOWS
-#define OPTIONAL_IN _In_opt_
+#if A_COMPILER_IS_MSVC
+#define A_INOUT _Inout_
 #else
-#define OPTIONAL_IN
-#endif // TARGET_OS_IS_WINDOWS
+#define A_INOUT
+#endif // A_TARGET_OS_IS_WINDOWS
 
-#if TARGET_OS_IS_WINDOWS
-#define OPTIONAL_OUT _Out_opt_
+#if A_COMPILER_IS_MSVC
+#define A_OPTIONAL_IN _In_opt_
 #else
-#define OPTIONAL_OUT
-#endif // TARGET_OS_IS_WINDOWS
+#define A_OPTIONAL_IN
+#endif // A_TARGET_OS_IS_WINDOWS
 
-EXTERN_C size_t A_npow2(size_t n);
-EXTERN_C size_t A_ppow2(size_t n);
+#if A_COMPILER_IS_MSVC
+#define A_OPTIONAL_OUT _Out_opt_
+#else
+#define A_OPTIONAL_OUT
+#endif // A_TARGET_OS_IS_WINDOWS
+
+A_EXTERN_C size_t A_npow2(size_t n);
+A_EXTERN_C size_t A_ppow2(size_t n);
 

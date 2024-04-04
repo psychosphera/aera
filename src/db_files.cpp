@@ -30,7 +30,7 @@ std::string_view DB_AssetDirForType(AssetType at) {
 static const std::filesystem::path ASSETS_BASE_DIR = 
 	std::filesystem::path("../../../assets");
 
-NO_DISCARD std::filesystem::path DB_AssetPath(
+A_NO_DISCARD std::filesystem::path DB_AssetPath(
 	AssetType at, std::string_view assetName
 ) {
 	return std::filesystem::path(ASSETS_BASE_DIR) / 
@@ -38,15 +38,15 @@ NO_DISCARD std::filesystem::path DB_AssetPath(
 		assetName;
 }
 
-NO_DISCARD std::filesystem::path DB_ImagePath(std::string_view image_name) {
+A_NO_DISCARD std::filesystem::path DB_ImagePath(std::string_view image_name) {
 	return DB_AssetPath(AT_IMAGE, image_name);
 }
 
-NO_DISCARD std::filesystem::path DB_MapPath(std::string_view map_name) {
+A_NO_DISCARD std::filesystem::path DB_MapPath(std::string_view map_name) {
 	return DB_AssetPath(AT_MAP, map_name);
 }
 
-NO_DISCARD std::filesystem::path DB_SbspPath(std::string_view sbsp_name) {
+A_NO_DISCARD std::filesystem::path DB_SbspPath(std::string_view sbsp_name) {
 	return DB_AssetPath(AT_SBSP, sbsp_name);
 }
 
@@ -74,7 +74,7 @@ std::vector<std::byte> DB_LoadImage(std::string_view image_name) {
 	return DB_LoadAsset_Binary(AT_IMAGE, image_name);
 }
 
-NO_DISCARD StreamFile DB_LoadMap(std::string_view map_name) {
+A_NO_DISCARD StreamFile DB_LoadMap(std::string_view map_name) {
 	return FS_StreamFile(DB_MapPath(map_name));
 }
 

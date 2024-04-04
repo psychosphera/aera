@@ -145,7 +145,7 @@ void inline Com_DPrintln(T t) {
 }
 
 template<typename ...Args>
-NO_RETURN inline Com_Error(int ec, std::string_view fmt, Args&&... args) {
+A_NO_RETURN inline Com_Error(int ec, std::string_view fmt, Args&&... args) {
     Com_Print(
         CON_DEST_FATAL_ERR, "FATAL ERROR: {}",
         A_Format(fmt, args...)
@@ -155,24 +155,24 @@ NO_RETURN inline Com_Error(int ec, std::string_view fmt, Args&&... args) {
 
 // Shorthand for Com_Error(-1, fmt, args...)
 template<typename ...Args>
-NO_RETURN inline Com_Error(std::string_view fmt, Args&&... args) {
+A_NO_RETURN inline Com_Error(std::string_view fmt, Args&&... args) {
     Com_Error(-1, fmt, args...);
 }
 
 // Shorthand for Com_Error(ec, "{}", t)
 template<typename T>
-NO_RETURN inline Com_Error(int ec, T t) {
+A_NO_RETURN inline Com_Error(int ec, T t) {
     Com_Error(ec, "{}", t);
 }
 
 // Shorthand for Com_Error(-1, t)
 template<typename T>
-NO_RETURN inline Com_Error(T t) {
+A_NO_RETURN inline Com_Error(T t) {
     Com_Error(-1, t);
 }
 
 template<typename ...Args>
-NO_RETURN inline Com_Errorln(int ec, std::string_view fmt, Args&&... args) {
+A_NO_RETURN inline Com_Errorln(int ec, std::string_view fmt, Args&&... args) {
     Com_Println(
         CON_DEST_FATAL_ERR, "FATAL ERROR: {} ()",
         A_Format(fmt, args...),
@@ -187,18 +187,18 @@ NO_RETURN inline Com_Errorln(int ec, std::string_view fmt, Args&&... args) {
 
 // Shorthand for Com_Errorln(-1, fmt, args...)
 template<typename ...Args>
-NO_RETURN inline Com_Errorln(std::string_view fmt, Args&&... args) {
+A_NO_RETURN inline Com_Errorln(std::string_view fmt, Args&&... args) {
     Com_Errorln(-1, fmt, args...);
 }
 
 // Shorthand for Com_Errorln(ec, "{}", t)
 template<typename T>
-NO_RETURN inline Com_Errorln(int ec, T t) {
+A_NO_RETURN inline Com_Errorln(int ec, T t) {
     Com_Errorln(ec, "{}", t);
 }
 
 // Shorthand for Com_Errorln(-1, t)
 template<typename T>
-NO_RETURN inline Com_Errorln(T t) {
+A_NO_RETURN inline Com_Errorln(T t) {
     Com_Errorln(-1, t);
 }

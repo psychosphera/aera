@@ -11,7 +11,7 @@
 #include "com_defs.hpp"
 #include "com_print.hpp"
 
-NO_DISCARD std::vector<std::byte> FS_ReadFile(std::filesystem::path path) {
+A_NO_DISCARD std::vector<std::byte> FS_ReadFile(std::filesystem::path path) {
 	SDL_RWops* ops = SDL_RWFromFile(path.string().c_str(), "rb");
 	if (ops == NULL) {
 		Com_Println(
@@ -36,7 +36,7 @@ NO_DISCARD std::vector<std::byte> FS_ReadFile(std::filesystem::path path) {
 	return v;
 }
 
-NO_DISCARD std::string FS_ReadFileText(std::filesystem::path path) {
+A_NO_DISCARD std::string FS_ReadFileText(std::filesystem::path path) {
 	SDL_RWops* ops = SDL_RWFromFile(path.string().c_str(), "r");
 	if (ops == NULL) {
 		Com_Println(
@@ -64,7 +64,7 @@ NO_DISCARD std::string FS_ReadFileText(std::filesystem::path path) {
 	return s;
 }
 
-NO_DISCARD StreamFile FS_StreamFile(std::filesystem::path path, SeekFrom from, size_t off) {
+A_NO_DISCARD StreamFile FS_StreamFile(std::filesystem::path path, SeekFrom from, size_t off) {
 	SDL_RWops* f = SDL_RWFromFile(path.string().c_str(), "rb");
 	size_t size = SDL_RWsize(f);
 	SDL_RWseek(f, 0, SDL_RW_SEEK_SET);
@@ -74,11 +74,11 @@ NO_DISCARD StreamFile FS_StreamFile(std::filesystem::path path, SeekFrom from, s
 	return s;
 }
 
-NO_DISCARD size_t FS_StreamPos(const StreamFile& file) {
+A_NO_DISCARD size_t FS_StreamPos(const StreamFile& file) {
 	return SDL_RWtell(file.f);
 }
 
-long long FS_SeekStream(INOUT StreamFile& file, SeekFrom from, size_t off) {
+long long FS_SeekStream(A_INOUT StreamFile& file, SeekFrom from, size_t off) {
 	assert(off <= file.size);
 
 	Sint64 begin_pos = SDL_RWtell(file.f);

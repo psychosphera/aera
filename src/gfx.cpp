@@ -43,7 +43,7 @@ void GLAPIENTRY R_GlDebugOutput(
 }
 
 static void R_RegisterDvars();
-static void R_InitCubePrim(INOUT GfxCubePrim& cubePrim);
+static void R_InitCubePrim(A_INOUT GfxCubePrim& cubePrim);
 static void R_DrawFrameInternal(size_t localClientNum);
 static void R_InitLocalClient(size_t localClientNum);
 static void R_UpdateLocalClientView(size_t localClientNum);
@@ -141,7 +141,7 @@ static void R_RegisterDvars() {
     r_noBorder   = &Dvar_RegisterBool("r_noBorder", DVAR_FLAG_NONE, false);
 }
 
-static void R_InitCubePrim(INOUT GfxCubePrim& cubePrim) {
+static void R_InitCubePrim(A_INOUT GfxCubePrim& cubePrim) {
     std::string vertSource = DB_LoadShader("vs.glsl");
     std::string fragSource = DB_LoadShader("fs.glsl");
 
@@ -208,9 +208,9 @@ void R_WindowResized() {
     }
 }
 
-NO_DISCARD bool R_CreateImage(
-    std::string_view image_name, OPTIONAL_OUT int* width, 
-    OPTIONAL_OUT int* height, OUT texture_t& tex
+A_NO_DISCARD bool R_CreateImage(
+    std::string_view image_name, A_OPTIONAL_OUT int* width, 
+    A_OPTIONAL_OUT int* height, A_OUT texture_t& tex
 ) {
     if(width)
         *width  = 0;

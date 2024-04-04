@@ -21,7 +21,7 @@ void PM_Init() {
 }
 
 static void PM_Accelerate(
-	INOUT pmove_t& pm, const pml_t& pml,
+	A_INOUT pmove_t& pm, const pml_t& pml,
 	const glm::vec3& wishdir, float wishspeed, float accel
 ) {
 	float currentspeed = glm::dot(pm.ps->velocity, wishdir);
@@ -37,7 +37,7 @@ static void PM_Accelerate(
 	pm.ps->velocity += wishdir * accelspeed;
 }
 
-static void PM_NoclipMove(INOUT pmove_t& pm, const pml_t& pml) {
+static void PM_NoclipMove(A_INOUT pmove_t& pm, const pml_t& pml) {
 	float speed = glm::length(pm.ps->velocity);
 	if (speed < 1.0f) {
 		pm.ps->velocity = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -69,7 +69,7 @@ static void PM_NoclipMove(INOUT pmove_t& pm, const pml_t& pml) {
 	pm.ps->origin += pm.ps->velocity * pml.frametime;
 }
 
-void PM_UpdateViewAngles(INOUT playerState_t& ps, const usercmd_t& cmd) {
+void PM_UpdateViewAngles(A_INOUT playerState_t& ps, const usercmd_t& cmd) {
 	if (ps.pm_type != PM_NOCLIP)
 		return;
 
@@ -78,7 +78,7 @@ void PM_UpdateViewAngles(INOUT playerState_t& ps, const usercmd_t& cmd) {
 	ps.viewpitch = std::clamp(ps.viewpitch + ps.deltapitch + cmd.pitch, -89.0f, 89.0f);
 }
 
-void PmoveSingle(INOUT pmove_t& pm, INOUT pml_t& pml) {
+void PmoveSingle(A_INOUT pmove_t& pm, A_INOUT pml_t& pml) {
 	A_memset(&pml, 0, sizeof(pml));
 
 	pml.msec = std::clamp((uint64_t)((float)pm.cmd.serverTime - (float)pm.ps->commandTime), (uint64_t)1, (uint64_t)200);

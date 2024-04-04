@@ -131,7 +131,7 @@ bool Sys_SpawnDevConThread(int(*DevConThread)(void*)) {
     return Sys_CreateThread(THREAD_DEVCON, "devcon", DevConThread);
 }
 
-NO_RETURN Sys_Exit(int ec) {
+A_NO_RETURN Sys_Exit(int ec) {
     exit(ec);
 }
 
@@ -141,7 +141,7 @@ void Sys_Shutdown() {
     SDL_Quit();
 }
 
-NO_RETURN Sys_NormalExit(int ec) {
+A_NO_RETURN Sys_NormalExit(int ec) {
     Com_Shutdown();
     Sys_Shutdown();
     Sys_Exit(ec);

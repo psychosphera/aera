@@ -36,7 +36,7 @@ struct FontDef {
 		return true;
 	}
 
-	inline bool GetGlyph(char c, OUT GlyphDef*& g) {
+	inline bool GetGlyph(char c, A_OUT GlyphDef*& g) {
 		if (c < 32 || c > 127) {
             g = nullptr;
 			return false;
@@ -46,7 +46,7 @@ struct FontDef {
 		return true;
 	}
 
-    inline bool GetGlyph(char c, OUT const GlyphDef*& g) const {
+    inline bool GetGlyph(char c, A_OUT const GlyphDef*& g) const {
         if (c < 32 || c > 127) {
             g = nullptr;
             return false;
@@ -115,7 +115,7 @@ private:
 
 
 void Font_Init();
-NO_DISCARD bool Font_Load(
-	std::string_view font_name, int width, int height, OUT FontDef& fd
+A_NO_DISCARD bool Font_Load(
+	std::string_view font_name, int width, int height, A_OUT FontDef& fd
 );
 void Font_Shutdown();

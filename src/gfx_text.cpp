@@ -28,7 +28,7 @@ inline static const std::array<GfxSubTexDef, 6> s_subTexDefs = {
 // ============================================================================
 // DON'T TOUCH ANY OF THIS. DON'T EVEN LOOK AT IT THE WRONG WAY. LEAVE IT ALONE
 // AND BE HAPPY YOU DIDN'T SPEND TEN HOURS GETTING IT TO WORK.
-NO_DISCARD bool R_CreateTextureAtlas(INOUT FontDef& f) {
+A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef& f) {
     if (!R_CreateShaderProgram(
         DB_LoadShader("text.vs.glsl"),
         DB_LoadShader("text.fs.glsl"),
@@ -119,7 +119,7 @@ NO_DISCARD bool R_CreateTextureAtlas(INOUT FontDef& f) {
 // ============================================================================
 
 void R_DrawText(
-    size_t localClientNum, OPTIONAL_IN const FontDef* font, 
+    size_t localClientNum, A_OPTIONAL_IN const FontDef* font, 
     const RectDef& rect, std::string_view text,
     float xscale, float yscale, const glm::vec3& color,
     bool right
@@ -275,7 +275,7 @@ void R_DrawText(
 
 std::array<std::array<GfxTextDraw, 256>, MAX_LOCAL_CLIENTS> r_textDraws;
 
-bool R_GetTextDraw(size_t localClientNum, size_t id, OUT GfxTextDraw*& draw) {
+bool R_GetTextDraw(size_t localClientNum, size_t id, A_OUT GfxTextDraw*& draw) {
     draw = nullptr;
     assert(id < r_textDraws.at(localClientNum).size());
 
@@ -285,7 +285,7 @@ bool R_GetTextDraw(size_t localClientNum, size_t id, OUT GfxTextDraw*& draw) {
 }
 
 
-bool R_FindFreeTextDraw(size_t localClientNum, OUT size_t& index, OUT GfxTextDraw*& draw) {
+bool R_FindFreeTextDraw(size_t localClientNum, A_OUT size_t& index, A_OUT GfxTextDraw*& draw) {
     index = (size_t)-1;
     draw = nullptr;
 
@@ -303,7 +303,7 @@ bool R_FindFreeTextDraw(size_t localClientNum, OUT size_t& index, OUT GfxTextDra
 bool R_AddTextDraw(
     size_t localClientNum, FontDef* font, const RectDef& rect, std::string text,
     float xscale, float yscale, glm::vec3 color, bool active, bool right,
-    OUT size_t& id
+    A_OUT size_t& id
 ) {
     GfxTextDraw* d = nullptr;
     if (!R_FindFreeTextDraw(localClientNum, id, d))

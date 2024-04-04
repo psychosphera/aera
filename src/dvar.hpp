@@ -19,45 +19,45 @@ enum dvarFlags_t {
 
 struct dvar_t;
 
-NO_DISCARD bool Dvar_WasModified(const dvar_t& d);
-void Dvar_SetModified(INOUT dvar_t& d);
-void Dvar_ClearModified(INOUT dvar_t& d);
+A_NO_DISCARD bool Dvar_WasModified(const dvar_t& d);
+void Dvar_SetModified(A_INOUT dvar_t& d);
+void Dvar_ClearModified(A_INOUT dvar_t& d);
 
-NO_DISCARD bool Dvar_IsBool  (const dvar_t& d);
-NO_DISCARD bool Dvar_IsInt   (const dvar_t& d);
-NO_DISCARD bool Dvar_IsFloat (const dvar_t& d);
-NO_DISCARD bool Dvar_IsString(const dvar_t& d);
-NO_DISCARD bool Dvar_IsEnum  (const dvar_t& d);
-NO_DISCARD bool Dvar_IsVec2  (const dvar_t& d);
-NO_DISCARD bool Dvar_IsVec3  (const dvar_t& d);
-NO_DISCARD bool Dvar_IsVec4  (const dvar_t& d);
+A_NO_DISCARD bool Dvar_IsBool  (const dvar_t& d);
+A_NO_DISCARD bool Dvar_IsInt   (const dvar_t& d);
+A_NO_DISCARD bool Dvar_IsFloat (const dvar_t& d);
+A_NO_DISCARD bool Dvar_IsString(const dvar_t& d);
+A_NO_DISCARD bool Dvar_IsEnum  (const dvar_t& d);
+A_NO_DISCARD bool Dvar_IsVec2  (const dvar_t& d);
+A_NO_DISCARD bool Dvar_IsVec3  (const dvar_t& d);
+A_NO_DISCARD bool Dvar_IsVec4  (const dvar_t& d);
 
-void Dvar_LatchValue(INOUT dvar_t& d);
-bool Dvar_RestoreValue(INOUT dvar_t& d);
+void Dvar_LatchValue(A_INOUT dvar_t& d);
+bool Dvar_RestoreValue(A_INOUT dvar_t& d);
 bool Dvar_HasLatchedValue(const dvar_t& d);
 
-void Dvar_SetBool  (INOUT dvar_t& d, bool b);
-void Dvar_SetInt   (INOUT dvar_t& d, int i);
-void Dvar_SetFloat (INOUT dvar_t& d, float f);
-void Dvar_SetString(INOUT dvar_t& d, const std::string& s);
+void Dvar_SetBool  (A_INOUT dvar_t& d, bool b);
+void Dvar_SetInt   (A_INOUT dvar_t& d, int i);
+void Dvar_SetFloat (A_INOUT dvar_t& d, float f);
+void Dvar_SetString(A_INOUT dvar_t& d, const std::string& s);
 // TODO - SetEnum
-void Dvar_SetVec2(INOUT dvar_t& d, const glm::vec2& v);
-void Dvar_SetVec3(INOUT dvar_t& d, const glm::vec3& v);
-void Dvar_SetVec4(INOUT dvar_t& d, const glm::vec4& v);
+void Dvar_SetVec2(A_INOUT dvar_t& d, const glm::vec2& v);
+void Dvar_SetVec3(A_INOUT dvar_t& d, const glm::vec3& v);
+void Dvar_SetVec4(A_INOUT dvar_t& d, const glm::vec4& v);
 
-NO_DISCARD bool             Dvar_GetBool  (const dvar_t& d);
-NO_DISCARD int              Dvar_GetInt   (const dvar_t& d);
-NO_DISCARD float            Dvar_GetFloat (const dvar_t& d);
-NO_DISCARD std::string_view Dvar_GetString(const dvar_t& d);
-NO_DISCARD std::string_view Dvar_GetEnum  (const dvar_t& d);
-NO_DISCARD glm::vec2        Dvar_GetVec2  (const dvar_t& d);
-NO_DISCARD glm::vec3        Dvar_GetVec3  (const dvar_t& d);
-NO_DISCARD glm::vec4        Dvar_GetVec4  (const dvar_t& d);
+A_NO_DISCARD bool             Dvar_GetBool  (const dvar_t& d);
+A_NO_DISCARD int              Dvar_GetInt   (const dvar_t& d);
+A_NO_DISCARD float            Dvar_GetFloat (const dvar_t& d);
+A_NO_DISCARD std::string_view Dvar_GetString(const dvar_t& d);
+A_NO_DISCARD std::string_view Dvar_GetEnum  (const dvar_t& d);
+A_NO_DISCARD glm::vec2        Dvar_GetVec2  (const dvar_t& d);
+A_NO_DISCARD glm::vec3        Dvar_GetVec3  (const dvar_t& d);
+A_NO_DISCARD glm::vec4        Dvar_GetVec4  (const dvar_t& d);
 
-void Dvar_AddFlags(INOUT dvar_t& d, dvarFlags_t flags);
+void Dvar_AddFlags(A_INOUT dvar_t& d, dvarFlags_t flags);
 
-NO_DISCARD bool    Dvar_Exists(const std::string& name);
-NO_DISCARD dvar_t* Dvar_Find  (const std::string& name);
+A_NO_DISCARD bool    Dvar_Exists(const std::string& name);
+A_NO_DISCARD dvar_t* Dvar_Find  (const std::string& name);
 
 dvar_t* Dvar_RegisterNewBool(
 	const std::string& name, dvarFlags_t flags, 
@@ -160,8 +160,8 @@ dvar_t& Dvar_RegisterVec4(
 bool Dvar_Unregister(const std::string& name);
 void Dvar_ClearDvars();
 
-NO_DISCARD bool Dvar_LocalExists(size_t localClientNum, const std::string& name);
-NO_DISCARD dvar_t* Dvar_FindLocal(size_t localClientNum, const std::string& name);
+A_NO_DISCARD bool Dvar_LocalExists(size_t localClientNum, const std::string& name);
+A_NO_DISCARD dvar_t* Dvar_FindLocal(size_t localClientNum, const std::string& name);
 
 dvar_t* Dvar_RegisterNewLocalBool(size_t localClientNum,
 	const std::string& name, dvarFlags_t flags,
@@ -265,11 +265,11 @@ bool Dvar_UnregisterLocal(size_t localClientNum, const std::string& name);
 void Dvar_ClearLocalDvars(size_t localClientNum);
 
 bool Dvar_SetFromString(
-	INOUT dvar_t& dvar, dvarFlags_t flags, 
+	A_INOUT dvar_t& dvar, dvarFlags_t flags, 
 	const std::deque<std::string>& v
 );
 bool Dvar_SetFromString(
-	INOUT dvar_t& dvar, dvarFlags_t flags, std::string_view value
+	A_INOUT dvar_t& dvar, dvarFlags_t flags, std::string_view value
 );
 dvar_t* Dvar_RegisterNewFromString(
 	const std::string& name, dvarFlags_t flags, std::string_view value

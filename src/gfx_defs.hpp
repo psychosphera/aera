@@ -7,9 +7,10 @@
 #include <SDL3/SDL.h>
 #include <glm/glm.hpp>
 
+#include "acommon/a_math.h"
+
 #include "com_print.hpp"
 #include "dvar.hpp"
-#include "m_math.hpp"
 
 typedef unsigned int vbo_t;
 typedef unsigned int vao_t;
@@ -153,7 +154,7 @@ struct GfxTextDraw {
     bool right;
 };
 
-NO_DISCARD constexpr inline std::string_view GL_ERROR_STR(GLenum err) {
+A_NO_DISCARD constexpr inline std::string_view GL_ERROR_STR(GLenum err) {
     switch (err) {
     case GL_NO_ERROR:
         return "GL_NO_ERROR";
@@ -177,7 +178,7 @@ NO_DISCARD constexpr inline std::string_view GL_ERROR_STR(GLenum err) {
     }
 }
 
-NO_DISCARD constexpr inline std::string_view GL_DEBUG_SOURCE_STR(GLenum source) {
+A_NO_DISCARD constexpr inline std::string_view GL_DEBUG_SOURCE_STR(GLenum source) {
     switch (source) {
     case GL_DEBUG_SOURCE_API:
         return "API";
@@ -196,7 +197,7 @@ NO_DISCARD constexpr inline std::string_view GL_DEBUG_SOURCE_STR(GLenum source) 
     };
 }
 
-NO_DISCARD constexpr inline std::string_view GL_DEBUG_TYPE_STR(GLenum type) {
+A_NO_DISCARD constexpr inline std::string_view GL_DEBUG_TYPE_STR(GLenum type) {
     switch (type) {
     case GL_DEBUG_TYPE_ERROR:
         return "Error";
@@ -221,7 +222,7 @@ NO_DISCARD constexpr inline std::string_view GL_DEBUG_TYPE_STR(GLenum type) {
     };
 }
 
-NO_DISCARD constexpr inline std::string_view GL_DEBUG_SEVERITY_STR(GLenum severity) {
+A_NO_DISCARD constexpr inline std::string_view GL_DEBUG_SEVERITY_STR(GLenum severity) {
     switch (severity) {
     case GL_DEBUG_SEVERITY_HIGH:
         return "High";
@@ -277,18 +278,18 @@ auto inline R_GlCallImpl(
 #endif // GL_CALL
 
 // can't be constexpr since atan() isn't constexpr for some reason
-NO_DISCARD inline float FOV_HORZ_TO_VERTICAL(float fovx, float aspect_inv) {
-    return 2.0f * glm::degrees(M_atan(M_tan(glm::radians(fovx) / 2) * aspect_inv));
+A_NO_DISCARD inline float FOV_HORZ_TO_VERTICAL(float fovx, float aspect_inv) {
+    return 2.0f * glm::degrees(A_atanf(A_tanf(glm::radians(fovx) / 2) * aspect_inv));
 }
 
-NO_DISCARD inline float FOV_VERTICAL_TO_HORZ(float fovy, float aspect) {
-    return 2.0f * glm::degrees(M_atan(M_tan(glm::radians(fovy) / 2) * aspect));
+A_NO_DISCARD inline float FOV_VERTICAL_TO_HORZ(float fovy, float aspect) {
+    return 2.0f * glm::degrees(A_atanf(A_tanf(glm::radians(fovy) / 2) * aspect));
 }
 
-NO_DISCARD inline float VID_ASPECT() {
+A_NO_DISCARD inline float VID_ASPECT() {
     return (float)Dvar_GetInt(*vid_width) / (float)Dvar_GetInt(*vid_width);
 }
 
-NO_DISCARD inline float VID_ASPECT_INV() {
+A_NO_DISCARD inline float VID_ASPECT_INV() {
     return (float)Dvar_GetInt(*vid_width) / (float)Dvar_GetInt(*vid_width);
 }

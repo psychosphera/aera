@@ -2,9 +2,9 @@
 
 #include "a_string.h"
 
-EXTERN_C char     A_tolower_Char  (      char      c);
-EXTERN_C string_t A_tolower_Str   (const str_t*    s);
-EXTERN_C string_t A_tolower_String(const string_t* s);
+A_EXTERN_C char     A_tolower_Char  (      char      c);
+A_EXTERN_C string_t A_tolower_Str   (const str_t*    s);
+A_EXTERN_C string_t A_tolower_String(const string_t* s);
 
 #ifndef __cplusplus
 #define A_tolower(s) (_Generic((s), \

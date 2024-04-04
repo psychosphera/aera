@@ -14,7 +14,7 @@
 #include "a_string.h"
 #include "a_type.h"
 
-inline bool A_Split(std::string_view s, OUT std::deque<std::string>& v) {
+inline bool A_Split(std::string_view s, A_OUT std::deque<std::string>& v) {
     v = std::deque<std::string>(); 
 
     if (s.empty())
@@ -40,7 +40,7 @@ inline bool A_Split(std::string_view s, OUT std::deque<std::string>& v) {
     return true;
 }
 
-inline bool A_Parse(std::string_view s, OUT bool& value) {
+inline bool A_Parse(std::string_view s, A_OUT bool& value) {
     value = false;
 
     int i = 0;
@@ -64,7 +64,7 @@ inline bool A_Parse(std::string_view s, OUT bool& value) {
     return false;
 }
 
-inline bool A_Parse(std::string_view s, OUT int& value) {
+inline bool A_Parse(std::string_view s, A_OUT int& value) {
     value = 0;
 
     auto r = std::from_chars(s.data(), s.data() + s.size(), value);
@@ -75,13 +75,13 @@ inline bool A_Parse(std::string_view s, OUT int& value) {
     return false;
 }
 
-inline bool A_Parse(std::string_view s, OUT float& value) {
+inline bool A_Parse(std::string_view s, A_OUT float& value) {
     value = (float)atof(std::string(s).data());
     return true;
 }
 
 inline bool A_Parse(
-    const std::array<std::string_view, 2>& v, OUT glm::vec2& value
+    const std::array<std::string_view, 2>& v, A_OUT glm::vec2& value
 ) {
     value = glm::vec2(0.0f, 0.0f);
 
@@ -96,7 +96,7 @@ inline bool A_Parse(
     return true;
 }
 
-inline bool A_Parse(std::string_view s, OUT glm::vec2& value) {
+inline bool A_Parse(std::string_view s, A_OUT glm::vec2& value) {
     std::deque<std::string> v;
     A_Split(s, v);
 
@@ -107,7 +107,7 @@ inline bool A_Parse(std::string_view s, OUT glm::vec2& value) {
 }
 
 bool inline A_Parse(
-    const std::array<std::string_view, 3>& v, OUT glm::vec3& value
+    const std::array<std::string_view, 3>& v, A_OUT glm::vec3& value
 ) {
     value = glm::vec3(0.0f, 0.0f, 0.0f);
 
@@ -125,7 +125,7 @@ bool inline A_Parse(
     return true;
 }
 
-inline bool A_Parse(std::string_view s, OUT glm::vec3& value) {
+inline bool A_Parse(std::string_view s, A_OUT glm::vec3& value) {
     std::deque<std::string> v;
     A_Split(s, v);
 
@@ -138,7 +138,7 @@ inline bool A_Parse(std::string_view s, OUT glm::vec3& value) {
 }
 
 inline bool A_Parse(
-    const std::array<std::string_view, 4>& v, OUT glm::vec4& value
+    const std::array<std::string_view, 4>& v, A_OUT glm::vec4& value
 ) {
     value = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 
@@ -159,7 +159,7 @@ inline bool A_Parse(
     return true;
 }
 
-inline bool A_Parse(std::string_view s, OUT glm::vec4& value) {
+inline bool A_Parse(std::string_view s, A_OUT glm::vec4& value) {
     std::deque<std::string> v;
     A_Split(s, v);
 

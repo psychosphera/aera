@@ -30,11 +30,11 @@ void DevCon_Init() {
 	devcon_textMutex = SDL_CreateMutex();
 }
 
-NO_DISCARD bool DevCon_HasText() {
+A_NO_DISCARD bool DevCon_HasText() {
 	return devcon_hasText;
 }
 
-NO_DISCARD std::string DevCon_TakeText() {
+A_NO_DISCARD std::string DevCon_TakeText() {
 	SDL_LockMutex(devcon_textMutex);
 	devcon_hasText = false;
 	std::string s = std::move(devcon_buffer);

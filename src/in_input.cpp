@@ -132,23 +132,23 @@ void IN_Key_Init() {
 		IN_GetLocalClientLocals(i).keys.clear();
 }
 
-NO_DISCARD bool IN_Key_IsDown(size_t localClientNum, SDL_Keycode k) {
+A_NO_DISCARD bool IN_Key_IsDown(size_t localClientNum, SDL_Keycode k) {
 	return IN_GetLocalClientLocals(localClientNum).keys[k].down == true;
 }
 
-NO_DISCARD bool IN_Key_IsUp(size_t localClientNum, SDL_Keycode k) {
+A_NO_DISCARD bool IN_Key_IsUp(size_t localClientNum, SDL_Keycode k) {
 	return IN_GetLocalClientLocals(localClientNum).keys[k].down == false;
 }
 
-NO_DISCARD bool IN_Key_IsToggled(size_t localClientNum, SDL_Keycode k) {
+A_NO_DISCARD bool IN_Key_IsToggled(size_t localClientNum, SDL_Keycode k) {
 	return IN_GetLocalClientLocals(localClientNum).keys[k].toggle;
 }
 
-NO_DISCARD bool IN_Key_WasPressedOnCurrentFrame(size_t localClientNum, SDL_Keycode k) {
+A_NO_DISCARD bool IN_Key_WasPressedOnCurrentFrame(size_t localClientNum, SDL_Keycode k) {
 	return IN_GetLocalClientLocals(localClientNum).keys[k].justDown;
 }
 
-NO_DISCARD std::span<int> IN_Key_AllPressedOnCurrentFrame(size_t localClientNum) {
+A_NO_DISCARD std::span<int> IN_Key_AllPressedOnCurrentFrame(size_t localClientNum) {
 	return std::span(IN_GetLocalClientLocals(localClientNum).keysPressedOnCurrentFrame);
 }
 
@@ -237,12 +237,12 @@ void IN_Mouse_Init() {
 	}
 }
 
-NO_DISCARD bool IN_Mouse_IsDown(size_t localClientNum, Uint8 button) {
+A_NO_DISCARD bool IN_Mouse_IsDown(size_t localClientNum, Uint8 button) {
 	int i = IN_Mouse_SDLButtonToIndex(button);
 	return IN_GetLocalClientLocals(localClientNum).mouse.buttons.array[i] == true;
 }
 
-NO_DISCARD bool IN_Mouse_IsUp(size_t localClientNum, Uint8 button) {
+A_NO_DISCARD bool IN_Mouse_IsUp(size_t localClientNum, Uint8 button) {
 	int i = IN_Mouse_SDLButtonToIndex(button);
 	return IN_GetLocalClientLocals(localClientNum).mouse.buttons.array[i] == false;
 }
@@ -266,11 +266,11 @@ void IN_Mouse_Move(size_t localClientNum, float x, float y) {
 	IN_GetLocalClientLocals(localClientNum).mouse.y -= y;
 }
 
-NO_DISCARD float IN_Mouse_X(size_t localClientNum) {
+A_NO_DISCARD float IN_Mouse_X(size_t localClientNum) {
 	return IN_GetLocalClientLocals(localClientNum).mouse.x;
 }
 
-NO_DISCARD float IN_Mouse_Y(size_t localClientNum) {
+A_NO_DISCARD float IN_Mouse_Y(size_t localClientNum) {
 	return IN_GetLocalClientLocals(localClientNum).mouse.y;
 }
 

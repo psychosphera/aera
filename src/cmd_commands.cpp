@@ -30,7 +30,7 @@ bool Cmd_CommandExists(std::string_view cmdName) {
 	return s_cmds.contains(cmdName);
 }
 
-bool Cmd_FindCommand(std::string_view cmdName, OUT std::function<void(void)>& fn) {
+bool Cmd_FindCommand(std::string_view cmdName, A_OUT std::function<void(void)>& fn) {
 	fn = std::function<void(void)>();
 
 	if (!s_cmds.contains(cmdName))

@@ -15,5 +15,5 @@ void Sys_Init();
 bool Sys_HandleEvent();
 void Sys_Shutdown();
 bool Sys_SpawnDevConThread(int(*DevConThread)(void*));
-//NO_RETURN Sys_NormalExit(int ec);
+//A_NO_RETURN Sys_NormalExit(int ec);
 //uint64_t Sys_Milliseconds();

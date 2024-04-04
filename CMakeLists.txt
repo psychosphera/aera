@@ -23,10 +23,10 @@ if(EXISTS VCPKG_TOOLCHAIN)
 endif()
 
 find_package(Freetype REQUIRED)
-find_package(GLEW REQUIRED)
-find_package(OpenGL REQUIRED)
-find_package(glm CONFIG REQUIRED)
-find_package(ZLIB REQUIRED)
+find_package(GLEW     REQUIRED)
+find_package(OpenGL   REQUIRED)
+find_package(glm      REQUIRED)
+find_package(ZLIB     REQUIRED)
 
 add_executable(h1_map_viewer
     src/acommon/a_string.c src/acommon/a_common.c src/acommon/a_type.c
@@ -37,7 +37,7 @@ add_executable(h1_map_viewer
  	src/db_files.cpp src/cmd_commands.cpp src/cl_client.cpp src/devgui.cpp 
 	src/gfx_text.cpp src/gfx_shaders.cpp src/devcon.cpp src/dvar.cpp 
 	src/con_console.cpp src/pm_pmove.cpp src/m_math.cpp
-)
+ "src/acommon/a_math.c" "src/acommon/a_math.h")
 
 
 # SDL3 and SDL3_image aren't available from vcpkg. SDL_image contains SDL as a
@@ -72,7 +72,6 @@ target_include_directories(
 set_target_properties(
 	h1_map_viewer PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/build
 )
-
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	target_compile_definitions(h1_map_viewer PRIVATE _DEBUG=1)
