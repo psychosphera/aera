@@ -47,10 +47,11 @@ void CL_Init() {
 		cl.drawfps = Dvar_RegisterLocalBool(i, "cl_drawfps", DVAR_FLAG_NONE, false);
 		CL_GetLocalClientLocals(i).drawDevGui = false;
 		CL_SetKeyFocus(i, KF_GAME);
+		RectDef rect = { .x = 0.9502f, .y = 0.9502f, .w = 0.0498f, .h = 0.0498f };
 		assert(R_AddTextDraw(
-			i, NULL,
+			i, NULL, rect,
 			A_Format("FPS: {:.0f}", 1000.0f / s_lastFpsDrawDelta),
-			0.9502f, 0.9502f, 0.5f, 0.5f,
+			0.5f, 0.5f,
 			glm::vec3(0.5, 0.8f, 0.2f), Dvar_GetBool(*cl.drawfps), true,
 			CL_GetLocalClientLocals(i).fpsTextDrawId
 		));

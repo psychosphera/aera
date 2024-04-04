@@ -12,6 +12,8 @@ struct dgl_t {
 };
 
 std::array<dgl_t, MAX_LOCAL_CLIENTS> s_dgl;
+ 
+constexpr RectDef devgui_rect = { .x = 0.1f, .y = 0.9f, .w = 0.8f, .h = 0.2f };
 
 dgl_t& DevGui_GetLocalClientLocals(size_t localClientNum) {
 	return s_dgl.at(localClientNum);
@@ -23,8 +25,8 @@ void DevGui_Init() {
 		dgl.buffer = "> ";
 
 		R_AddTextDraw(
-			i, nullptr, dgl.buffer,
-			0.1f, 0.9f, 1.0f, 1.0f, glm::vec3(0.9f, 0.2f, 0.2f),
+			i, nullptr, devgui_rect, dgl.buffer,
+			1.0f, 1.0f, glm::vec3(0.9f, 0.2f, 0.2f),
 			false, false, dgl.promptDrawId
 		);
 	}

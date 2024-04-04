@@ -91,8 +91,9 @@ void R_Init() {
     bool b = Font_Load("consola.ttf", 0, 48, r_defaultFont);
     assert(b);
     
+    RectDef rect = { .x = 0.1f, .y = 0.1f, .w = 0.8f, .h = 0.2f };
     R_AddTextDraw(
-        0, nullptr, "This is a test.\nWhere the fuck i am?", 0.1f, 0.1f, 1.0f, 1.0f,
+        0, nullptr, rect, "This is a test.\nWhere the fuck i am?", 1.0f, 1.0f,
         glm::vec3(0.77, 0.77, 0.2), true, false, r_testDrawId
     );
     R_InitCubePrim(r_cubePrim);

@@ -119,8 +119,9 @@ NO_DISCARD bool R_CreateTextureAtlas(INOUT FontDef& f) {
 // ============================================================================
 
 void R_DrawText(
-    size_t localClientNum, OPTIONAL_IN const FontDef* font, std::string_view text,
-    float x, float y, float xscale, float yscale, const glm::vec3& color,
+    size_t localClientNum, OPTIONAL_IN const FontDef* font, 
+    const RectDef& rect, std::string_view text,
+    float xscale, float yscale, const glm::vec3& color,
     bool right
 ) {
     if (font == nullptr)
@@ -128,10 +129,10 @@ void R_DrawText(
 
     cg_t& cg = CG_GetLocalClientGlobals(localClientNum);
 
+    float x = rect.x;
+    float y = rect.y + rect.h;
     x *= cg.viewport.w * Dvar_GetInt(*vid_width);
     y *= cg.viewport.h * Dvar_GetInt(*vid_height);
-
-    float firstX = x;
 
     GL_CALL(glUseProgram, font->prog.program);
     GL_CALL(glEnable, GL_BLEND);
@@ -163,7 +164,9 @@ void R_DrawText(
 
         if (c == '\n') {
             y -= font->atlas_height;
-            x = firstX;
+            if (y < rect.y)
+                break;
+            x = rect.x;
             right ? i-- : i++;
             continue;
         }
@@ -192,6 +195,15 @@ void R_DrawText(
         if (g->advance_x == 0) {
             right ? i-- : i++;
             continue;
+        }
+
+        // Wrap the text if it goes beyond the boundaries of rect
+        if (x + g->advance_x > rect.x + rect.w) {
+            y -= font->atlas_height;
+            if (y < rect.y)
+                break;
+
+            x = rect.x;
         }
 
         // Scale the width and height and update the last ones, or reuse the 
@@ -283,7 +295,7 @@ bool R_FindFreeTextDraw(size_t localClientNum, OUT size_t& index, OUT GfxTextDra
 }
 
 bool R_AddTextDraw(
-    size_t localClientNum, FontDef* font, std::string text, float x, float y,
+    size_t localClientNum, FontDef* font, const RectDef& rect, std::string text,
     float xscale, float yscale, glm::vec3 color, bool active, bool right,
     OUT size_t& id
 ) {
@@ -294,8 +306,7 @@ bool R_AddTextDraw(
     d->free = false;
     d->font = font;
     d->text = text;
-    d->x = x;
-    d->y = y;
+    d->rect = rect;
     d->xscale = xscale;
     d->yscale = yscale;
     d->color = color;
@@ -346,7 +357,7 @@ void R_DrawTextDraws(size_t localClientNum) {
     for (const auto& c : r_textDraws.at(localClientNum)) {
         if (!c.free && c.active) {
             R_DrawText(
-                localClientNum, c.font, c.text, c.x, c.y,
+                localClientNum, c.font, c.rect, c.text,
                 c.xscale, c.yscale, c.color, c.right
             );
         }

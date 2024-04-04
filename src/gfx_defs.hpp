@@ -146,7 +146,7 @@ struct GfxTextDraw {
     bool free;
     FontDef* font;
     std::string text;
-    float x, y;
+    RectDef rect;
     float xscale, yscale;
     glm::vec3 color;
     bool active;
