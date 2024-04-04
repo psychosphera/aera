@@ -58,7 +58,7 @@ jobs:
       run: git submodule update --init --recursive
 
     - name: Install Dependencies
-      run: sudo apt-get install -y libglfw3-dev libfreetype-dev libglew-dev libgl-dev libz3-dev libglm-dev
+      run: sudo apt-get install -y libglfw3-dev libfreetype-dev libglew-dev libgl-dev libz3-dev libglm-dev gcc-13
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
