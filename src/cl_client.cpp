@@ -56,6 +56,7 @@ void CL_Init() {
 
 	CL_GiveKbmFocus(0);
 	bool b = CL_LoadMap("c40.map");
+	//DB_LoadSbsp("c40_c.scenario_structure_bsp");
 	assert(b);
 }
 
@@ -119,8 +120,136 @@ void CL_SetKeyFocus(int localClientNum, KeyFocus f) {
 	CG_GetLocalClientGlobals(localClientNum).keyfocus = f;
 }
 
+struct TagData {
+	std::string path;
+	uint32_t id;
+	uint32_t data_offset;
+};
+
+struct LoadData {
+	StreamFile stream;
+	uint32_t base_mem_addr;
+	uint32_t tag_data_offset;
+	uint32_t tag_data_size;
+	std::vector<TagData> tag_data;
+} g_load;
+
+long long CL_Map_Seek(SeekFrom from, size_t off) {
+	return FS_SeekStream(g_load.stream, from, off + g_load.base_mem_addr);
+}
+
+static constexpr size_t GEARBOX_BASE_MEMORY_ADDRESS = 0x40440000;
+
+bool CL_LoadMap_Header() {
+	Invader::HEK::CacheFileHeader header;
+	bool b = FS_ReadStream(g_load.stream, header);
+	assert(b);
+	if (header.head_literal != Invader::HEK::CacheFileLiteral::CACHE_FILE_HEAD ||
+		header.foot_literal != Invader::HEK::CacheFileLiteral::CACHE_FILE_FOOT
+	) {
+		Com_Errorln("CL_LoadMap: Bad header magic (map is probably either corrupt or\
+			not a Halo 1 map.");
+	}
+
+	if (
+		header.engine == Invader::HEK::CacheFileEngine::CACHE_FILE_MCC_CEA
+	) {
+		Com_Errorln("CL_LoadMap: Refusing to load a CEA map.");
+	}
+	else if (
+		header.engine == Invader::HEK::CacheFileEngine::CACHE_FILE_DEMO
+	) {
+		Com_Errorln("CL_LoadMap: Refusing to load a demo map\
+						 (may be implemented later).");
+	}
+	else if (
+		header.engine ==
+			Invader::HEK::CacheFileEngine::CACHE_FILE_CUSTOM_EDITION
+	) {
+		Com_Errorln("CL_LoadMap: Refusing to load a Custom Edition\
+						 map (may be implemented later).");
+	}
+	else if(
+		header.engine != Invader::HEK::CacheFileEngine::CACHE_FILE_RETAIL
+	) {
+		Com_Errorln("CL_LoadMap: Bad engine version\
+						(map is either corrupt or for a later Halo game.");
+	}
+
+	g_load.base_mem_addr = GEARBOX_BASE_MEMORY_ADDRESS;
+
+	if (header.tag_data_offset.read() == 0 || header.tag_data_size.read() == 0)
+		Com_Errorln("CL_LoadMap: corrupted or missing tag data.");
+	
+
+	if (header.map_type >=
+		Invader::HEK::CacheFileType::SCENARIO_TYPE_ENUM_COUNT
+	) {
+		Com_Errorln("CL_LoadMap: bad map type ({})", (int)header.map_type);
+	}
+
+	g_load.tag_data_offset = header.tag_data_offset.read();
+	g_load.tag_data_size   = header.tag_data_size.read();
+	return true;
+}
+
+bool CL_LoadMap_TagData() {
+	Invader::HEK::CacheFileTagDataHeaderPC tag_data;
+	if (FS_ReadStream(g_load.stream, tag_data) == false)
+		Com_Errorln("CL_LoadMap: Couldn't read tag data.");
+	
+	if(tag_data.tags_literal != Invader::HEK::CacheFileLiteral::CACHE_FILE_TAGS)
+		Com_Errorln("CL_LoadMap: Bad tag data magic (map is probably corrupt).");
+
+	uint32_t tag_count = tag_data.tag_count.read();
+	g_load.tag_data.resize((size_t)tag_count);
+	
+	uint32_t tag_array_address = tag_data.tag_array_address.read();
+	size_t tag_array_offset = tag_array_address - g_load.base_mem_addr;
+	if(FS_SeekStream(g_load.stream, FS_SEEK_BEGIN, tag_array_offset) == -1)
+		Com_Errorln("CL_LoadMap: Couldn't read tag data.");
+
+	for (int i = 0; i < (int)tag_count; i++) {
+		Invader::HEK::CacheFileTagDataTag tag;
+		if(!FS_ReadStream(g_load.stream, tag))
+			Com_Errorln("CL_LoadMap: Couldn't read tag {}.", i);
+
+		TagData d;
+		d.id = tag.tag_id.read().id;
+		if (tag.tag_id.read().is_null() || tag.tag_data.read() == 0)
+			continue;
+
+		d.data_offset = tag.tag_data.read() - g_load.base_mem_addr;
+
+		if (tag.tag_path.read() != 0x00000000) {
+			size_t pos = FS_StreamPos(g_load.stream);
+			if (FS_SeekStream(g_load.stream, FS_SEEK_BEGIN, tag.tag_path.read() - g_load.base_mem_addr) == -1)
+				Com_Errorln("CL_LoadMap: Couldn't read tag path.");
+			if (!FS_ReadStream(g_load.stream, d.path))
+				Com_Errorln("CL_LoadMap: Couldn't read tag path.");
+			if (FS_SeekStream(g_load.stream, FS_SEEK_BEGIN, pos) == -1)
+				Com_Errorln("CL_LoadMap: Couldn't read tag path.");
+		}
+		g_load.tag_data.push_back(d);
+
+		Com_Println(CON_DEST_INFO, "Loaded tag {}.", d.path);
+	}
+	return true;
+}
+
 bool CL_LoadMap(std::string_view map_name) {
-	return DB_LoadMap(map_name).pos >= 0;
+	StreamFile f = DB_LoadMap(map_name);
+	size_t pos = FS_StreamPos(f);
+	if(pos == (size_t)-1) {
+		Com_Errorln("CL_LoadMap: Failed to open {}.", map_name);
+	}
+
+	g_load.stream = f;
+	CL_LoadMap_Header();
+	if (FS_SeekStream(g_load.stream, FS_SEEK_BEGIN, g_load.tag_data_offset) == -1)
+		Com_Errorln("CL_LoadMap: Couldn't seek to tag data.");
+
+	return CL_LoadMap_TagData();
 }
 
 void CL_Shutdown() {

@@ -120,7 +120,7 @@ void CG_Frame(uint64_t) {
 		float h = cg.viewport.h * (float)Dvar_GetInt(*vid_height);
 		float aspect_inv = h / w;
 		cg.fovy = FOV_HORZ_TO_VERTICAL(Dvar_GetFloat(*cg.fov), aspect_inv);
-		if(i == 0)Com_DPrintln("{}", cg.fovy);
+//		if(i == 0)Com_DPrintln("{}", cg.fovy);
 
 		if (!CL_HasKbmFocus(i) || CL_KeyFocus(i) != KF_GAME)
 			continue;

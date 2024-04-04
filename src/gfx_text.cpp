@@ -33,7 +33,7 @@ NO_DISCARD bool R_CreateTextureAtlas(INOUT FontDef& f) {
         DB_LoadShader("text.vs.glsl"),
         DB_LoadShader("text.fs.glsl"),
         NULL, f.prog)
-    ) {
+        ) {
         return false;
     }
 
@@ -79,17 +79,17 @@ NO_DISCARD bool R_CreateTextureAtlas(INOUT FontDef& f) {
     GL_CALL(glGetIntegerv, GL_UNPACK_ALIGNMENT, &unpackAlign);
     GL_CALL(glPixelStorei, GL_UNPACK_ALIGNMENT, 1);
 
-    GL_CALL(glTexParameteri, 
+    GL_CALL(glTexParameteri,
         GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE
     );
-    GL_CALL(glTexParameteri, 
+    GL_CALL(glTexParameteri,
         GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE
     );
     GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     int x = 0;
-    for(auto& g : f.Glyphs()) {
+    for (auto& g : f.Glyphs()) {
         if (g.advance_x == 0)
             continue;
 
@@ -119,8 +119,8 @@ NO_DISCARD bool R_CreateTextureAtlas(INOUT FontDef& f) {
 // ============================================================================
 
 void R_DrawText(
-    int localClientNum, OPTIONAL_IN const FontDef* font, std::string_view text, 
-    float x, float y, float xscale, float yscale, const glm::vec3& color, 
+    int localClientNum, OPTIONAL_IN const FontDef* font, std::string_view text,
+    float x, float y, float xscale, float yscale, const glm::vec3& color,
     bool right
 ) {
     if (font == nullptr)
@@ -231,7 +231,7 @@ void R_DrawText(
         if (c != last_c) {
             glm::vec4 atlasCoord(
                 g->atlas_x, g->atlas_y,
-                (float)g->width  / (float)font->atlas_width,
+                (float)g->width / (float)font->atlas_width,
                 (float)g->height / (float)font->atlas_height
             );
             R_SetUniform(font->prog.program, "uAtlasCoord", atlasCoord);
@@ -283,8 +283,8 @@ bool R_FindFreeTextDraw(int localClientNum, OUT size_t& index, OUT GfxTextDraw*&
 }
 
 bool R_AddTextDraw(
-    int localClientNum, FontDef* font, std::string text, float x, float y, 
-    float xscale, float yscale, glm::vec3 color, bool active, bool right, 
+    int localClientNum, FontDef* font, std::string text, float x, float y,
+    float xscale, float yscale, glm::vec3 color, bool active, bool right,
     OUT size_t& id
 ) {
     GfxTextDraw* d = nullptr;
@@ -346,7 +346,7 @@ void R_DrawTextDraws(int localClientNum) {
     for (const auto& c : r_textDraws.at(localClientNum)) {
         if (!c.free && c.active) {
             R_DrawText(
-                localClientNum, c.font, c.text, c.x, c.y, 
+                localClientNum, c.font, c.text, c.x, c.y,
                 c.xscale, c.yscale, c.color, c.right
             );
         }

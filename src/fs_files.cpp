@@ -64,9 +64,22 @@ NO_DISCARD std::string FS_ReadFileText(std::filesystem::path path) {
 	return s;
 }
 
+NO_DISCARD StreamFile FS_StreamFile(std::filesystem::path path, SeekFrom from, size_t off) {
+	SDL_RWops* f = SDL_RWFromFile(path.string().c_str(), "rb");
+	size_t size = SDL_RWsize(f);
+	SDL_RWseek(f, 0, SDL_RW_SEEK_SET);
+	StreamFile s = { .f = f, .size = size };
+	if(from == FS_SEEK_END || off != 0)
+		FS_SeekStream(s, from, off);
+	return s;
+}
+
+NO_DISCARD size_t FS_StreamPos(const StreamFile& file) {
+	return SDL_RWtell(file.f);
+}
+
 long long FS_SeekStream(INOUT StreamFile& file, SeekFrom from, size_t off) {
-	if (off == 0)
-		return 0;
+	assert(off <= file.size);
 
 	Sint64 begin_pos = SDL_RWtell(file.f);
 	Sint64 res = -1;
@@ -80,30 +93,17 @@ long long FS_SeekStream(INOUT StreamFile& file, SeekFrom from, size_t off) {
 	case FS_SEEK_CUR:
 		res = SDL_RWseek(file.f, off, SDL_RW_SEEK_CUR);
 		break;
-	case FS_SEEK_ABS:
-		res = SDL_RWseek(file.f, 0, SDL_RW_SEEK_SET);
-		if(res == 0)
-			res = SDL_RWseek(file.f, off, SDL_RW_SEEK_CUR);
-		break;
 	default:
 		assert(false);
 	}
-	file.pos = res;
-	return (long long)file.pos - (long long)begin_pos;
+	return (long long)SDL_RWtell(file.f) - (long long)begin_pos;
 }
 
-std::vector<std::byte> FS_ReadStream(const StreamFile& file, size_t count) {
+std::vector<std::byte> FS_ReadStream(StreamFile& file, size_t count) {
 	std::vector<std::byte> v;
 	v.resize(count);
 	size_t sz = SDL_RWread(file.f, v.data(), count);
 	if(sz != v.size())	
 		v.resize(sz);
 	return v;
-}
-
-NO_DISCARD StreamFile FS_StreamFile(std::filesystem::path path, SeekFrom from, size_t off) {
-	SDL_RWops* f = SDL_RWFromFile(path.string().c_str(), "rb");
-	StreamFile s = { .f = f, .pos = 0 };
-	FS_SeekStream(s, from, off);
-	return s;
 }

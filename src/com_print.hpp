@@ -395,10 +395,15 @@ NO_RETURN inline Com_Error(T t) {
 template<typename ...Args>
 NO_RETURN inline Com_Errorln(int ec, std::string_view fmt, Args&&... args) {
     Com_Println(
-        CON_DEST_FATAL_ERR, "FATAL ERROR: {}",
-        Com_Format(fmt, args...)
+        CON_DEST_FATAL_ERR, "FATAL ERROR: {} ()",
+        Com_Format(fmt, args...),
+        ec
     );
+#if _DEBUG
+    assert(false);
+#else
     Sys_NormalExit(ec);
+#endif // _DEBUG
 }
 
 // Shorthand for Com_Errorln(-1, fmt, args...)
