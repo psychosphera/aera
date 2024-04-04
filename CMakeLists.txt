@@ -57,7 +57,7 @@ target_link_libraries(h1_map_viewer PRIVATE SDL3::SDL3)
 target_link_libraries(h1_map_viewer PRIVATE SDL3_image::SDL3_image)
 target_link_libraries(h1_map_viewer PRIVATE Freetype::Freetype)
 target_link_libraries(h1_map_viewer PRIVATE GLEW::GLEW)
-target_link_libraries(h1_map_viewer PRIVATE OpenGL::OpenGL)
+target_link_libraries(h1_map_viewer PRIVATE OpenGL::GL)
 target_link_libraries(h1_map_viewer PRIVATE ZLIB::ZLIB)
 
 target_include_directories(h1_map_viewer PRIVATE SDL3::SDL3)
