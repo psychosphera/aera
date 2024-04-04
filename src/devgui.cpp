@@ -13,7 +13,7 @@ struct dgl_t {
 
 std::array<dgl_t, MAX_LOCAL_CLIENTS> s_dgl;
 
-dgl_t& DevGui_GetLocalClientLocals(int localClientNum) {
+dgl_t& DevGui_GetLocalClientLocals(size_t localClientNum) {
 	return s_dgl.at(localClientNum);
 }
 
@@ -30,11 +30,11 @@ void DevGui_Init() {
 	}
 }
 
-bool DevGui_HasText(int localClientNum) {
+bool DevGui_HasText(size_t localClientNum) {
 	return DevGui_GetLocalClientLocals(localClientNum).buffer.contains('\n');
 }
 
-std::string DevGui_TakeText(int localClientNum) {
+std::string DevGui_TakeText(size_t localClientNum) {
 	dgl_t& dgl = DevGui_GetLocalClientLocals(localClientNum);
 
 	size_t pos = dgl.buffer.find('\n');

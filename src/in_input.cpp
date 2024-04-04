@@ -118,7 +118,7 @@ static constexpr int IN_Mouse_SDLButtonToIndex(Uint8 button) {
 	}
 }
 
-static inl_t& IN_GetLocalClientLocals(int localClientNum) {
+static inl_t& IN_GetLocalClientLocals(size_t localClientNum) {
 	return s_in.at(localClientNum);
 }
 
@@ -132,27 +132,27 @@ void IN_Key_Init() {
 		IN_GetLocalClientLocals(i).keys.clear();
 }
 
-NO_DISCARD bool IN_Key_IsDown(int localClientNum, SDL_Keycode k) {
+NO_DISCARD bool IN_Key_IsDown(size_t localClientNum, SDL_Keycode k) {
 	return IN_GetLocalClientLocals(localClientNum).keys[k].down == true;
 }
 
-NO_DISCARD bool IN_Key_IsUp(int localClientNum, SDL_Keycode k) {
+NO_DISCARD bool IN_Key_IsUp(size_t localClientNum, SDL_Keycode k) {
 	return IN_GetLocalClientLocals(localClientNum).keys[k].down == false;
 }
 
-NO_DISCARD bool IN_Key_IsToggled(int localClientNum, SDL_Keycode k) {
+NO_DISCARD bool IN_Key_IsToggled(size_t localClientNum, SDL_Keycode k) {
 	return IN_GetLocalClientLocals(localClientNum).keys[k].toggle;
 }
 
-NO_DISCARD bool IN_Key_WasPressedOnCurrentFrame(int localClientNum, SDL_Keycode k) {
+NO_DISCARD bool IN_Key_WasPressedOnCurrentFrame(size_t localClientNum, SDL_Keycode k) {
 	return IN_GetLocalClientLocals(localClientNum).keys[k].justDown;
 }
 
-NO_DISCARD std::span<int> IN_Key_AllPressedOnCurrentFrame(int localClientNum) {
+NO_DISCARD std::span<int> IN_Key_AllPressedOnCurrentFrame(size_t localClientNum) {
 	return std::span(IN_GetLocalClientLocals(localClientNum).keysPressedOnCurrentFrame);
 }
 
-bool IN_Key_Down(int localClientNum, SDL_Keycode k) {
+bool IN_Key_Down(size_t localClientNum, SDL_Keycode k) {
 	bool b = IN_Key_IsDown(localClientNum, k);
 
 	inl_t& inl = IN_GetLocalClientLocals(localClientNum);
@@ -164,13 +164,13 @@ bool IN_Key_Down(int localClientNum, SDL_Keycode k) {
 	return b;
 }
 
-bool IN_Key_Up(int localClientNum, SDL_Keycode k) {
+bool IN_Key_Up(size_t localClientNum, SDL_Keycode k) {
 	bool b = IN_Key_IsUp(localClientNum, k);
 	IN_GetLocalClientLocals(localClientNum).keys[k].down = false;
 	return b;
 }
 
-char IN_Key_Char(int localClientNum, SDL_Keycode k) {
+char IN_Key_Char(size_t localClientNum, SDL_Keycode k) {
 	bool shift = IN_Key_IsDown(localClientNum, SDLK_LSHIFT) || 
 				 IN_Key_IsDown(localClientNum, SDLK_RSHIFT);
 	if (IN_Key_IsToggled(localClientNum, SDLK_CAPSLOCK))
@@ -179,14 +179,14 @@ char IN_Key_Char(int localClientNum, SDL_Keycode k) {
 	return IN_Key_SDLKToChar(k, shift);
 }
 
-std::string_view IN_Key_GetBinding(int localClientNum, SDL_Keycode k, bool secondary) {
+std::string_view IN_Key_GetBinding(size_t localClientNum, SDL_Keycode k, bool secondary) {
 	if (secondary)
 		return IN_GetLocalClientLocals(localClientNum).keys[k].bind2;
 	else
 		return IN_GetLocalClientLocals(localClientNum).keys[k].bind;
 }
 
-SDL_Keycode IN_Key_GetNum(int localClientNum, std::string_view binding) {
+SDL_Keycode IN_Key_GetNum(size_t localClientNum, std::string_view binding) {
 	for (const auto& c : IN_GetLocalClientLocals(localClientNum).keys)
 		if (c.second.bind == binding || c.second.bind2 == binding)
 			return c.first;
@@ -194,7 +194,7 @@ SDL_Keycode IN_Key_GetNum(int localClientNum, std::string_view binding) {
 	return -1;
 }
 
-void IN_Key_Clear(int localClientNum) {
+void IN_Key_Clear(size_t localClientNum) {
 	inl_t& inl = IN_GetLocalClientLocals(localClientNum);
 	for (auto& c : inl.keys) {
 		c.second.down = false;
@@ -204,7 +204,7 @@ void IN_Key_Clear(int localClientNum) {
 	inl.keysPressedOnCurrentFrame.clear();
 }
 
-static void IN_Key_ClearCurrent(int localClientNum) {
+static void IN_Key_ClearCurrent(size_t localClientNum) {
 	inl_t& inl = IN_GetLocalClientLocals(localClientNum);
 	for (auto& c : inl.keys)
 		c.second.justDown = false;
@@ -237,40 +237,40 @@ void IN_Mouse_Init() {
 	}
 }
 
-NO_DISCARD bool IN_Mouse_IsDown(int localClientNum, Uint8 button) {
+NO_DISCARD bool IN_Mouse_IsDown(size_t localClientNum, Uint8 button) {
 	int i = IN_Mouse_SDLButtonToIndex(button);
 	return IN_GetLocalClientLocals(localClientNum).mouse.buttons.array[i] == true;
 }
 
-NO_DISCARD bool IN_Mouse_IsUp(int localClientNum, Uint8 button) {
+NO_DISCARD bool IN_Mouse_IsUp(size_t localClientNum, Uint8 button) {
 	int i = IN_Mouse_SDLButtonToIndex(button);
 	return IN_GetLocalClientLocals(localClientNum).mouse.buttons.array[i] == false;
 }
 
-bool IN_Mouse_Down(int localClientNum, Uint8 button) {
+bool IN_Mouse_Down(size_t localClientNum, Uint8 button) {
 	int i = IN_Mouse_SDLButtonToIndex(button);
 	bool b = IN_Mouse_IsDown(localClientNum, button);
 	IN_GetLocalClientLocals(localClientNum).mouse.buttons.array[i] = true;
 	return b;
 }
 
-bool IN_Mouse_Up(int localClientNum, Uint8 button) {
+bool IN_Mouse_Up(size_t localClientNum, Uint8 button) {
 	int i = IN_Mouse_SDLButtonToIndex(button);
 	bool b = IN_Mouse_IsDown(localClientNum, button);
 	IN_GetLocalClientLocals(localClientNum).mouse.buttons.array[i] = false;
 	return b;
 }
 
-void IN_Mouse_Move(int localClientNum, float x, float y) {
+void IN_Mouse_Move(size_t localClientNum, float x, float y) {
 	IN_GetLocalClientLocals(localClientNum).mouse.x -= x;
 	IN_GetLocalClientLocals(localClientNum).mouse.y -= y;
 }
 
-NO_DISCARD float IN_Mouse_X(int localClientNum) {
+NO_DISCARD float IN_Mouse_X(size_t localClientNum) {
 	return IN_GetLocalClientLocals(localClientNum).mouse.x;
 }
 
-NO_DISCARD float IN_Mouse_Y(int localClientNum) {
+NO_DISCARD float IN_Mouse_Y(size_t localClientNum) {
 	return IN_GetLocalClientLocals(localClientNum).mouse.y;
 }
 

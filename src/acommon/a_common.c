@@ -16,7 +16,7 @@ EXTERN_C size_t A_npow2(size_t n) {
             break;
     }
 
-    return 1 << (i + 1);
+    return (size_t)1 << ((size_t)i + 1);
 }
 
 EXTERN_C size_t A_ppow2(size_t n) {

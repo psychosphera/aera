@@ -31,11 +31,11 @@ dvar_t* cl_splitscreen;
 static uint64_t s_lastFpsDrawTime;
 static uint64_t s_lastFpsDrawDelta;
 
-cll_t& CL_GetLocalClientLocals(int localClientNum) {
+cll_t& CL_GetLocalClientLocals(size_t localClientNum) {
 	return s_cll.at(localClientNum);
 }
 
-cl_t& CL_GetLocalClientGlobals(int localClientNum) {
+cl_t& CL_GetLocalClientGlobals(size_t localClientNum) {
 	return s_cl.at(localClientNum);
 }
 
@@ -57,16 +57,16 @@ void CL_Init() {
 	}
 
 	CL_GiveKbmFocus(0);
-	bool b = CL_LoadMap("c40.map");
+	//bool b = CL_LoadMap("c40.map");
 	//DB_LoadSbsp("c40_c.scenario_structure_bsp");
-	assert(b);
+	//assert(b);
 }
 
-void CL_EnableFpsCounter(int localClientNum, bool enable) {
+void CL_EnableFpsCounter(size_t localClientNum, bool enable) {
 	Dvar_SetBool(*CL_GetLocalClientGlobals(localClientNum).drawfps, enable);
 }
 
-void CL_DrawFps(int localClientNum) {
+void CL_DrawFps(size_t localClientNum) {
 	R_UpdateTextDraw(
 		localClientNum, CL_GetLocalClientLocals(localClientNum).fpsTextDrawId,
 		A_Format("FPS: {:.0f}", 1000.0f / (float)s_lastFpsDrawDelta)
@@ -95,7 +95,7 @@ void CL_Frame() {
 	}	
 } 
 
-void CL_EnterSplitscreen(int activeLocalClient) {
+void CL_EnterSplitscreen(size_t activeLocalClient) {
 	cg_t& cg0 = CG_GetLocalClientGlobals(0);
 
 	cg0.viewport.x = 0.0f;
@@ -124,7 +124,7 @@ void CL_EnterSplitscreen(int activeLocalClient) {
 		CG_ActivateLocalClient(1);
 }
 
-void CL_LeaveSplitscreen(int activeLocalClient) {
+void CL_LeaveSplitscreen(size_t activeLocalClient) {
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		cg_t& cg = CG_GetLocalClientGlobals(i);
 		cg.viewport.x = 0.0f;
@@ -142,30 +142,30 @@ void CL_LeaveSplitscreen(int activeLocalClient) {
 }
 
 
-void CL_GiveKbmFocus(int localClientNum) {
+void CL_GiveKbmFocus(size_t localClientNum) {
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++)
 		CL_GetLocalClientGlobals(i).hasKbmFocus = (int)i == localClientNum;
 }
 
-bool CL_HasKbmFocus(int localClientNum) {
+bool CL_HasKbmFocus(size_t localClientNum) {
 	return CL_GetLocalClientGlobals(localClientNum).hasKbmFocus;
 }
 
-int CL_ClientWithKbmFocus() {
+size_t CL_ClientWithKbmFocus() {
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		if (CL_HasKbmFocus(i))
 			return i;
 	}
 
 	assert(false);
-	return -1;
+	return (size_t)-1;
 }
 
-KeyFocus CL_KeyFocus(int localClientNum) {
+KeyFocus CL_KeyFocus(size_t localClientNum) {
 	return CG_GetLocalClientGlobals(localClientNum).keyfocus;
 }
 
-void CL_SetKeyFocus(int localClientNum, KeyFocus f) {
+void CL_SetKeyFocus(size_t localClientNum, KeyFocus f) {
 	CG_GetLocalClientGlobals(localClientNum).keyfocus = f;
 }
 

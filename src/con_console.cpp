@@ -42,7 +42,7 @@ bool Con_ProcessInput(std::string_view input) {
     return false;
 }
 
-bool Con_ProcessInput(std::string_view input, int localClientNum) {
+bool Con_ProcessInput(std::string_view input, size_t localClientNum) {
     if (!Cmd_TakeInput(input))
         return false;
 

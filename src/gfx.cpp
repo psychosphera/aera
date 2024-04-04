@@ -19,8 +19,8 @@
 
 extern dvar_t* vid_width;
 extern dvar_t* vid_height;
-extern void R_DrawTextDraws(int localClientNum);
-extern void R_ClearTextDraws(int localClientNum);
+extern void R_DrawTextDraws(size_t localClientNum);
+extern void R_ClearTextDraws(size_t localClientNum);
 
 void GLAPIENTRY R_GlDebugOutput(
     GLenum source, GLenum type, unsigned int id, GLenum severity,
@@ -44,9 +44,9 @@ void GLAPIENTRY R_GlDebugOutput(
 
 static void R_RegisterDvars();
 static void R_InitCubePrim(INOUT GfxCubePrim& cubePrim);
-static void R_DrawFrameInternal(int localClientNum);
-static void R_InitLocalClient(int localClientNum);
-static void R_UpdateLocalClientView(int localClientNum);
+static void R_DrawFrameInternal(size_t localClientNum);
+static void R_InitLocalClient(size_t localClientNum);
+static void R_UpdateLocalClientView(size_t localClientNum);
 
 constexpr float NEAR_PLANE_DEFAULT = 0.1f;
 constexpr float FAR_PLANE_DEFAULT  = 100.0f;
@@ -102,14 +102,14 @@ void R_Init() {
     //glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
 }
 
-static void R_InitLocalClient(int localClientNum) {
+static void R_InitLocalClient(size_t localClientNum) {
     cg_t& cg = CG_GetLocalClientGlobals(localClientNum);
     cg.nearPlane = NEAR_PLANE_DEFAULT;
     cg.farPlane = FAR_PLANE_DEFAULT;
     R_UpdateLocalClientView(localClientNum);
 }
 
-static void R_UpdateOrtho(int localClientNum) {
+static void R_UpdateOrtho(size_t localClientNum) {
     cg_t& cg = CG_GetLocalClientGlobals(localClientNum);
 
     float left = cg.viewport.x * Dvar_GetInt(*vid_width);
@@ -119,7 +119,7 @@ static void R_UpdateOrtho(int localClientNum) {
     cg.camera.orthoProjection = glm::ortho(left, right, bottom, top);
 }
 
-void R_UpdateProjection(int localClientNum) {
+void R_UpdateProjection(size_t localClientNum) {
     cg_t& cg = CG_GetLocalClientGlobals(localClientNum);
 
     float w = cg.viewport.w * Dvar_GetInt(*vid_width);
@@ -129,7 +129,7 @@ void R_UpdateProjection(int localClientNum) {
     );
 }
 
-static void R_UpdateLocalClientView(int localClientNum) {
+static void R_UpdateLocalClientView(size_t localClientNum) {
     R_UpdateOrtho(localClientNum);
     R_UpdateProjection(localClientNum);
 }
@@ -184,7 +184,7 @@ static void R_InitCubePrim(INOUT GfxCubePrim& cubePrim) {
     GL_CALL(glBindVertexArray, 0);
 }
 
-void R_DrawFrame(int localClientNum) {
+void R_DrawFrame(size_t localClientNum) {
     R_DrawFrameInternal(localClientNum);
 }
 
@@ -284,7 +284,7 @@ void R_DrawCube(const glm::vec3& pos, float angle, texture_t tex) {
     glDisable(GL_DEPTH_TEST);
 }
 
-static void R_DrawFrameInternal(int localClientNum) {
+static void R_DrawFrameInternal(size_t localClientNum) {
     cg_t& cg = CG_GetLocalClientGlobals(localClientNum);
 
     GLint x = (GLint)(cg.viewport.x * Dvar_GetInt(*vid_width));

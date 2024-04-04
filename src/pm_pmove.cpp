@@ -9,7 +9,7 @@
 
 std::array<pm_t, 4> s_pm;
 
-pm_t& PM_GetLocalClientGlobals(int localClientNum) {
+pm_t& PM_GetLocalClientGlobals(size_t localClientNum) {
 	return s_pm.at(localClientNum);
 }
 

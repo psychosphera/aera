@@ -3,7 +3,7 @@
 #include <string>
 
 void DevGui_Init();
-bool DevGui_HasText(int localClientNum);
-std::string DevGui_TakeText(int localClientNum);
+bool DevGui_HasText(size_t localClientNum);
+std::string DevGui_TakeText(size_t localClientNum);
 void DevGui_Frame();
 void DevGui_Shutdown();

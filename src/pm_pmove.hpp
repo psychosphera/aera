@@ -54,6 +54,6 @@ constexpr float PM_FRICTION   = 6.0f;
 constexpr float PM_STOPSPEED  = 100.0f;
 constexpr float PM_ACCELERATE = 10.0f;
 
-pm_t& PM_GetLocalClientGlobals(int localClientNum);
+pm_t& PM_GetLocalClientGlobals(size_t localClientNum);
 void PM_Init();
 void PmoveSingle(INOUT pmove_t& pm, INOUT pml_t& pml);

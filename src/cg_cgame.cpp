@@ -13,19 +13,19 @@ static bool  s_firstMouse;
 static std::array<cg_t, MAX_LOCAL_CLIENTS> s_cg;
 
 
-cg_t& CG_GetLocalClientGlobals(int localClientNum) {
+cg_t& CG_GetLocalClientGlobals(size_t localClientNum) {
 	return s_cg.at(localClientNum);
 }
 
-bool CG_LocalClientIsActive(int localClientNum) {
+bool CG_LocalClientIsActive(size_t localClientNum) {
 	return CG_GetLocalClientGlobals(localClientNum).active;
 }
 
-void CG_ActivateLocalClient(int localClientNum) {
+void CG_ActivateLocalClient(size_t localClientNum) {
 	CG_GetLocalClientGlobals(localClientNum).active = true;
 }
 
-void CG_DectivateLocalClient(int localClientNum) {
+void CG_DectivateLocalClient(size_t localClientNum) {
 	CG_GetLocalClientGlobals(localClientNum).active = false;
 }
 

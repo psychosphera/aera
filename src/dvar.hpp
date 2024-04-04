@@ -160,109 +160,109 @@ dvar_t& Dvar_RegisterVec4(
 bool Dvar_Unregister(const std::string& name);
 void Dvar_ClearDvars();
 
-NO_DISCARD bool Dvar_LocalExists(int localClientNum, const std::string& name);
-NO_DISCARD dvar_t* Dvar_FindLocal(int localClientNum, const std::string& name);
+NO_DISCARD bool Dvar_LocalExists(size_t localClientNum, const std::string& name);
+NO_DISCARD dvar_t* Dvar_FindLocal(size_t localClientNum, const std::string& name);
 
-dvar_t* Dvar_RegisterNewLocalBool(int localClientNum,
+dvar_t* Dvar_RegisterNewLocalBool(size_t localClientNum,
 	const std::string& name, dvarFlags_t flags,
 	bool value
 );
-dvar_t* Dvar_RegisterNewLocalInt(int localClientNum,
+dvar_t* Dvar_RegisterNewLocalInt(size_t localClientNum,
 	const std::string& name, dvarFlags_t flags,
 	int value, int min, int max
 );
-dvar_t* Dvar_RegisterNewLocalFloat(int localClientNum,
+dvar_t* Dvar_RegisterNewLocalFloat(size_t localClientNum,
 	const std::string& name, dvarFlags_t flags,
 	float value, float min, float max
 );
-dvar_t* Dvar_RegisterNewLocalString(int localClientNum,
+dvar_t* Dvar_RegisterNewLocalString(size_t localClientNum,
 	const std::string& name, dvarFlags_t flags,
 	std::string value
 );
-dvar_t* Dvar_RegisterNewLocalEnum(int localClientNum,
+dvar_t* Dvar_RegisterNewLocalEnum(size_t localClientNum,
 	const std::string& name, dvarFlags_t flags, int value,
 	const std::vector<std::string>& domain
 	);
-dvar_t* Dvar_RegisterNewLocalVec2(int localClientNum,
+dvar_t* Dvar_RegisterNewLocalVec2(size_t localClientNum,
 	const std::string& name, dvarFlags_t flags,
 	const glm::vec2& value, float min, float max
 );
-dvar_t* Dvar_RegisterNewLocalVec3(int localClientNum,
+dvar_t* Dvar_RegisterNewLocalVec3(size_t localClientNum,
 	const std::string& name, dvarFlags_t flags,
 	const glm::vec3& value, float min, float max
 );
-dvar_t* Dvar_RegisterNewLocalVec4(int localClientNum,
+dvar_t* Dvar_RegisterNewLocalVec4(size_t localClientNum,
 	const std::string& name, dvarFlags_t flags,
 	const glm::vec4& value, float min, float max
 );
 
-dvar_t* Dvar_ReregisterLocalBool(int localClientNum,
+dvar_t* Dvar_ReregisterLocalBool(size_t localClientNum,
 	const std::string& name, dvarFlags_t flags,
 	bool value
 );
-dvar_t* Dvar_ReregisterLocalInt(int localClientNum,
+dvar_t* Dvar_ReregisterLocalInt(size_t localClientNum,
 	const std::string& name, dvarFlags_t flags,
 	int value, int min, int max
 );
-dvar_t* Dvar_ReregisterLocalFloat(int localClientNum,
+dvar_t* Dvar_ReregisterLocalFloat(size_t localClientNum,
 	const std::string& name, dvarFlags_t flags,
 	float value, float min, float max
 );
-dvar_t* Dvar_ReregisterLocalString(int localClientNum,
+dvar_t* Dvar_ReregisterLocalString(size_t localClientNum,
 	const std::string& name, dvarFlags_t flags,
 	std::string value
 );
-dvar_t* Dvar_ReregisterLocalEnum(int localClientNum,
+dvar_t* Dvar_ReregisterLocalEnum(size_t localClientNum,
 	const std::string& name, dvarFlags_t flags,
 	int value, const std::vector<std::string>& domain
 );
-dvar_t* Dvar_ReregisterLocalVec2(int localClientNum,
+dvar_t* Dvar_ReregisterLocalVec2(size_t localClientNum,
 	const std::string& name, dvarFlags_t flags,
 	const glm::vec2& value, float min, float max
 );
-dvar_t* Dvar_ReregisterLocalVec3(int localClientNum,
+dvar_t* Dvar_ReregisterLocalVec3(size_t localClientNum,
 	const std::string& name, dvarFlags_t flags,
 	const glm::vec3& value, float min, float max
 );
-dvar_t* Dvar_ReregisterLocalVec4(int localClientNum,
+dvar_t* Dvar_ReregisterLocalVec4(size_t localClientNum,
 	const std::string& name, dvarFlags_t flags,
 	const glm::vec4& value, float min, float max
 );
 
 dvar_t* Dvar_RegisterLocalBool(
-	int localClientNum, const std::string& name, dvarFlags_t flags, bool value
+	size_t localClientNum, const std::string& name, dvarFlags_t flags, bool value
 );
 dvar_t* Dvar_RegisterLocalInt(
-	int localClientNum, const std::string& name, dvarFlags_t flags,
+	size_t localClientNum, const std::string& name, dvarFlags_t flags,
 	int value, int min, int max
 );
 dvar_t* Dvar_RegisterLocalFloat(
-	int localClientNum, const std::string& name, dvarFlags_t flags,
+	size_t localClientNum, const std::string& name, dvarFlags_t flags,
 	float value, float min, float max
 );
 dvar_t* Dvar_RegisterLocalString(
-	int localClientNum, const std::string& name, dvarFlags_t flags,
+	size_t localClientNum, const std::string& name, dvarFlags_t flags,
 	const std::string& value
 );
 dvar_t* Dvar_RegisterLocalEnum(
-	int localClientNum, const std::string& name, dvarFlags_t flags,
+	size_t localClientNum, const std::string& name, dvarFlags_t flags,
 	int value, const std::vector<std::string>& domain
 );
 dvar_t* Dvar_RegisterLocalVec2(
-	int localClientNum, const std::string& name, dvarFlags_t flags,
+	size_t localClientNum, const std::string& name, dvarFlags_t flags,
 	const glm::vec2& value, float min, float max
 );
 dvar_t* Dvar_RegisterLocalVec3(
-	int localClientNum, const std::string& name, dvarFlags_t flags,
+	size_t localClientNum, const std::string& name, dvarFlags_t flags,
 	const glm::vec3& value, float min, float max
 );
 dvar_t* Dvar_RegisterLocalVec4(
-	int localClientNum, const std::string& name, dvarFlags_t flags,
+	size_t localClientNum, const std::string& name, dvarFlags_t flags,
 	const glm::vec4& value, float min, float max
 );
 
-bool Dvar_UnregisterLocal(int localClientNum, const std::string& name);
-void Dvar_ClearLocalDvars(int localClientNum);
+bool Dvar_UnregisterLocal(size_t localClientNum, const std::string& name);
+void Dvar_ClearLocalDvars(size_t localClientNum);
 
 bool Dvar_SetFromString(
 	INOUT dvar_t& dvar, dvarFlags_t flags, 
