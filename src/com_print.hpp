@@ -175,7 +175,7 @@ template<typename ...Args>
 NO_RETURN inline Com_Errorln(int ec, std::string_view fmt, Args&&... args) {
     Com_Println(
         CON_DEST_FATAL_ERR, "FATAL ERROR: {} ()",
-        Com_Format(fmt, args...),
+        A_Format(fmt, args...),
         ec
     );
 #if _DEBUG
