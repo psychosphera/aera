@@ -137,7 +137,7 @@ void CL_LeaveSplitscreen(size_t activeLocalClient) {
 		float h = cg.viewport.h * Dvar_GetInt(*vid_height);
 		cg.fovy = FOV_HORZ_TO_VERTICAL(Dvar_GetFloat(*cg.fov), h / w);
 
-		if ((int)i != activeLocalClient)
+		if (i != activeLocalClient)
 			CG_DectivateLocalClient(i);
 	}
 }
@@ -145,7 +145,7 @@ void CL_LeaveSplitscreen(size_t activeLocalClient) {
 
 void CL_GiveKbmFocus(size_t localClientNum) {
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++)
-		CL_GetLocalClientGlobals(i).hasKbmFocus = (int)i == localClientNum;
+		CL_GetLocalClientGlobals(i).hasKbmFocus = i == localClientNum;
 }
 
 bool CL_HasKbmFocus(size_t localClientNum) {
