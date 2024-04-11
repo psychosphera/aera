@@ -50,15 +50,13 @@ inline bool A_Parse(std::string_view s, A_OUT bool& value) {
         return true;
     } else if (r.ec == std::errc::invalid_argument) {
         str_t n        = A_literal_internal(s.data(), s.length());
-        string_t lower = A_tolower(&n);
         str_t ltrue    = A_literal("true");
         str_t lfalse   = A_literal("false");
-        if (A_streq(&lower, &ltrue))
+        if (A_strieq(&lower, &ltrue))
             value = true;
-        else if (A_streq(&lower, &lfalse))
+        else if (A_strieq(&lower, &lfalse))
             value = false;
 
-        A_strdrop(&lower);
         return true;
     }
     return false;

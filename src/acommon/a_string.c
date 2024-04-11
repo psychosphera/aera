@@ -1,4 +1,5 @@
 #include "a_string.h"
+#include "a_type.h"
 
 #include <string.h>
 
@@ -121,7 +122,7 @@ const char* A_stratp_StringC(const string_t* restrict s, size_t i) {
     return &A_cstr(s)[i];
 }
 
-bool A_strcpyz_Str(
+bool A_strncpy_Str(
     string_t* restrict dest, size_t dest_off, const str_t* restrict src, size_t src_off, size_t n
 ) {
     if(n > A_strlen(src) - src_off) 
@@ -137,7 +138,7 @@ bool A_strcpyz_Str(
     return true;
 }
 
-bool A_strcpyz_String(
+bool A_strncpy_String(
     string_t* restrict dest, size_t dest_off, 
     const string_t* restrict src, size_t src_off, 
     size_t n
@@ -157,13 +158,13 @@ bool A_strcpyz_String(
 
 string_t A_strdup_Str(const str_t* restrict s) {
     string_t n = A_string(A_strlen(s));
-    A_strcpyz(&n, 0, s, 0, A_NPOS);
+    A_strncpy(&n, 0, s, 0, A_NPOS);
     return n;
 }
 
 string_t A_strdup_String(const string_t* restrict s) {
     string_t n = A_string(A_strlen(s));
-    A_strcpyz(&n, 0, s, 0, A_NPOS);
+    A_strncpy(&n, 0, s, 0, A_NPOS);
     return n;
 }
 
@@ -223,7 +224,7 @@ bool A_strcat_Str(string_t* restrict dest, const str_t* restrict src) {
     if(!A_strext(dest, A_strlen(src)))
         return false;
 
-    A_strcpyz(dest, off, src, 0, A_NPOS);
+    A_strncpy(dest, off, src, 0, A_NPOS);
     return true;
 }
 
@@ -233,7 +234,7 @@ bool A_strcat_String(string_t* restrict dest, const string_t* restrict src) {
     if(!A_strext(dest, A_strlen(src)))
         return false;
 
-    A_strcpyz(dest, off, src, 0, A_NPOS);
+    A_strncpy(dest, off, src, 0, A_NPOS);
     return true;
 }
 
@@ -274,19 +275,79 @@ bool A_strcont_String(const string_t* restrict s, char c) {
 }
 
 bool A_streq_Str_Str(const str_t* restrict a, const str_t* restrict b) {
-    return A_cstr(a) == A_cstr(b);
+    if(A_strlen(a) != A_strlen(b))
+        return false;
+
+    return strncmp(A_cstr(a), A_cstr(b), A_strlen(a)) == 0;
 }
 
 bool A_streq_Str_String(const str_t* restrict a, const string_t* restrict b) {
-    return A_cstr(a) == A_cstr(b);
+    if(A_strlen(a) != A_strlen(b))
+        return false;
+
+    return strncmp(A_cstr(a), A_cstr(b), A_strlen(a)) == 0;
 }
 
 bool A_streq_String_Str(const string_t* restrict a, const str_t* restrict b) {
-    return A_cstr(a) == A_cstr(b);
+    if(A_strlen(a) != A_strlen(b))
+        return false;
+
+    return strncmp(A_cstr(a), A_cstr(b), A_strlen(a)) == 0;
 }
 
 bool A_streq_String_String(const string_t* restrict a, const string_t* restrict b) {
-    return A_cstr(a) == A_cstr(b);
+    if(A_strlen(a) != A_strlen(b))
+        return false;
+
+    return strncmp(A_cstr(a), A_cstr(b), A_strlen(a)) == 0;
+}
+
+bool A_strieq_Str_Str(const str_t* restrict a, const str_t* restrict b) {
+    if(A_strlen(a) != A_strlen(b))
+        return false;
+
+    for(size_t i = 0; i < A_strlen(a); i++) {
+        if(A_tolower(A_strat(a, i)) != A_tolower(A_strat(b, i)))
+            return false;
+    }
+
+    return true;
+}
+
+bool A_strieq_Str_String(const str_t* restrict a, const string_t* restrict b) {
+    if(A_strlen(a) != A_strlen(b))
+        return false;
+
+    for(size_t i = 0; i < A_strlen(a); i++) {
+        if(A_tolower(A_strat(a, i)) != A_tolower(A_strat(b, i)))
+            return false;
+    }
+
+    return true;
+}
+
+bool A_strieq_String_Str(const string_t* restrict a, const str_t* restrict b) {
+    if(A_strlen(a) != A_strlen(b))
+        return false;
+
+    for(size_t i = 0; i < A_strlen(a); i++) {
+        if(A_tolower(A_strat(a, i)) != A_tolower(A_strat(b, i)))
+            return false;
+    }
+
+    return true;
+}
+
+bool A_strieq_String_String(const string_t* restrict a, const string_t* restrict b) {
+    if(A_strlen(a) != A_strlen(b))
+        return false;
+
+    for(size_t i = 0; i < A_strlen(a); i++) {
+        if(A_tolower(A_strat(a, i)) != A_tolower(A_strat(b, i)))
+            return false;
+    }
+
+    return true;
 }
 
 size_t A_strpbrk_Str_Str(const str_t* restrict a, const str_t* restrict b) {
@@ -640,7 +701,7 @@ string_t A_substring_Str(const str_t* restrict s, size_t i, size_t len) {
         len = A_strlen(s) - i;
 
     A_strext(&n, len);
-    A_strcpyz(&n, 0, s, i, len);
+    A_strncpy(&n, 0, s, i, len);
     return n;
 }
 
@@ -657,7 +718,7 @@ string_t A_substring_String(const string_t* restrict s, size_t i, size_t len) {
         len = A_strlen(s) - i;
 
     A_strext(&n, len);
-    A_strcpyz(&n, 0, s, i, len);
+    A_strncpy(&n, 0, s, i, len);
     return n;
 }
 

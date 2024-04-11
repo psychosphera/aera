@@ -52,9 +52,11 @@ A_EXTERN_C str_t A_str(const string_t* A_RESTRICT s);
     attr_ret name##_Str(const str_t* A_RESTRICT s __VA_OPT__(,) __VA_ARGS__)
 
 #define A_STRING_DECLARE_STR2(attr_ret, name, s, t, ...) \
-    A_STRING_DECLARE_STR(attr_ret, name, s, const str_t* A_RESTRICT t, __VA_ARGS__); \
+    A_STRING_DECLARE_STR( \
+        attr_ret, name##_Str, s, const str_t* A_RESTRICT t __VA_OPT__(,) __VA_ARGS__ \
+    ); \
     A_STRING_DECLARE_STRING( \
-        attr_ret, name, s, const str_t* A_RESTRICT t, __VA_ARGS__ \
+        attr_ret, name##_Str, s, const str_t* A_RESTRICT t __VA_OPT__(,) __VA_ARGS__ \
     )
 
 #define A_STRING_DECLARE_STRING(attr_ret, name, s, ...) \
@@ -63,9 +65,11 @@ A_EXTERN_C str_t A_str(const string_t* A_RESTRICT s);
     )
 
 #define A_STRING_DECLARE_STRING2(attr_ret, name, s, t, ...) \
-    A_STRING_DECLARE_STR(attr_ret, name, s, string_t* A_RESTRICT t, __VA_ARGS__); \
+    A_STRING_DECLARE_STR( \
+        attr_ret, name##_String, s, string_t* A_RESTRICT t __VA_OPT__(,) __VA_ARGS__ \
+    ); \
     A_STRING_DECLARE_STRING( \
-        attr_ret, name, s, string_t* A_RESTRICT t, __VA_ARGS__ \
+        attr_ret, name##_String, s, string_t* A_RESTRICT t __VA_OPT__(,) __VA_ARGS__ \
     )
 
 #define A_STRING_DECLARE_STRING_CONST(attr_ret, name, s, ...) \
@@ -74,32 +78,34 @@ A_EXTERN_C str_t A_str(const string_t* A_RESTRICT s);
     )
 
 #define A_STRING_DECLARE_STRING2_CONST(attr_ret, name, s, t, ...) \
-    A_STRING_DECLARE_STR(attr_ret, name, s, const string_t* A_RESTRICT t, __VA_ARGS__); \
-    A_STRING_DECLARE_STRING( \
-        attr_ret, name, s, const string_t* A_RESTRICT t, __VA_ARGS__ \
+    A_STRING_DECLARE_STR( \
+        attr_ret, name##_String, s, const string_t* A_RESTRICT t __VA_OPT__(,) __VA_ARGS__ \
+    ); \
+    A_STRING_DECLARE_STRING_CONST( \
+        attr_ret, name##_String, s, const string_t* A_RESTRICT t __VA_OPT__(,) __VA_ARGS__ \
     )
 
 #define A_STRING_DECLARE_BOTH(attr_ret, name, s, ...) \
-    A_STRING_DECLARE_STR(attr_ret, name, s, __VA_ARGS__); \
-    A_STRING_DECLARE_STRING(attr_ret, name, s, __VA_ARGS__)
+    A_STRING_DECLARE_STR(attr_ret, name, s __VA_OPT__(,) __VA_ARGS__); \
+    A_STRING_DECLARE_STRING(attr_ret, name, s __VA_OPT__(,) __VA_ARGS__)
 
 #define A_STRING_DECLARE_BOTH_CONST(attr_ret, name, s, ...) \
-    A_STRING_DECLARE_STR(attr_ret, name, s, __VA_ARGS__); \
-    A_STRING_DECLARE_STRING_CONST(attr_ret, name, s, __VA_ARGS__)
+    A_STRING_DECLARE_STR(attr_ret, name, s __VA_OPT__(,) __VA_ARGS__); \
+    A_STRING_DECLARE_STRING_CONST(attr_ret, name, s __VA_OPT__(,) __VA_ARGS__)
 
 #define A_STRING_DECLARE_BOTH2(attr_ret, name, s, t, ...) \
-    A_STRING_DECLARE_STR2(attr_ret, name, s, t, __VA_ARGS__); \
-    A_STRING_DECLARE_STRING2(attr_ret, name, s, t, __VA_ARGS__)
+    A_STRING_DECLARE_STR2(attr_ret, name, s, t __VA_OPT__(,) __VA_ARGS__); \
+    A_STRING_DECLARE_STRING2(attr_ret, name, s, t __VA_OPT__(,) __VA_ARGS__)
 
 #define A_STRING_DECLARE_BOTH2_CONST(attr_ret, name, s, t, ...) \
-    A_STRING_DECLARE_STR2(attr_ret, name, s, t, __VA_ARGS__); \
-    A_STRING_DECLARE_STRING2_CONST(attr_ret, name, s, t, __VA_ARGS__)
+    A_STRING_DECLARE_STR2(attr_ret, name, s, t __VA_OPT__(,) __VA_ARGS__); \
+    A_STRING_DECLARE_STRING2_CONST(attr_ret, name, s, t __VA_OPT__(,) __VA_ARGS__)
 
 #define A_STRING_DECLARE_INTEGRAL(attr_ret, name, s, ...) \
     attr_ret name##_SizeT(size_t s __VA_OPT__(,) __VA_ARGS__)
 
 #define A_STRING_DECLARE_LITERAL(attr_ret, name, s, ...) \
-    attr_ret name##_StringC(const string_t* s __VA_OPT__(,) __VA_ARGS__)
+    attr_ret name##_StringC(const string_t* A_RESTRICT s __VA_OPT__(,) __VA_ARGS__)
 
 #define A_STRING_GENERIC_MATCH_BOTH(f) \
     A_GENERIC_MATCH_CONST(str_t*, f##_Str), \
@@ -193,7 +199,6 @@ inline const char* A_stratp(const string_t* A_RESTRICT s, size_t i) {
     return A_stratp_StringC(s, i); 
 }
 #endif // __cplusplus
-<<<<<<< HEAD
 
 A_STRING_DECLARE_BOTH_CONST(A_EXTERN_C size_t, A_strlen, s);
 
@@ -210,34 +215,34 @@ inline size_t A_strlen(const string_t* A_RESTRICT s) {
        
 A_EXTERN_C size_t A_strcap(const string_t* A_RESTRICT s);
 
-A_EXTERN_C bool A_strcpyz_Str(
+A_EXTERN_C bool A_strncpy_Str(
     string_t* A_RESTRICT dest, size_t dest_off, 
     const str_t* A_RESTRICT src, size_t src_off, 
     size_t n
 );
-A_EXTERN_C bool A_strcpyz_String(
+A_EXTERN_C bool A_strncpy_String(
     string_t* A_RESTRICT dest, size_t dest_off, 
     const string_t* A_RESTRICT src, size_t src_off,
     size_t n
 );
 
 #ifndef __cplusplus
-#define A_strcpyz(d, do, s, so, n) \
-    A_STRING_GENERIC_BOTH(s, A_strcpyz)(d, do, s, so, n)
+#define A_strncpy(d, do, s, so, n) \
+    A_STRING_GENERIC_BOTH(s, A_strncpy)(d, do, s, so, n)
 #else 
-inline bool A_strcpyz(
+inline bool A_strncpy(
     string_t* A_RESTRICT dest, size_t dest_off, 
     const str_t* A_RESTRICT src, size_t src_off, 
     size_t n
 ) {
-    return A_strcpyz_Str(dest, dest_off, src, src_off, n);
+    return A_strncpy_Str(dest, dest_off, src, src_off, n);
 }
-inline bool A_strcpyz(
+inline bool A_strncpy(
     string_t* A_RESTRICT dest, size_t dest_off, 
     const string_t* A_RESTRICT src, size_t src_off, 
     size_t n
 ) {
-    return A_strcpyz_String(dest, dest_off, src, src_off, n);
+    return A_strncpy_String(dest, dest_off, src, src_off, n);
 }
 #endif // __cplusplus
 
@@ -333,18 +338,28 @@ inline bool A_streq(
 }
 #endif // __cplusplus
 
-A_EXTERN_C size_t A_strpbrk_Str_Str(
-    const str_t* A_RESTRICT a, const str_t* A_RESTRICT b
-);
-A_EXTERN_C size_t A_strpbrk_Str_String(
-    const str_t* A_RESTRICT a, const string_t* A_RESTRICT b
-);
-A_EXTERN_C size_t A_strpbrk_String_Str(
-    const string_t* A_RESTRICT a, const str_t* A_RESTRICT b
-);
-A_EXTERN_C size_t A_strpbrk_String_String(
+A_STRING_DECLARE_BOTH2_CONST(A_EXTERN_C bool, A_strieq, a, b);
+
+#ifndef __cplusplus
+#define A_strieq(a, b) A_STRING_GENERIC_BOTH2(a, b, A_strieq)(a, b)
+#else
+inline bool A_strieq(const str_t* A_RESTRICT a, const str_t* A_RESTRICT b) { 
+    return A_strieq_Str_Str(a, b); 
+}
+inline bool A_strieq(const str_t* A_RESTRICT a, const string_t* A_RESTRICT b) {
+    return A_strieq_Str_String(a, b); 
+}
+inline bool A_strieq(const string_t* A_RESTRICT a, const str_t* A_RESTRICT b) {
+    return A_strieq_String_Str(a, b); 
+}
+inline bool A_strieq(
     const string_t* A_RESTRICT a, const string_t* A_RESTRICT b
-);
+) { 
+    return A_strieq_String_String(a, b); 
+}
+#endif // __cplusplus
+
+A_STRING_DECLARE_BOTH2_CONST(A_EXTERN_C size_t, A_strpbrk, a, b);
 
 #ifndef __cplusplus
 #define A_strpbrk(a, b) A_STRING_GENERIC_BOTH2(a, b, A_strpbrk)(a, b)
@@ -369,18 +384,7 @@ inline size_t A_strpbrk(
 }
 #endif // __cplusplus
 
-A_EXTERN_C size_t A_strrpbrk_Str_Str(
-    const str_t* A_RESTRICT a, const str_t* A_RESTRICT b
-);
-A_EXTERN_C size_t A_strrpbrk_Str_String(
-    const str_t* A_RESTRICT a, const string_t* A_RESTRICT b
-);
-A_EXTERN_C size_t A_strrpbrk_String_Str(
-    const string_t* A_RESTRICT a, const str_t* A_RESTRICT b
-);
-A_EXTERN_C size_t A_strrpbrk_String_String(
-    const string_t* A_RESTRICT a, const string_t* A_RESTRICT b
-);
+A_STRING_DECLARE_BOTH2_CONST(A_EXTERN_C size_t, A_strrpbrk, a, b);
 
 #ifndef __cplusplus
 #define A_strrpbrk(a, b) A_STRING_GENERIC_BOTH2(a, b, A_strrpbrk)(a, b)
@@ -405,18 +409,7 @@ inline size_t A_strrpbrk(
 }
 #endif // __cplusplus
 
-A_EXTERN_C size_t A_strpcnt_Str_Str(
-    const str_t* A_RESTRICT a, const str_t* A_RESTRICT b
-);
-A_EXTERN_C size_t A_strpcnt_Str_String(
-    const str_t* A_RESTRICT a, const string_t* A_RESTRICT b
-);
-A_EXTERN_C size_t A_strpcnt_String_Str(
-    const string_t* A_RESTRICT a, const str_t* A_RESTRICT b
-);
-A_EXTERN_C size_t A_strpcnt_String_String(
-    const string_t* A_RESTRICT a, const string_t* A_RESTRICT b
-);
+A_STRING_DECLARE_BOTH2_CONST(A_EXTERN_C size_t, A_strpcnt, a, b);
 
 #ifndef __cplusplus
 #define A_strpcnt(a, b) A_STRING_GENERIC_BOTH2(a, b, A_strpcnt)(a, b)
@@ -441,18 +434,7 @@ inline size_t A_strpcnt(
 }
 #endif // __cplusplus
 
-A_EXTERN_C size_t A_strrpcnt_Str_Str(
-    const str_t* A_RESTRICT a, const str_t* A_RESTRICT b
-);
-A_EXTERN_C size_t A_strrpcnt_Str_String(
-    const str_t* A_RESTRICT a, const string_t* A_RESTRICT b
-);
-A_EXTERN_C size_t A_strrpcnt_String_Str(
-    const string_t* A_RESTRICT a, const str_t* A_RESTRICT b
-);
-A_EXTERN_C size_t A_strrpcnt_String_String(
-    const string_t* A_RESTRICT a, const string_t* A_RESTRICT b
-);
+A_STRING_DECLARE_BOTH2_CONST(A_EXTERN_C size_t, A_strrpcnt, a, b);
 
 #ifndef __cplusplus
 #define A_strrpcnt(a, b) A_STRING_GENERIC_BOTH2(a, b, A_strrpcnt)(a, b)
@@ -479,18 +461,7 @@ inline size_t A_strrpcnt(
 }
 #endif // __cplusplus
 
-A_EXTERN_C size_t A_strstr_Str_Str(
-    const str_t* A_RESTRICT a, const str_t* A_RESTRICT b
-);
-A_EXTERN_C size_t A_strstr_Str_String(
-    const str_t* A_RESTRICT a, const string_t* A_RESTRICT b
-);
-A_EXTERN_C size_t A_strstr_String_Str(
-    const string_t* A_RESTRICT a, const str_t* A_RESTRICT b
-);
-A_EXTERN_C size_t A_strstr_String_String(
-    const string_t* A_RESTRICT a, const string_t* A_RESTRICT b
-);
+A_STRING_DECLARE_BOTH2_CONST(A_EXTERN_C size_t, A_strstr, a, b);
 
 #ifndef __cplusplus
 #define A_strstr(a, b) A_STRING_GENERIC_BOTH2(a, b, A_strstr)(a, b)
@@ -515,18 +486,7 @@ inline size_t A_strstr(
 }
 #endif // __cplusplus
 
-A_EXTERN_C size_t A_strrstr_Str_Str(
-    const str_t* A_RESTRICT a, const str_t* A_RESTRICT b
-);
-A_EXTERN_C size_t A_strrstr_Str_String(
-    const str_t* A_RESTRICT a, const string_t* A_RESTRICT b
-);
-A_EXTERN_C size_t A_strrstr_String_Str(
-    const string_t* A_RESTRICT a, const str_t* A_RESTRICT b
-);
-A_EXTERN_C size_t A_strrstr_String_String(
-    const string_t* A_RESTRICT a, const string_t* A_RESTRICT b
-);
+A_STRING_DECLARE_BOTH2_CONST(A_EXTERN_C size_t, A_strrstr, a, b);
 
 #ifndef __cplusplus
 #define A_strrstr(a, b) A_STRING_GENERIC_BOTH2(a, b, A_strrstr)(a, b)
