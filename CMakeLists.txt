@@ -85,15 +85,20 @@ if(MSVC)
 		"/Zc:__STDC__" "/W4" "/wd4005" "/bigobj"
 		"/WX"
 	)
+elseif(CLANG)
+    target_compile_options(h1_map_viewer PRIVATE
+        "-Wno-gnu-zero-variadic-macro-arguments"
+    ) 
 endif()
 
 if(CLANG AND APPLE)
-    target_compile_options(h1_map_viewer PRIVATE "-Wno-undef-prefix")
+    target_compile_options(h1_map_viewer PRIVATE 
+        "-Wno-undef-prefix" "-Wno-unreachable-code-generic-assoc"
+    )
 endif()
 
 if(CLANG OR GCC)
     target_compile_options(h1_map_viewer PRIVATE 
         "-Wall" "-Wextra" "-Werror" "-pedantic" "-pedantic-errors" 
-        "-Wno-type-limits" 
-    ) 
+        "-Wno-type-limits") 
 endif()
