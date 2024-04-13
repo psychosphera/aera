@@ -96,7 +96,10 @@ long long FS_SeekStream(A_INOUT StreamFile& file, SeekFrom from, size_t off) {
 	default:
 		assert(false);
 	}
-	return (long long)SDL_RWtell(file.f) - (long long)begin_pos;
+    if(res < 0)
+        return res;
+	else
+        return (long long)SDL_RWtell(file.f) - (long long)begin_pos;
 }
 
 std::vector<std::byte> FS_ReadStream(StreamFile& file, size_t count) {

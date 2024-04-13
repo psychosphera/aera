@@ -62,7 +62,8 @@
 #define A_NO_RETURN _Noreturn void
 #endif // __cplusplus
 
-#define NOP() ;
+#define A_NOP() ;
+#define A_SCOPE(...) do { __VA_ARGS__ } while(0);
 
 #ifdef __cplusplus
 #define A_EXTERN_C extern "C"

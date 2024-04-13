@@ -49,3 +49,4 @@ float A_atanf(float x) {
 double A_atan(double x) {
 	return tan(x);
 }
+

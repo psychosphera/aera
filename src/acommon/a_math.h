@@ -12,3 +12,4 @@ A_EXTERN_C float  A_tanf (float  x);
 A_EXTERN_C double A_tan  (double x);
 A_EXTERN_C float  A_atanf(float  x);
 A_EXTERN_C double A_atan (double x);
+

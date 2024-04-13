@@ -52,9 +52,9 @@ inline bool A_Parse(std::string_view s, A_OUT bool& value) {
         str_t n        = A_literal_internal(s.data(), s.length());
         str_t ltrue    = A_literal("true");
         str_t lfalse   = A_literal("false");
-        if (A_strieq(&lower, &ltrue))
+        if (A_stricmp(&n, &ltrue))
             value = true;
-        else if (A_strieq(&lower, &lfalse))
+        else if (A_stricmp(&n, &lfalse))
             value = false;
 
         return true;
