@@ -1,8 +1,8 @@
 #include "com_print.hpp"
 #include "sys.hpp"
 
-int main() {    
-    Sys_Init();
+int main(int /*argc */, const char** argv) {    
+    Sys_Init(argv);
     Com_Init();
 #if _DEBUG
     Com_DPrintln("Running in debug mode.");

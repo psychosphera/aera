@@ -25,7 +25,7 @@ void Sys_InitThreads() {
     assert(b);
 }
 
-void Sys_Init() {
+void Sys_Init(const char** argv) {
     s_timeBase = (uint64_t)SDL_GetTicks();
 
     SDL_Init(SDL_INIT_VIDEO);
@@ -52,6 +52,7 @@ void Sys_Init() {
         Sys_NormalExit(-2);
     }
 
+    Sys_InitCmdline(argv);
     Sys_InitThreads();
     IN_Init();
 }
@@ -131,11 +132,44 @@ bool Sys_SpawnDevConThread(int(*DevConThread)(void*)) {
     return Sys_CreateThread(THREAD_DEVCON, "devcon", DevConThread);
 }
 
+str_t sys_argv[SYS_MAX_ARGV];
+size_t sys_argc = 0;
+
+size_t Sys_InitCmdline(const char** argv) {
+    if(argv == NULL)
+        return 0;
+
+    if(argv[0] == NULL)
+        return 0;
+    
+    size_t argc = 0;
+    for(; argv[argc] != NULL; argc++) {
+        str_t arg = A_str(argv[argc]);
+        sys_argv[argc] = arg;
+    }
+    
+    sys_argc = argc;
+    return argc;
+}
+
+A_NO_DISCARD str_t Sys_Argv(size_t i) {
+    if(i >= sys_argc)
+        return A_str();
+    else
+        return sys_argv[i];
+}
+
+void Sys_ShutdownCmdline() {
+    sys_argc = 0;
+    memset(&sys_argv, 0, sizeof(sys_argv));
+}
+
 A_NO_RETURN Sys_Exit(int ec) {
     exit(ec);
 }
 
 void Sys_Shutdown() {
+    Sys_ShutdownCmdline();
     IN_Shutdown();
     SDL_DestroyWindow(g_sdlWindow);
     SDL_Quit();

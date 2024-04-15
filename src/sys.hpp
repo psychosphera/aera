@@ -10,8 +10,10 @@ enum thread_t {
 constexpr inline int VID_WIDTH_DEFAULT  = 1024;
 constexpr inline int VID_HEIGHT_DEFAULT = 768;
 
+constexpr inline size_t SYS_MAX_ARGV = 256;
+
 void Sys_InitThreads();
-void Sys_Init();
+void Sys_Init(const char** argv);
 bool Sys_HandleEvent();
 void Sys_Shutdown();
 bool Sys_SpawnDevConThread(int(*DevConThread)(void*));
