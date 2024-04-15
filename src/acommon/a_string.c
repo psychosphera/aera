@@ -42,6 +42,10 @@ void A_memset(void* A_RESTRICT p, char c, size_t n) {
         ((char* A_RESTRICT)p)[i] = c;
 }
 
+size_t A_cstrlen(const char* A_RESTRICT s) {
+    return strlen(s);
+}
+
 str_t A_literal_internal(const char* A_RESTRICT s, size_t c) {
     str_t n;
     n.__data = s;
@@ -49,7 +53,25 @@ str_t A_literal_internal(const char* A_RESTRICT s, size_t c) {
     return n;
 }
 
-str_t A_str(const string_t* A_RESTRICT s) {
+str_t A_STRING_MANGLE_VOID(A_str)(void) {
+    str_t n;
+    n.__data = NULL;
+    n.__len = 0;
+    return n;
+}
+
+str_t A_STRING_MANGLE_CSTR(A_str)(const char* A_RESTRICT p) {
+    str_t n;
+    n.__data = p;
+    n.__len  = A_cstrlen(p);
+    return n;
+}
+
+str_t A_STRING_MANGLE_STR(A_str)(const str_t* A_RESTRICT s) {
+    return *s;
+}
+
+str_t A_STRING_MANGLE_STRING(A_str)(const string_t* A_RESTRICT s) {
     str_t n;
     n.__data = A_cstr(s);
     n.__len  = A_strlen(s);
@@ -87,7 +109,7 @@ str_t A_str(const string_t* A_RESTRICT s) {
     ) { __VA_ARGS__ }
 
 #define A_STRING_IMPL_STR2(attr_ret, name, s, t, ...) \
-    A_STRING_IMPL_STR_STR   (attr_ret, name, s, t, __VA_ARGS__) \
+    A_STRING_IMPL_STR_STR(attr_ret, name, s, t, __VA_ARGS__) \
     A_STRING_IMPL_STR_STRING(attr_ret, name, s, t, __VA_ARGS__)
 
 #define A_STRING_IMPL_STRING_STR(attr_ret, name, s, t, ...) \
@@ -101,7 +123,7 @@ str_t A_str(const string_t* A_RESTRICT s) {
     ) { __VA_ARGS__ }
 
 #define A_STRING_IMPL_STRING2(attr_ret, name, s, t, ...) \
-    A_STRING_IMPL_STRING_STR   (attr_ret, name, s, t, __VA_ARGS__) \
+    A_STRING_IMPL_STRING_STR(attr_ret, name, s, t, __VA_ARGS__) \
     A_STRING_IMPL_STRING_STRING(attr_ret, name, s, t, __VA_ARGS__)
 
 #define A_STRING_IMPL_STRING_STR_CONST(attr_ret, name, s, t, ...) \
@@ -115,15 +137,15 @@ str_t A_str(const string_t* A_RESTRICT s) {
     ) { __VA_ARGS__ }
 
 #define A_STRING_IMPL_STRING2_CONST(attr_ret, name, s, t, ...) \
-    A_STRING_IMPL_STRING_STR_CONST   (attr_ret, name, s, t, __VA_ARGS__) \
+    A_STRING_IMPL_STRING_STR_CONST(attr_ret, name, s, t, __VA_ARGS__) \
     A_STRING_IMPL_STRING_STRING_CONST(attr_ret, name, s, t, __VA_ARGS__)
 
 #define A_STRING_IMPL_BOTH2(attr_ret, name, s, t, ...) \
-    A_STRING_IMPL_STR2   (attr_ret, name, s, t, __VA_ARGS__) \
+    A_STRING_IMPL_STR2(attr_ret, name, s, t, __VA_ARGS__) \
     A_STRING_IMPL_STRING2(attr_ret, name, s, t, __VA_ARGS__)
     
 #define A_STRING_IMPL_BOTH2_CONST(attr_ret, name, s, t, ...) \
-    A_STRING_IMPL_STR2         (attr_ret, name, s, t, __VA_ARGS__) \
+    A_STRING_IMPL_STR2(attr_ret, name, s, t, __VA_ARGS__) \
     A_STRING_IMPL_STRING2_CONST(attr_ret, name, s, t, __VA_ARGS__)
 
 A_STRING_IMPL_BOTH_CONST(string_t, A_string, s, return A_strdup(s);)
@@ -176,6 +198,9 @@ const char* A_STRING_MANGLE_STR(A_stratp)(const str_t* A_RESTRICT s, size_t i) {
 }
 
 char* A_STRING_MANGLE_STRING(A_stratp)(string_t* A_RESTRICT s, size_t i) {
+    if(i > A_strlen(s))
+        return NULL;
+    
     return &A_cstr(s)[i];
 }
 
@@ -384,67 +409,67 @@ bool A_STRING_MANGLE_STRING(A_strcont)(const string_t* A_RESTRICT s, char c) {
     return A_strchr(s, c, 0, A_NPOS) != A_NPOS;
 }
 
-A_STRING_IMPL_BOTH2_CONST(bool, A_strcmp, a, b, {
+A_STRING_IMPL_BOTH2_CONST(bool, A_strcmp, a, b, 
     if(A_strlen(a) != A_strlen(b))
         return false;
 
     return strncmp(A_cstr(a), A_cstr(b), A_strlen(a)) == 0;
-})
+)
 
-A_STRING_IMPL_BOTH2_CONST(bool, A_stricmp, a, b, {
+A_STRING_IMPL_BOTH2_CONST(bool, A_stricmp, a, b, 
     if(A_strlen(a) != A_strlen(b))
         return false;
 
-    for(size_t i = 0; i < A_strlen(a); i++) {
-        if(A_tolower(A_strat(a, i)) != A_tolower(A_strat(b, i)))
-            return false;
-    }
+    char ca = '\0', cb = '\0';
+    A_STR_ITER(a, ca)
+        A_STR_ITER(b, cb)
+            if(A_tolower(ca) != A_tolower(cb)) return false;
 
     return true;
-})
+)
 
-A_STRING_IMPL_BOTH2_CONST(size_t, A_strpbrk, a, b, {
+A_STRING_IMPL_BOTH2_CONST(size_t, A_strpbrk, a, b, 
     char ca = '\0', cb = '\0';
     size_t i = 0;
-    A_STR_ENUMERATE(a, i, ca, A_STR_ITER(b, cb, 
-        if(ca == cb) return i; 
-    ));
+    A_STR_ENUMERATE(a, i, ca)
+        A_STR_ITER(b, cb)
+            if(ca == cb) return i;
 
     return A_NPOS;
-})
+)
 
-A_STRING_IMPL_BOTH2_CONST(size_t, A_strrpbrk, a, b, {
+A_STRING_IMPL_BOTH2_CONST(size_t, A_strrpbrk, a, b, 
     char ca = '\0', cb = '\0';
     size_t i = 0;
-    A_STR_ENUMERATE_REV(a, i, ca, A_STR_ITER_REV(b, cb, 
-        if(ca == cb) return i; 
-    ));
+    A_STR_ENUMERATE_REV(a, i, ca)
+        A_STR_ITER_REV(b, cb)
+            if(ca == cb) return i; 
 
     return A_NPOS;
-})
+)
 
-A_STRING_IMPL_BOTH2_CONST(size_t, A_strpcnt, a, b, {
+A_STRING_IMPL_BOTH2_CONST(size_t, A_strpcnt, a, b,
     char ca = '\0', cb = '\0';
     size_t i = 0;
-    A_STR_ENUMERATE(a, i, ca, A_STR_ITER(b, cb, 
-        if(ca != cb) return i; 
-    ));
+    A_STR_ENUMERATE(a, i, ca)
+        A_STR_ITER(b, cb)
+            if(ca != cb) return i; 
 
     return A_NPOS;
-})
+)
 
 
-A_STRING_IMPL_BOTH2_CONST(size_t, A_strrpcnt, a, b, {
+A_STRING_IMPL_BOTH2_CONST(size_t, A_strrpcnt, a, b, 
     char ca = '\0', cb = '\0';
     size_t i = 0;
-    A_STR_ENUMERATE_REV(a, i, ca, A_STR_ITER_REV(b, cb, 
-        if(ca == cb) return i; 
-    ));
+    A_STR_ENUMERATE_REV(a, i, ca)
+        A_STR_ITER_REV(b, cb)
+            if(ca == cb) return i; 
 
     return A_NPOS;
-})
+)
 
-A_STRING_IMPL_BOTH2_CONST(size_t, A_strstr, a, b, {
+A_STRING_IMPL_BOTH2_CONST(size_t, A_strstr, a, b, 
     if(A_strlen(b) > A_strlen(a))
         return A_NPOS;
 
@@ -460,7 +485,7 @@ A_STRING_IMPL_BOTH2_CONST(size_t, A_strstr, a, b, {
     }
 
     return A_NPOS;
-})
+)
 
 A_STRING_IMPL_BOTH2_CONST(size_t, A_strrstr, a, b, {
     if(A_strlen(b) > A_strlen(a))

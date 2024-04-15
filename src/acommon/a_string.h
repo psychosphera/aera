@@ -7,21 +7,17 @@
 
 #include "acommon.h"
 
-#define A_STR_ENUMERATE(s, i, c, body) \
-    for(i = 0; i < A_strlen(s); i++) { c = A_strat(s, i); { body } }
+#define A_STR_ENUMERATE(s, i, c) \
+    for(i = 0, c = (char)A_strat(s, 0); i < A_strlen(s); i++)
 
-#define A_STR_ITER(s, c, body) { \
-        size_t __A_str_iter_i = 0; \
-        A_STR_ENUMERATE(s, __A_str_iter_i, c, body); \
-    }
+#define A_STR_ITER(s, c) \
+    for(size_t i = 0, c = (char)A_strat(s, 0); i < A_strlen(s); i++)
 
-#define A_STR_ENUMERATE_REV(s, i, c, body) \
-    for(i = A_strlen(s); i > 0; i--) { c = A_strat(s, i); { body } }
+#define A_STR_ENUMERATE_REV(s, i, c) \
+    for(i = A_strlen(s), c = (char)A_strat(s, A_strlen(s); i > 0; i--)
 
-#define A_STR_ITER_REV(s, c, body) { \
-        size_t __A_str_iter_rev_i = 0; \
-        A_STR_ENUMERATE_REV(s, __A_str_iter_rev_i, c, body); \
-    }
+#define A_STR_ITER_REV(s, c) \
+    for(size_t i = A_strlen(s), c = (char)A_strat(s, A_strlen(s); i > 0; i--)
 
 A_EXTERN_C bool A_memcmp (
     const void* A_RESTRICT a, const void* A_RESTRICT b, size_t n
@@ -29,9 +25,11 @@ A_EXTERN_C bool A_memcmp (
 A_EXTERN_C void A_memcpy(
     void* A_RESTRICT dest, const void* A_RESTRICT src, size_t n
 );
-A_EXTERN_C void* A_memchr (const void* A_RESTRICT p, char c, size_t n);
-A_EXTERN_C void* A_memrchr(const void* A_RESTRICT p, char c, size_t n);
-A_EXTERN_C void  A_memset (      void* A_RESTRICT p, char c, size_t n);
+A_EXTERN_C void*  A_memchr (const void* A_RESTRICT p, char c, size_t n);
+A_EXTERN_C void*  A_memrchr(const void* A_RESTRICT p, char c, size_t n);
+A_EXTERN_C void   A_memset (      void* A_RESTRICT p, char c, size_t n);
+
+A_EXTERN_C size_t A_cstrlen(const char* A_RESTRICT p);
 
 typedef struct str_s {
     const char* A_RESTRICT __data;
@@ -49,16 +47,28 @@ typedef struct string_s {
 A_EXTERN_C str_t A_literal_internal(const char* s, size_t c);
 #define A_literal(s) A_literal_internal(s, A_countof(s))
 
-A_EXTERN_C str_t A_str(const string_t* A_RESTRICT s);
+#define A_STRING_MANGLE_VOID(name)    name##_Void
+#define A_STRING_MANGLE_CHAR(name)    name##_Char
+#define A_STRING_MANGLE_CSTR(name)    name##_Cstr
+#define A_STRING_MANGLE_STR(name)     name##_Str
+#define A_STRING_MANGLE_STRING(name)  name##_String
+#define A_STRING_MANGLE_SIZE_T(name)  name##_SizeT
+#define A_STRING_MANGLE_LITERAL(name) name##_Literal
 
-#define A_STRING_MANGLE_STR(name)           name##_Str
-#define A_STRING_MANGLE_STRING(name)        name##_String
 #define A_STRING_MANGLE_STR_STR(name)       name##_Str_Str
 #define A_STRING_MANGLE_STR_STRING(name)    name##_Str_String
 #define A_STRING_MANGLE_STRING_STR(name)    name##_String_Str
 #define A_STRING_MANGLE_STRING_STRING(name) name##_String_String
-#define A_STRING_MANGLE_SIZE_T(name)        name##_SizeT
-#define A_STRING_MANGLE_LITERAL(name)       name##_StringC
+
+#define A_STRING_DECLARE_VOID(attr_ret, name) \
+    attr_ret A_STRING_MANGLE_VOID(name)(void)
+
+#define A_STRING_DECLARE_CHAR(attr_ret, name, c, ...) \
+    attr_ret A_STRING_MANGLE_CHAR(name)(char c __VA_OPT__(,) __VA_ARGS__)
+
+#define A_STRING_DECLARE_CSTR(attr_ret, name, s, ...) \
+    attr_ret A_STRING_MANGLE_CSTR(name) \
+        (const char* A_RESTRICT s __VA_OPT__(,) __VA_ARGS__)
 
 #define A_STRING_DECLARE_STR(attr_ret, name, s, ...) \
     attr_ret A_STRING_MANGLE_STR(name) \
@@ -151,6 +161,14 @@ A_EXTERN_C str_t A_str(const string_t* A_RESTRICT s);
     attr_ret A_STRING_MANGLE_LITERAL(name)( \
         const string_t* A_RESTRICT s __VA_OPT__(,) __VA_ARGS__ \
     )
+#define A_STRING_GENERIC_MATCH_VOID(f) \
+    void: f
+
+#define A_STRING_GENERIC_MATCH_CHAR(f) \
+    A_GENERIC_MATCH_CONST(char, A_STRING_MANGLE_CHAR(f))
+
+#define A_STRING_GENERIC_MATCH_CSTR(f) \
+    const char* A_RESTRICT: f
 
 #define A_STRING_GENERIC_MATCH_BOTH(f) \
     A_GENERIC_MATCH_CONST(str_t*, A_STRING_MANGLE_STR(f)), \
@@ -172,6 +190,72 @@ A_EXTERN_C str_t A_str(const string_t* A_RESTRICT s);
 
 #define A_STRING_GENERIC_MATCH_INTEGRAL(f) \
     A_GENERIC_MATCH_INTEGRAL(A_STRING_MANGLE_SIZE_T(f))
+
+#ifdef __cplusplus
+#define A_STRING_CXX_DECLARE_OVERLOAD_CSTR(attr_ret, name, s, ...) \
+    inline attr_ret name (const char* A_RESTRICT s __VA_OPT__(,) __VA_ARGS__)
+#endif // __cplusplus
+
+#ifdef __cplusplus
+#define A_STRING_CXX_CALL_OVERLOAD_CSTR(name, s, ...) \
+    A_STRING_MANGLE_CSTR(name)(s __VA_OPT__(,) __VA_ARGS__)
+#endif // __cplusplus
+
+#ifdef __cplusplus
+#define A_STRING_CXX_CALL_OVERLOAD_LITERAL(name, s, ...) \
+    A_STRING_MANGLE_LITERAL(name)(s __VA_OPT__(,) __VA_ARGS__)
+#endif // __cplusplus
+
+#ifdef __cplusplus
+#define A_STRING_CXX_DECLARE_OVERLOAD_STR(attr_ret, name, s, ...) \
+    inline attr_ret name(const str_t* A_RESTRICT s __VA_OPT__(,) __VA_ARGS__)
+#endif // __cplusplus
+
+#ifdef __cplusplus
+#define A_STRING_CXX_CALL_OVERLOAD_STR(name, s, ...) \
+    A_STRING_MANGLE_STR(name)(s __VA_OPT__(,) __VA_ARGS__)
+#endif // __cplusplus
+
+#ifdef __cplusplus
+#define A_STRING_CXX_DECLARE_OVERLOAD_STRING(attr_ret, name, s, ...) \
+    inline attr_ret name (string_t* A_RESTRICT s __VA_OPT__(,) __VA_ARGS__)
+#endif // __cplusplus
+
+#ifdef __cplusplus
+#define A_STRING_CXX_CALL_OVERLOAD_STRING(name, s, ...) \
+    A_STRING_MANGLE_STRING(name)(s __VA_OPT__(,) __VA_ARGS__)
+#endif // __cplusplus
+
+#ifdef __cplusplus
+#define A_STRING_CXX_DECLARE_OVERLOAD_STRING_CONST(attr_ret, name, s, ...) \
+    inline attr_ret name (const string_t* A_RESTRICT s __VA_OPT__(,) __VA_ARGS__)
+#endif // __cplusplus
+
+#ifdef __cplusplus
+#define A_STRING_CXX_CALL_OVERLOAD_STRING_CONST(name, s, ...) \
+    A_STRING_MANGLE_STRING(name)(s __VA_OPT__(,) __VA_ARGS__)
+#endif // __cplusplus
+
+#ifdef __cplusplus
+#define A_STRING_CXX_OVERLOAD_VOID(attr_ret, name) \
+    inline attr_ret name (void) { \
+        return A_STRING_MANGLE_VOID(name)(); \
+    } 
+#endif
+
+#ifdef __cplusplus
+#define A_STRING_CXX_OVERLOAD_CHAR(attr_ret, name) \
+    inline attr_ret name (char c) { \
+        return A_STRING_MANGLE_CHAR(name)(c); \
+    } 
+#endif
+
+#ifdef __cplusplus
+#define A_STRING_CXX_OVERLOAD_CSTR(attr_ret, name) \
+    inline attr_ret name (const char* A_RESTRICT s) { \
+        return A_STRING_MANGLE_CSTR(name)(s); \
+    } 
+#endif
 
 #ifdef __cplusplus
 #define A_STRING_CXX_OVERLOAD_STR(attr_ret, name) \
@@ -296,9 +380,23 @@ A_EXTERN_C str_t A_str(const string_t* A_RESTRICT s);
     } 
 #endif
 
+A_STRING_DECLARE_VOID      (A_EXTERN_C str_t, A_str);
+A_STRING_DECLARE_CSTR      (A_EXTERN_C str_t, A_str, s);
+A_STRING_DECLARE_BOTH_CONST(A_EXTERN_C str_t, A_str, s);
+#ifndef __cplusplus
+#define A_str(s) (_Generic((s), \
+    A_STRING_GENERIC_MATCH_VOID(A_str), \
+    A_STRING_GENERIC_MATCH_CSTR(A_str), \
+    A_STRING_GENERIC_MATCH_BOTH(A_str) \
+))(s)
+#else
+A_STRING_CXX_OVERLOAD_VOID      (str_t, A_str);
+A_STRING_CXX_OVERLOAD_CSTR      (str_t, A_str);
+A_STRING_CXX_OVERLOAD_BOTH_CONST(str_t, A_str);
+#endif
+
 A_STRING_DECLARE_BOTH_CONST(A_EXTERN_C string_t, A_string, s);
 A_STRING_DECLARE_INTEGRAL  (A_EXTERN_C string_t, A_string, s);
-
 #ifndef __cplusplus
 #define A_string(s) (_Generic((s), \
     A_STRING_GENERIC_MATCH_INTEGRAL(A_string), \
@@ -306,7 +404,7 @@ A_STRING_DECLARE_INTEGRAL  (A_EXTERN_C string_t, A_string, s);
 ))(s)
 #else
 A_STRING_CXX_OVERLOAD_BOTH_CONST(string_t, A_string);
-A_STRING_CXX_OVERLOAD_INTEGRAL(string_t, A_string);
+A_STRING_CXX_OVERLOAD_INTEGRAL  (string_t, A_string);
 #endif
 
 A_STRING_DECLARE_STR    (A_EXTERN_C const char*, A_cstr, s);
@@ -324,12 +422,15 @@ A_STRING_DECLARE_BOTH_CONST(A_EXTERN_C char, A_strat, s, size_t i);
 #ifndef __cplusplus
 #define A_strat(s, i) A_STRING_GENERIC_BOTH(s, A_strat)(s, i)
 #else
-inline char A_strat(const str_t* A_RESTRICT s, size_t i) { 
-    return A_STRING_MANGLE_STR(A_strat)(s, i); 
-};
-inline char A_strat(const string_t* A_RESTRICT s, size_t i) { 
-    return A_STRING_MANGLE_STRING(A_strat)(s, i); 
-};
+A_STRING_CXX_DECLARE_OVERLOAD_STR(char, A_strat, s, size_t i) {
+    return A_STRING_CXX_CALL_OVERLOAD_STR(A_strat, s, i);
+}
+A_STRING_CXX_DECLARE_OVERLOAD_STRING(char, A_strat, s, size_t i) {
+    return A_STRING_CXX_CALL_OVERLOAD_STRING(A_strat, s, i);
+}
+A_STRING_CXX_DECLARE_OVERLOAD_STRING_CONST(char, A_strat, s, size_t i) {
+    return A_STRING_CXX_CALL_OVERLOAD_STRING_CONST(A_strat, s, i);
+}
 #endif // __cplusplus
 
 A_STRING_DECLARE_STR    (A_EXTERN_C const char*, A_stratp, s, size_t i);
@@ -342,14 +443,14 @@ A_STRING_DECLARE_LITERAL(A_EXTERN_C const char*, A_stratp, s, size_t i);
     const string_t*: A_STRING_MANGLE_LITERAL(A_stratp) \
 ))(s, i)
 #else
-inline const char* A_stratp(const str_t* A_RESTRICT s, size_t i) { 
-    return A_STRING_MANGLE_STR(A_stratp)(s, i); 
+A_STRING_CXX_DECLARE_OVERLOAD_STR(const char*, A_stratp, s, size_t i) {
+    return A_STRING_CXX_CALL_OVERLOAD_STR(A_stratp, s, i);
 }
-inline char* A_stratp(string_t* A_RESTRICT s, size_t i) { 
-    return A_STRING_MANGLE_STRING(A_stratp)(s, i); 
+A_STRING_CXX_DECLARE_OVERLOAD_STRING(char*, A_stratp, s, size_t i) {
+    return A_STRING_CXX_CALL_OVERLOAD_STRING(A_stratp, s, i);
 }
-inline const char* A_stratp(const string_t* A_RESTRICT s, size_t i) { 
-    return A_STRING_MANGLE_LITERAL(A_stratp)(s, i); 
+A_STRING_CXX_DECLARE_OVERLOAD_STRING_CONST(const char*, A_stratp, s, size_t i) {
+    return A_STRING_CXX_CALL_OVERLOAD_LITERAL(A_stratp, s, i);
 }
 #endif // __cplusplus
 

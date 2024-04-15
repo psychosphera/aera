@@ -2,27 +2,16 @@
 
 #include "a_string.h"
 
-A_EXTERN_C char     A_tolower_Char  (      char                 c);
-A_EXTERN_C string_t A_tolower_Str   (const str_t*    A_RESTRICT s);
-A_EXTERN_C string_t A_tolower_String(const string_t* A_RESTRICT s);
+A_STRING_DECLARE_CHAR(A_EXTERN_C char, A_tolower, c);
+A_STRING_DECLARE_BOTH_CONST(A_EXTERN_C string_t, A_tolower, s);
 
 #ifndef __cplusplus
 #define A_tolower(s) (_Generic((s), \
-          char:      A_tolower_Char, \
-          str_t*:    A_tolower_Str, \
-    const str_t*:    A_tolower_Str, \
-          string_t*: A_tolower_String, \
-    const string_t*: A_tolower_String \
+    A_STRING_GENERIC_MATCH_CHAR(A_tolower), \
+    A_STRING_GENERIC_MATCH_BOTH(A_tolower) \
 ))(s)
 #else
-inline char A_tolower(char c) { 
-    return A_tolower_Char(c);
-}
-inline string_t A_tolower(const str_t* A_RESTRICT s) {
-    return A_tolower_Str(s);
-}
-inline string_t A_tolower(const string_t* A_RESTRICT s) {
-    return A_tolower_String(s);
-}
+A_STRING_CXX_OVERLOAD_CHAR(char, A_tolower);
+A_STRING_CXX_OVERLOAD_BOTH_CONST(string_t, A_tolower);
 #endif // __cplusplus
 
