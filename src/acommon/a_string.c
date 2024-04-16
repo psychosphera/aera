@@ -421,39 +421,63 @@ A_STRING_IMPL_BOTH2_CONST(bool, A_stricmp, a, b,
         return false;
 
     char ca = '\0', cb = '\0';
-    A_STR_ITER(a, ca)
-        A_STR_ITER(b, cb)
+    //A_STR_ITER(a, ca)
+    for(size_t i = 0; i < A_strlen(a); i++) {
+        ca = A_strat(a, i);
+        //A_STR_ITER(b, cb)
+        for(size_t j = 0; j < A_strlen(b); j++) {
+            cb = A_strat(b, j);
             if(A_tolower(ca) != A_tolower(cb)) return false;
+        }
+    }
 
     return true;
 )
 
 A_STRING_IMPL_BOTH2_CONST(size_t, A_strpbrk, a, b, 
     char ca = '\0', cb = '\0';
-    size_t i = 0;
-    A_STR_ENUMERATE(a, i, ca)
-        A_STR_ITER(b, cb)
+    //size_t i = 0;
+    //A_STR_ENUMERATE(a, i, ca)
+    for(size_t i = 0; i < A_strlen(a); i++) {
+        ca = A_strat(a, i);
+        //A_STR_ITER(b, cb)
+        for(size_t j = 0; j < A_strlen(b); j++) {
+            cb = A_strat(b, j);
             if(ca == cb) return i;
+        }
+    }
 
     return A_NPOS;
 )
 
 A_STRING_IMPL_BOTH2_CONST(size_t, A_strrpbrk, a, b, 
     char ca = '\0', cb = '\0';
-    size_t i = 0;
-    A_STR_ENUMERATE_REV(a, i, ca)
-        A_STR_ITER_REV(b, cb)
+    //size_t i = 0;
+    //A_STR_ENUMERATE_REV(a, i, ca)
+    for(size_t i = A_strlen(a); i > 0; i--) {
+        ca = A_strat(a, i);
+        //A_STR_ITER_REV(b, cb)
+        for(size_t j = A_strlen(b); j > 0; j--) {
+            cb = A_strat(b, j);
             if(ca == cb) return i; 
+        }
+    }
 
     return A_NPOS;
 )
 
 A_STRING_IMPL_BOTH2_CONST(size_t, A_strpcnt, a, b,
     char ca = '\0', cb = '\0';
-    size_t i = 0;
-    A_STR_ENUMERATE(a, i, ca)
-        A_STR_ITER(b, cb)
+    //size_t i = 0;
+    //A_STR_ENUMERATE(a, i, ca)
+    for(size_t i = 0; i < A_strlen(a); i++) {
+        ca = A_strat(a, i);
+        //A_STR_ITER(b, cb)
+        for(size_t j = 0; j < A_strlen(b); j++) {
+            cb = A_strat(b, j);
             if(ca != cb) return i; 
+        }
+    }
 
     return A_NPOS;
 )
@@ -461,10 +485,16 @@ A_STRING_IMPL_BOTH2_CONST(size_t, A_strpcnt, a, b,
 
 A_STRING_IMPL_BOTH2_CONST(size_t, A_strrpcnt, a, b, 
     char ca = '\0', cb = '\0';
-    size_t i = 0;
-    A_STR_ENUMERATE_REV(a, i, ca)
-        A_STR_ITER_REV(b, cb)
+    //size_t i = 0;
+    //A_STR_ENUMERATE_REV(a, i, ca)
+    for(size_t i = A_strlen(a); i > 0; i--) {
+        ca = A_strat(a, i);
+        //A_STR_ITER_REV(b, cb)
+        for(size_t j = A_strlen(b); j > 0; j--) {
+            cb = A_strat(b, j);
             if(ca == cb) return i; 
+        }
+    }
 
     return A_NPOS;
 )
