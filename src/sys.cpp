@@ -5,6 +5,8 @@
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 
+#include "acommon/a_string.h"
+
 #include "cl_client.hpp"
 #include "devcon.hpp"
 #include "dvar.hpp"
@@ -20,10 +22,12 @@ dvar_t* vid_height;
 
 static uint64_t s_timeBase;
 
-void Sys_InitThreads() {
-    bool b = Sys_SpawnDevConThread(DevCon_Thread);
-    assert(b);
-}
+static size_t Sys_InitCmdline(const char** argv);
+static void   Sys_InitThreads();
+static bool   Sys_SpawnDevConThread(int(*DevConThread)(void*));
+static bool   Sys_CreateThread(
+    thread_t thread, const std::string& name, int(*f)(void*)
+);
 
 void Sys_Init(const char** argv) {
     s_timeBase = (uint64_t)SDL_GetTicks();
@@ -114,6 +118,15 @@ int Sys_ThreadMain(void* data) {
     return sys_threadFuncs.at((size_t)data)(data);
 }
 
+void Sys_InitThreads() {
+    bool b = Sys_SpawnDevConThread(DevCon_Thread);
+    assert(b);
+}
+
+bool Sys_SpawnDevConThread(int(*DevConThread)(void*)) {
+    return Sys_CreateThread(THREAD_DEVCON, "devcon", DevConThread);
+}
+
 bool Sys_CreateThread(thread_t thread, const std::string& name, int(*f)(void*)) {
     sys_threadFuncs.at(thread) = f;
     SDL_Thread* t = SDL_CreateThread(Sys_ThreadMain, name.c_str(), (void*)thread);
@@ -126,10 +139,6 @@ bool Sys_CreateThread(thread_t thread, const std::string& name, int(*f)(void*)) 
 
 void Sys_DestroyThread(thread_t /*thread*/) {
     
-}
-
-bool Sys_SpawnDevConThread(int(*DevConThread)(void*)) {
-    return Sys_CreateThread(THREAD_DEVCON, "devcon", DevConThread);
 }
 
 str_t sys_argv[SYS_MAX_ARGV];
@@ -161,7 +170,7 @@ A_NO_DISCARD str_t Sys_Argv(size_t i) {
 
 void Sys_ShutdownCmdline() {
     sys_argc = 0;
-    memset(&sys_argv, 0, sizeof(sys_argv));
+    A_memset(&sys_argv, 0, sizeof(sys_argv));
 }
 
 A_NO_RETURN Sys_Exit(int ec) {
