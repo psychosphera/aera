@@ -92,12 +92,13 @@ if(MSVC)
 elseif(CLANG)
     target_compile_options(h1_map_viewer PRIVATE
         "-Wno-gnu-zero-variadic-macro-arguments"
+        "-Wno-unreachable-code-generic-assoc"
     ) 
 endif()
 
 if(CLANG AND APPLE)
     target_compile_options(h1_map_viewer PRIVATE 
-        "-Wno-undef-prefix" "-Wno-unreachable-code-generic-assoc"
+        "-Wno-undef-prefix"
     )
 endif()
 
