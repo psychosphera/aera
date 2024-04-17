@@ -12,9 +12,11 @@
 #include "acommon/a_type.h"
 #include "acommon/a_format.hpp"
 
+#include "devcon.hpp"
 #include "sys.hpp"
 
 enum print_msg_dest_t {
+    CON_DEST_DEVCON,
     CON_DEST_OUT,
     CON_DEST_ERR,
     CON_DEST_FATAL_ERR,
@@ -31,12 +33,15 @@ void inline Com_PrintMessage(
     char fmt[8];
     snprintf(fmt, sizeof(fmt), "%%%zus", msg.size());
 
+    if (dest == CON_DEST_OUT)
+        dest = CON_DEST_DEVCON;
+
     if (dest == CON_DEST_ERR || dest == CON_DEST_FATAL_ERR)
         fprintf(stderr, fmt, msg.data());
     else if (dest == CON_DEST_DEBUG_INFO && _DEBUG)
         printf(fmt, msg.data());
-    else
-        printf(fmt, msg.data());
+    else if (dest == CON_DEST_DEVCON)
+        DevCon_PrintMessage(msg);
 }
 
 template<typename ...Args>
