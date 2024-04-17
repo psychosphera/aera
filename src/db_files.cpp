@@ -7,6 +7,10 @@
 
 #include "com_print.hpp"
 
+#ifndef A_PROJECT_ROOT
+#define A_PROJECT_ROOT ""
+#endif
+
 enum AssetType {
 	AT_SHADER,
 	AT_FONT,
@@ -28,7 +32,7 @@ std::string_view DB_AssetDirForType(AssetType at) {
 }
 
 static const std::filesystem::path ASSETS_BASE_DIR = 
-	std::filesystem::path("../../../assets");
+	std::filesystem::path(A_PROJECT_ROOT "/assets");
 
 A_NO_DISCARD std::filesystem::path DB_AssetPath(
 	AssetType at, std::string_view assetName

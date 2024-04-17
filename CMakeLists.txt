@@ -30,14 +30,14 @@ find_package(ZLIB     REQUIRED)
 
 add_executable(h1_map_viewer
     src/acommon/a_string.c src/acommon/a_common.c src/acommon/a_type.c
-    src/acommon/z_mem.c
+    src/acommon/z_mem.c src/acommon/a_math.c src/acommon/a_math.h
 
 	src/cg_cgame.cpp src/com.cpp src/font.cpp src/fs_files.cpp src/gfx.cpp 
 	src/gfx_backend.cpp  src/in_input.cpp src/main.cpp src/sys.cpp
  	src/db_files.cpp src/cmd_commands.cpp src/cl_client.cpp src/devgui.cpp 
 	src/gfx_text.cpp src/gfx_shaders.cpp src/devcon.cpp src/dvar.cpp 
 	src/con_console.cpp src/pm_pmove.cpp src/m_math.cpp
- "src/acommon/a_math.c" "src/acommon/a_math.h")
+)
 
 
 # SDL3 and SDL3_image aren't available from vcpkg. SDL_image contains SDL as a
@@ -73,6 +73,10 @@ set_target_properties(
 	h1_map_viewer PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/build
 )
 
+target_compile_definitions(
+    h1_map_viewer PRIVATE A_PROJECT_ROOT="${CMAKE_SOURCE_DIR}"
+)
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	target_compile_definitions(h1_map_viewer PRIVATE _DEBUG=1)
 else()
@@ -100,5 +104,6 @@ endif()
 if(CLANG OR GCC)
     target_compile_options(h1_map_viewer PRIVATE 
         "-Wall" "-Wextra" "-Werror" "-pedantic" "-pedantic-errors" 
-        "-Wno-type-limits") 
+        "-Wno-type-limits"
+    ) 
 endif()
