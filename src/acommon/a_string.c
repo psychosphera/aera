@@ -258,6 +258,14 @@ string_t A_STRING_MANGLE_STRING(A_strdup)(const string_t* A_RESTRICT s) {
     return n;
 }
 
+string_t A_strmove(string_t* A_RESTRICT s) {
+    string_t n = *s;
+    s->__data = NULL;
+    s->__len  = 0;
+    s->__cap  = 0;
+    return n;
+}
+
 bool A_strext(string_t* A_RESTRICT s, size_t n) {
     size_t newlen = A_strlen(s) + n;
     if(newlen + 1 > A_strcap(s))
