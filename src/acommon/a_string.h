@@ -1,3 +1,14 @@
+// a_string.h
+//
+// Contains declarations for A_str* and A_mem* functions (mostly analogues
+// to their stdlib counterparts, with some extras added for convenience).
+//
+// This file is *kinda* macro hell (other option was a lot of repeated code
+// and two or three times the line count), but the functions are all documented
+// *decently* well, they mostly, as aforementioned, follow their stdlib 
+// counterparts in behavior, and their usage is fairly intuitive for the most
+// part.
+
 #pragma once
 
 #include <stdbool.h>
@@ -51,7 +62,12 @@ A_EXTERN_C size_t A_cstrlen(const char* A_RESTRICT p);
 // invalid if the underlying data is shrunk to a size less than the `str_t`'s
 // length.
 typedef struct str_s {
+    // This member variable should be treated as private and not accessed by
+    // anything external to a_string.c, and the data it points to should never
+    // be modified by anything. Use `A_cstr` or `A_stratp`.
     const char* A_RESTRICT __data;
+    // This member variable should be treated as private and not accessed by
+    // anything external to a_string.c. Use `A_strlen` or `A_strempty`.
     size_t                 __len;
 } str_t;
 
@@ -64,14 +80,21 @@ typedef struct str_s {
 // either be copied with `A_strdup` or moved with `A_strmove`, never directly
 // copied (e.g., by `A_memset`, `operator=`, etc.).
 typedef struct string_s {
+    // This member variable should be treated as private and not accessed by
+    // anything external to a_string.c. Use `A_cstr` or `A_stratp`.
     char* A_RESTRICT __data;
+    // This member variable should be treated as private and not accessed by
+    // anything external to a_string.c. Use `A_strlen`/`A_strempty` or 
+    // `A_strext`/`A_strshrnk`.
     size_t           __len;
+    // This member variable should be treated as private and not accessed by
+    // anything external to a_string.c. Use `A_strcap`.
     size_t           __cap;
 } string_t;
+// ============================================================================
 
 // Analogous to std::string::npos.
 #define A_NPOS SIZE_MAX
-// ============================================================================
 
 // Creates a `str_t` from a pointer and size.
 // 
@@ -88,7 +111,7 @@ A_EXTERN_C str_t A_literal_internal(const char* s, size_t c);
 // "overloading" in C.
 //
 // If a specific "overload" of a function needs to be called, rather than
-// using the `_Generic`, ALWAYS use these macros. Do not call them "manually"
+// using the `_Generic`, ALWAYS use these macros. DO NOT call them "manually"
 // by appending the suffixes used here. They can and probably will change.
 #define A_STRING_MANGLE_VOID(name)    name##_Void
 #define A_STRING_MANGLE_CHAR(name)    name##_Char
@@ -220,7 +243,7 @@ A_EXTERN_C str_t A_literal_internal(const char* s, size_t c);
     A_GENERIC_MATCH_CONST(char, A_STRING_MANGLE_CHAR(f))
 
 #define A_STRING_GENERIC_MATCH_CSTR(f) \
-    const char* A_RESTRICT: f
+    const char* A_RESTRICT: A_STRING_MANGLE_CSTR(f)
 
 #define A_STRING_GENERIC_MATCH_BOTH(f) \
     A_GENERIC_MATCH_CONST(str_t*, A_STRING_MANGLE_STR(f)), \
@@ -245,7 +268,8 @@ A_EXTERN_C str_t A_literal_internal(const char* s, size_t c);
 // ============================================================================
 
 // ============================================================================
-// These macros declare and call C++ overloads for string-related functions.
+// These macros declare and call C++ overloads for string-related functions. 
+// They are only defined in C++.
 #ifdef __cplusplus
 #define A_STRING_CXX_DECLARE_OVERLOAD_CSTR(attr_ret, name, s, ...) \
     inline attr_ret name (const char* A_RESTRICT s __VA_OPT__(,) __VA_ARGS__)
@@ -517,9 +541,6 @@ A_STRING_DECLARE_LITERAL(A_EXTERN_C const char*, A_stratp, s, size_t i);
 // Gets a pointer to the character at index `i` within `s`. 
 // If `i >= A_strlen(s)`, returns `NULL`. If `T` == (non-const) string_t, the
 // pointer is also non-const. Otherwise, the pointer is const.
-//
-// `str_t` and `string_t` aren't guaranteed to be null-terminated, so this
-// function should be used with care when interacting with cstr APIs.
 #define A_stratp(s, i) (_Generic((s), \
     A_GENERIC_MATCH_CONST(str_t*, A_STRING_MANGLE_STR(A_stratp)), \
           string_t*: A_STRING_MANGLE_STRING(A_stratp), \
@@ -540,10 +561,19 @@ A_STRING_CXX_DECLARE_OVERLOAD_STRING_CONST(const char*, A_stratp, s, size_t i) {
 A_STRING_DECLARE_BOTH_CONST(A_EXTERN_C size_t, A_strlen, s);
 #ifndef __cplusplus
 // size_t A_strlen(T* s) => T == `str_t`, `[const] string_t`
-// Returns the length of `s`.
+// Returns the length of `s`, not including the null-terminator.
 #define A_strlen(s) A_STRING_GENERIC_BOTH(s, A_strlen)(s)
 #else
 A_STRING_CXX_OVERLOAD_BOTH_CONST(size_t, A_strlen);
+#endif // __cplusplus
+
+A_STRING_DECLARE_BOTH_CONST(A_EXTERN_C bool, A_strempty, s);
+#ifndef __cplusplus
+// bool A_strempty(T* s) => T == `str_t`, `[const] string_t`
+// Returns the length of `s`, not including the null-terminator.
+#define A_strempty(s) A_STRING_GENERIC_BOTH(s, A_strempty)(s)
+#else
+A_STRING_CXX_OVERLOAD_BOTH_CONST(size_t, A_strempty);
 #endif // __cplusplus
        
 // Returns the capacity of `s`.

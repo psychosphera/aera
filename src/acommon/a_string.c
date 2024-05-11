@@ -170,7 +170,8 @@ A_STRING_IMPL_STR    (const char*, A_cstr, s, return s->__data; )
 A_STRING_IMPL_STRING (      char*, A_cstr, s, return s->__data; )
 A_STRING_IMPL_LITERAL(const char*, A_cstr, s, return (const char*)s->__data; )
 
-A_STRING_IMPL_BOTH_CONST(size_t, A_strlen, s, return s->__len; )
+A_STRING_IMPL_BOTH_CONST(size_t, A_strlen,   s, return s->__len; )
+A_STRING_IMPL_BOTH_CONST(bool,   A_strempty, s, return A_strlen(s) == 0; )
 
 size_t A_strcap(const string_t* A_RESTRICT s) {
     return s->__cap;
