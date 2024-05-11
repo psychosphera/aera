@@ -7,6 +7,84 @@
 
 #define SIZE_BIT ((size_t)((size_t)CHAR_BIT * sizeof(size_t)))
 
+#ifdef __STDC__
+#define A_STDC 1
+#else
+#define A_STDC 0
+#endif // __STDC__
+       
+#ifdef __cplusplus
+#define A_CXX 1
+#else
+#define A_CXX 0
+#endif // __cplusplus
+
+#ifdef __STDC__
+#define A_C89 1
+#else
+#define A_C89 0
+#endif // __STDC__
+
+#if defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L
+#define A_C99 1
+#else 
+#define A_C99 0
+#endif // defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L
+
+#if defined __STDC_VERSION__ && __STDC_VERSION__ >= 201112L
+#define A_C11 1
+#else 
+#define A_C11 0
+#endif // defined __STDC_VERSION__ && __STDC_VERSION__ >= 201112L       
+
+#if defined __STDC_VERSION__ && __STDC_VERSION__ >= 201710L
+#define A_C17 1
+#else 
+#define A_C17 0
+#endif // defined __STDC_VERSION__ && __STDC_VERSION__ >= 201710L       
+
+#if defined __STDC_VERSION__ && __STDC_VERSION__ >= 202311L
+#define A_C23 1
+#else 
+#define A_C23 0
+#endif // defined __STDC_VERSION__ && __STDC_VERSION__ >= 202311L       
+
+#if defined __cplusplus && __cplusplus >= 199711L
+#define A_CXX98 1
+#else
+#define A_CXX98 0
+#endif // defined __cplusplus && __cplusplus >= 199711L
+
+#if defined __cplusplus && __cplusplus >= 201103L
+#define A_CXX11 1
+#else
+#define A_CXX11 0
+#endif // defined __cplusplus && __cplusplus >= 201103L
+
+#if defined __cplusplus && __cplusplus >= 201402L
+#define A_CXX14 1
+#else
+#define A_CXX14 0
+#endif // defined __cplusplus && __cplusplus >= 201402L
+
+#if defined __cplusplus && __cplusplus >= 201703L
+#define A_CXX17 1
+#else
+#define A_CXX17 0
+#endif // defined __cplusplus && __cplusplus >= 201703L
+
+#if defined __cplusplus && __cplusplus >= 202002L
+#define A_CXX20 1
+#else
+#define A_CXX20 0
+#endif // defined __cplusplus && __cplusplus >= 202002L
+
+#if defined __cplusplus && __cplusplus >= 202302L
+#define A_CXX23 1
+#else
+#define A_CXX23 0
+#endif // defined __cplusplus && __cplusplus >= 202302L
+
 #ifdef _WIN32
 #define A_TARGET_OS_IS_WINDOWS 1
 #else
@@ -18,7 +96,13 @@
 #else
 #define A_COMPILER_IS_MSVC 0
 #endif // _MSC_VER
-
+       
+#ifdef __GNUC__
+#define A_COMPILER_IS_GCC_COMPATIBLE 1
+#else
+#define A_COMPILER_IS_GCC_COMPATIBLE 0
+#endif // __GNUC__
+       
 #if A_COMPILER_IS_MSVC
 #define A_IN _In_
 #else
@@ -49,17 +133,26 @@
 #define A_OPTIONAL_OUT
 #endif // A_TARGET_OS_IS_WINDOWS
 
-#ifdef __cplusplus
+#if A_CXX17 || A_C23
 #define A_NO_DISCARD [[nodiscard]]
+#elif A_COMPILER_IS_GCC_COMAPTIBLE
+#define A_NO_DISCARD __attribute__((warn_unused_result))
+#elif A_COMPILER_IS_MSVC
+#define A_NO_DISCARD _Check_return_
 #else
 #define A_NO_DISCARD
-#endif // __cplusplus
+#endif // __cplusplus 
 
-#ifdef __cplusplus
+#if A_CXX11 || A_C23
 #define A_NO_RETURN [[noreturn]] void
-#else
-#include <stdnoreturn.h>
+#elif A_C11 && !A_C23
 #define A_NO_RETURN _Noreturn void
+#elif A_COMPILER_IS_GCC_COMPATIBLE
+#define A_NO_RETURN __attribute__((noreturn)) void
+#elif A_COMPILER_IS_MSVC 
+#define A_NO_RETURN __declspec(noreturn) void
+#else 
+#define A_NO_RETURN void
 #endif // __cplusplus
 
 #define A_NOP() ;
