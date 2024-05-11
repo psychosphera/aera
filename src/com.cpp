@@ -15,8 +15,6 @@
 static uint64_t s_lastFrameTime;
 static uint64_t s_deltaTime;
 
-//int com_maxfps = 30;
-
 void Com_Quit_f() {
     Sys_NormalExit(3);
 }
@@ -44,6 +42,8 @@ bool Com_Frame() {
 
     while (Sys_HandleEvent())
         ;
+
+    DevCon_Frame();
 
     CG_Frame(s_deltaTime);
     CL_Frame();

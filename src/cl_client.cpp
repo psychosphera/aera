@@ -282,7 +282,7 @@ bool CL_LoadMap_TagData() {
 		}
 		g_load.tag_data.push_back(d);
 
-		Com_Println(CON_DEST_INFO, "Loaded tag {}.", d.path);
+		Com_Println(CON_DEST_CLIENT, "Loaded tag {}.", d.path);
 	}
 	return true;
 }

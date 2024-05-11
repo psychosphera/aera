@@ -1173,7 +1173,7 @@ dvar_t* Dvar_RegisterLocalFromString(
 void Dvar_Set_f() {
 	int argc = Cmd_Argc();
 	if (argc < 3) {
-		Com_Println(CON_DEST_OUT, "USAGE: set <variable> <value>");
+		Com_Println(CON_DEST_CLIENT, "USAGE: set <variable> <value>");
 		return;
 	}
 
@@ -1202,7 +1202,7 @@ void Dvar_Set_f() {
 void Dvar_SetA_f() {
 	int argc = Cmd_Argc();
 	if (argc < 3) {
-		Com_Println(CON_DEST_OUT, "USAGE: seta <variable> <value>");
+		Com_Println(CON_DEST_CLIENT, "USAGE: seta <variable> <value>");
 		return;
 	}
 

@@ -17,29 +17,21 @@
 
 enum print_msg_dest_t {
     CON_DEST_DEVCON,
-    CON_DEST_OUT,
+    CON_DEST_CLIENT, // once DevGui printing is implemented, this will alias to
+                     // DevCon and DevGui
     CON_DEST_ERR,
-    CON_DEST_FATAL_ERR,
-    CON_DEST_INFO,
-    CON_DEST_DEBUG_INFO,
 };
 
 void inline Com_PrintMessage(
     print_msg_dest_t dest, std::string_view msg
 ) {
-    // Since we can't guarantee a std::string_view's valid range is 
-    // null-terminated, we need a format string that takes the a string of 
-    // exactly msg.size().
-    char fmt[8];
-    snprintf(fmt, sizeof(fmt), "%%%zus", msg.size());
+    const char* fmt = "%*s";
 
-    if (dest == CON_DEST_OUT)
+    if (dest == CON_DEST_CLIENT)
         dest = CON_DEST_DEVCON;
 
-    if (dest == CON_DEST_ERR || dest == CON_DEST_FATAL_ERR)
-        fprintf(stderr, fmt, msg.data());
-    else if (dest == CON_DEST_DEBUG_INFO && _DEBUG)
-        printf(fmt, msg.data());
+    if (dest == CON_DEST_ERR || dest == CON_DEST_ERR)
+        fprintf(stderr, fmt, msg.size(), msg.data());
     else if (dest == CON_DEST_DEVCON)
         DevCon_PrintMessage(msg);
 }
@@ -92,12 +84,12 @@ void inline Com_DPrint(
 }
 #endif // _DEBUG
 
-// Shorthand for Com_DPrint(CON_DEST_DEBUG_INFO, fmt, args...)
+// Shorthand for Com_DPrint(CON_DEST_CLIENT, fmt, args...)
 template<typename ...Args>
 void inline Com_DPrint(
     std::string_view fmt, Args&&... args
 ) {
-    Com_DPrint(CON_DEST_DEBUG_INFO, fmt, args...);
+    Com_DPrint(CON_DEST_CLIENT, fmt, args...);
 }
 
 // Shorthand for Com_DPrint(dest, "{}", t)
@@ -106,10 +98,10 @@ void inline Com_DPrint(print_msg_dest_t dest, T t) {
     Com_DPrint(dest, "{}", t);
 }
 
-// Shorthand for Com_DPrint(CON_DEST_DEBUG_INFO, t)
+// Shorthand for Com_DPrint(CON_DEST_CLIENT, t)
 template<typename T>
 void inline Com_DPrint(T t) {
-    Com_DPrint(CON_DEST_DEBUG_INFO, t);
+    Com_DPrint(CON_DEST_CLIENT, t);
 }
 
 template<typename ...Args>
@@ -121,10 +113,10 @@ void inline Com_DPrintln(
     );
 }
 
-// Shorthand for Com_DPrintln(CON_DEST_DEBUG_INFO, fmt, args...)
+// Shorthand for Com_DPrintln(CON_DEST_CLIENT, fmt, args...)
 template<typename ...Args>
 void inline Com_DPrintln(std::string_view fmt, Args&&... args) {
-    Com_DPrintln(CON_DEST_DEBUG_INFO, fmt, args...);
+    Com_DPrintln(CON_DEST_CLIENT, fmt, args...);
 }
 
 // Shorthand for Com_DPrintln(dest, "")
@@ -132,9 +124,9 @@ void inline Com_DPrintln(print_msg_dest_t dest) {
     Com_DPrintln(dest, "");
 }
 
-// Shorthand for Com_DPrintln(CON_DEST_DEBUG_INFO)
+// Shorthand for Com_DPrintln(CON_DEST_CLIENT)
 void inline Com_DPrintln() {
-    Com_DPrintln(CON_DEST_DEBUG_INFO);
+    Com_DPrintln(CON_DEST_CLIENT);
 }
 
 // Shorthand for Com_DPrintln(dest, "{}", t)
@@ -143,16 +135,16 @@ void inline Com_DPrintln(print_msg_dest_t dest, T t) {
     Com_DPrintln(dest, "{}", t);
 }
 
-// Shorthand for Com_DPrintln(CON_DEST_DEBUG_INFO, t)
+// Shorthand for Com_DPrintln(CON_DEST_CLIENT, t)
 template<typename T>
 void inline Com_DPrintln(T t) {
-    Com_DPrintln(CON_DEST_DEBUG_INFO, t);
+    Com_DPrintln(CON_DEST_CLIENT, t);
 }
 
 template<typename ...Args>
 A_NO_RETURN inline Com_Error(int ec, std::string_view fmt, Args&&... args) {
     Com_Print(
-        CON_DEST_FATAL_ERR, "FATAL ERROR: {}",
+        CON_DEST_ERR, "FATAL ERROR: {}",
         A_Format(fmt, args...)
     );
     Sys_NormalExit(ec);
@@ -179,7 +171,7 @@ A_NO_RETURN inline Com_Error(T t) {
 template<typename ...Args>
 A_NO_RETURN inline Com_Errorln(int ec, std::string_view fmt, Args&&... args) {
     Com_Println(
-        CON_DEST_FATAL_ERR, "FATAL ERROR: {} ()",
+        CON_DEST_ERR, "FATAL ERROR: {} ()",
         A_Format(fmt, args...),
         ec
     );

@@ -15,7 +15,7 @@ A_NO_DISCARD std::vector<std::byte> FS_ReadFile(std::filesystem::path path) {
 	SDL_RWops* ops = SDL_RWFromFile(path.string().c_str(), "rb");
 	if (ops == NULL) {
 		Com_Println(
-			CON_DEST_INFO, "Failed to open file '{}' for reading: {}",
+			CON_DEST_CLIENT, "Failed to open file '{}' for reading: {}",
 			path.string(), SDL_GetError()
 		);
 		return std::vector<std::byte>();
@@ -40,7 +40,7 @@ A_NO_DISCARD std::string FS_ReadFileText(std::filesystem::path path) {
 	SDL_RWops* ops = SDL_RWFromFile(path.string().c_str(), "r");
 	if (ops == NULL) {
 		Com_Println(
-			CON_DEST_INFO, "Failed to open file '{}' for reading: {}", 
+			CON_DEST_CLIENT, "Failed to open file '{}' for reading: {}", 
 			path.string(), SDL_GetError()
 		);
 		return std::string();

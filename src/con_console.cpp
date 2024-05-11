@@ -20,7 +20,7 @@ bool Con_ProcessInput(std::string_view input) {
             std::deque<std::string> v;
 
             if (Cmd_Argc() == 1) {
-                Com_Println(CON_DEST_OUT, "{}", Dvar_GetString(*d));
+                Com_Println(CON_DEST_CLIENT, "{}", Dvar_GetString(*d));
                 return true;
             }
             else {
@@ -56,7 +56,7 @@ bool Con_ProcessInput(std::string_view input, size_t localClientNum) {
             std::deque<std::string> v;
 
             if (Cmd_Argc() == 1) {
-                Com_Println(CON_DEST_OUT, "{}", Dvar_GetString(*d));
+                Com_Println(CON_DEST_CLIENT, "{}", Dvar_GetString(*d));
                 return true;
             } else {
                 v.push_back(std::string(Cmd_Argv(1)));
@@ -78,7 +78,7 @@ bool Con_ProcessInput(std::string_view input, size_t localClientNum) {
             std::deque<std::string> v;
 
             if (Cmd_Argc() == 1) {
-                Com_Println(CON_DEST_OUT, "{}", Dvar_GetString(*dl));
+                Com_Println(CON_DEST_CLIENT, "{}", Dvar_GetString(*dl));
                 return true;
             }
             else {
