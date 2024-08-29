@@ -2,11 +2,7 @@
 
 #include <filesystem>
 #include <string>
-#include <string_view>
 #include <vector>
-
-#include <cstdlib>
-#include <cstdio>
 
 #include "com_defs.hpp"
 #include "com_print.hpp"
@@ -15,7 +11,8 @@ A_NO_DISCARD std::vector<std::byte> FS_ReadFile(std::filesystem::path path) {
 	SDL_RWops* ops = SDL_RWFromFile(path.string().c_str(), "rb");
 	if (ops == NULL) {
 		Com_Println(
-			CON_DEST_CLIENT, "Failed to open file '{}' for reading: {}",
+			CON_DEST_CLIENT, 
+			"Failed to open file '{}' for reading: {}",
 			path.string(), SDL_GetError()
 		);
 		return std::vector<std::byte>();
@@ -29,7 +26,8 @@ A_NO_DISCARD std::vector<std::byte> FS_ReadFile(std::filesystem::path path) {
 	size_t c = SDL_RWread(ops, v.data(), len);
 	if ((Sint64)c < len)
 		Com_Println(
-			CON_DEST_ERR, "Truncated read of file '{}' (expected {} bytes, got {}).",
+			CON_DEST_ERR, 
+			"Truncated read of file '{}' (expected {} bytes, got {}).",
 			path.string(), len, c
 		);
 
@@ -40,7 +38,8 @@ A_NO_DISCARD std::string FS_ReadFileText(std::filesystem::path path) {
 	SDL_RWops* ops = SDL_RWFromFile(path.string().c_str(), "r");
 	if (ops == NULL) {
 		Com_Println(
-			CON_DEST_CLIENT, "Failed to open file '{}' for reading: {}", 
+			CON_DEST_CLIENT, 
+			"Failed to open file '{}' for reading: {}", 
 			path.string(), SDL_GetError()
 		);
 		return std::string();
@@ -54,7 +53,8 @@ A_NO_DISCARD std::string FS_ReadFileText(std::filesystem::path path) {
 	size_t c = SDL_RWread(ops, s.data(), len);
 	if ((Sint64)c < len)
 		Com_Println(
-			CON_DEST_ERR, "Truncated read of file '{}' (expected {} bytes, got {}).",
+			CON_DEST_ERR, 
+			"Truncated read of file '{}' (expected {} bytes, got {}).",
 			path.string(), len, c
 		);
 
@@ -64,9 +64,11 @@ A_NO_DISCARD std::string FS_ReadFileText(std::filesystem::path path) {
 	return s;
 }
 
-A_NO_DISCARD StreamFile FS_StreamFile(std::filesystem::path path, SeekFrom from, size_t off) {
+A_NO_DISCARD StreamFile FS_StreamFile(
+	std::filesystem::path path, SeekFrom from, size_t off
+) {
 	SDL_RWops* f = SDL_RWFromFile(path.string().c_str(), "rb");
-	size_t size = SDL_RWsize(f);
+	size_t size  = SDL_RWsize(f);
 	SDL_RWseek(f, 0, SDL_RW_SEEK_SET);
 	StreamFile s = { .f = f, .size = size };
 	if(from == FS_SEEK_END || off != 0)
@@ -82,7 +84,7 @@ long long FS_SeekStream(A_INOUT StreamFile& file, SeekFrom from, size_t off) {
 	assert(off <= file.size);
 
 	Sint64 begin_pos = SDL_RWtell(file.f);
-	Sint64 res = -1;
+	Sint64 res       = -1;
 	switch (from) {
 	case FS_SEEK_BEGIN:
 		res = SDL_RWseek(file.f, off, SDL_RW_SEEK_SET);

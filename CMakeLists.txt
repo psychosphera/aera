@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.19)
+cmake_minimum_required(VERSION 3.27)
 project(h1_map_viewer C CXX)
 
-set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_REQUIRED ON)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -17,10 +17,10 @@ if(APPLE)
     enable_language(OBJC)
 endif()
 
-set(VCPKG_TOOLCHAIN "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake") 
-if(EXISTS VCPKG_TOOLCHAIN)
-    include(VCPKG_TOOLCHAIN)
-endif()
+#set(VCPKG_TOOLCHAIN ) 
+#if(EXISTS VCPKG_TOOLCHAIN)
+    include("F:/vcpkg/scripts/buildsystems/vcpkg.cmake")
+#endif()
 
 find_package(Freetype REQUIRED)
 find_package(GLEW     REQUIRED)
@@ -60,6 +60,10 @@ target_link_libraries(h1_map_viewer PRIVATE GLEW::GLEW)
 target_link_libraries(h1_map_viewer PRIVATE OpenGL::GL)
 target_link_libraries(h1_map_viewer PRIVATE ZLIB::ZLIB)
 
+if(WIN32)
+	target_link_libraries(h1_map_viewer PRIVATE wsock32 ws2_32)
+endif()
+
 target_include_directories(h1_map_viewer PRIVATE SDL3::SDL3)
 target_include_directories(h1_map_viewer PRIVATE SDL3_image::SDL3_image)
 target_include_directories(h1_map_viewer PRIVATE Freetype::Freetype)
@@ -85,15 +89,22 @@ endif()
 
 if(MSVC)
 	target_compile_options(h1_map_viewer PRIVATE 
-		"/permissive-" "/Zc:preprocessor" "/Zc:__cplusplus" 
-		"/Zc:__STDC__" "/W4" "/wd4005" "/bigobj"
-		"/WX"
+		"/permissive-" "/W4" "/wd4005" "/bigobj" "/WX"
 	)
-elseif(CLANG)
+endif()
+
+if(CLANG)
     target_compile_options(h1_map_viewer PRIVATE
         "-Wno-gnu-zero-variadic-macro-arguments"
         "-Wno-unreachable-code-generic-assoc"
+		"-Wno-sign-compare" "-Wno-macro-redefined"
     ) 
+endif()
+
+if(MSVC AND NOT CLANG)
+	target_compile_options(h1_map_viewer PRIVATE 
+		"/Zc:preprocessor" "/Zc:__cplusplus" "/Zc:__STDC__"
+	)
 endif()
 
 if(CLANG AND APPLE)
@@ -102,7 +113,7 @@ if(CLANG AND APPLE)
     )
 endif()
 
-if(CLANG OR GCC)
+if((CLANG AND NOT MSVC) OR GCC)
     target_compile_options(h1_map_viewer PRIVATE 
         "-Wall" "-Wextra" "-Werror" "-pedantic" "-pedantic-errors" 
         "-Wno-type-limits"

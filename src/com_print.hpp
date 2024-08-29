@@ -177,9 +177,8 @@ A_NO_RETURN inline Com_Errorln(int ec, std::string_view fmt, Args&&... args) {
     );
 #if _DEBUG
     assert(false);
-#else
-    Sys_NormalExit(ec);
 #endif // _DEBUG
+    Sys_NormalExit(ec);
 }
 
 // Shorthand for Com_Errorln(-1, fmt, args...)

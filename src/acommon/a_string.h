@@ -876,3 +876,5 @@ A_EXTERN_C void A_strclear(string_t* A_RESTRICT s);
 // capacity to zero.
 A_EXTERN_C void A_strdrop (string_t* A_RESTRICT s);
 
+int A_snprintf (string_t* dest, const str_t* fmt, ...);
+int A_vsnprintf(string_t* dest, const str_t* fmt, va_list va);

@@ -46,7 +46,7 @@ bool Font_Load(
 		glyph.advance_x = face->glyph->advance.x >> 6;
 		glyph.advance_y = face->glyph->advance.y >> 6;
 		glyph.pixels    = std::vector<unsigned char>(glyph.width * glyph.height);
-		memcpy(
+		A_memcpy(
 			glyph.pixels.data(), face->glyph->bitmap.buffer,
 			glyph.pixels.size() * sizeof(*glyph.pixels.data())
 		);

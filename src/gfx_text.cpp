@@ -185,11 +185,11 @@ void R_DrawText(
         if (c == last_c)
             g = last_g;
         else
-            font->GetGlyph(c, g);
+            g = font->GetGlyph(c);
 
         // If the glyph couldn't be retrieved, use '#' as a placeholder.
         if (g == nullptr)
-            font->GetGlyph('#', g);
+            g = font->GetGlyph('#');
 
         // If '#' couldn't be retrieved either, just move on to the next char.
         if (g == nullptr) {
@@ -275,7 +275,8 @@ void R_DrawText(
 
 std::array<std::array<GfxTextDraw, 256>, MAX_LOCAL_CLIENTS> r_textDraws;
 
-bool R_GetTextDraw(size_t localClientNum, size_t id, A_OUT GfxTextDraw*& draw) {
+bool R_GetTextDraw(size_t localClientNum, size_t id, A_OUT GfxTextDraw*& draw) 
+{
     draw = nullptr;
     assert(id < r_textDraws.at(localClientNum).size());
 
@@ -285,7 +286,9 @@ bool R_GetTextDraw(size_t localClientNum, size_t id, A_OUT GfxTextDraw*& draw) {
 }
 
 
-bool R_FindFreeTextDraw(size_t localClientNum, A_OUT size_t& index, A_OUT GfxTextDraw*& draw) {
+bool R_FindFreeTextDraw(
+    size_t localClientNum, A_OUT size_t& index, A_OUT GfxTextDraw*& draw
+) {
     index = (size_t)-1;
     draw = nullptr;
 
@@ -301,9 +304,9 @@ bool R_FindFreeTextDraw(size_t localClientNum, A_OUT size_t& index, A_OUT GfxTex
 }
 
 bool R_AddTextDraw(
-    size_t localClientNum, FontDef* font, const RectDef& rect, std::string text,
-    float xscale, float yscale, glm::vec3 color, bool active, bool right,
-    A_OUT size_t& id
+    size_t localClientNum, FontDef* font, const RectDef& rect, 
+    std::string text, float xscale, float yscale, glm::vec3 color, bool active,
+    bool right, A_OUT size_t& id
 ) {
     GfxTextDraw* d = nullptr;
     if (!R_FindFreeTextDraw(localClientNum, id, d))

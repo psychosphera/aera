@@ -24,7 +24,6 @@ std::map<AssetType, std::string_view> s_assetDirs = {
 	{ AT_FONT,   "fonts"     },
 	{ AT_IMAGE,  "images"    },
 	{ AT_MAP,    "maps"      },
-	{ AT_SBSP,   "tags/sbsp" },
 };
 
 std::string_view DB_AssetDirForType(AssetType at) {
@@ -80,21 +79,4 @@ std::vector<std::byte> DB_LoadImage(std::string_view image_name) {
 
 A_NO_DISCARD StreamFile DB_LoadMap(std::string_view map_name) {
 	return FS_StreamFile(DB_MapPath(map_name));
-}
-
-Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian> DB_LoadSbsp(std::string_view sbsp_name) {
-	Invader::HEK::TagFileHeader header;
-	StreamFile f = FS_StreamFile(DB_SbspPath(sbsp_name));
-	if (!FS_ReadStream(f, header))
-		Com_Errorln("DB_LoadSbsp: Truncated read of {}.", sbsp_name);
-	if (header.blam != header.BLAM)
-		Com_Errorln("DB_LoadSbsp: {}: Invalid tag header.", sbsp_name);
-	if (header.tag_fourcc != Invader::TagFourCC::TAG_FOURCC_SCENARIO_STRUCTURE_BSP)
-		Com_Errorln("DB_LoadSbsp: tag is not SBSP");
-	
-	Invader::HEK::ScenarioStructureBSP<Invader::HEK::BigEndian> bsp;
-	if(!FS_ReadStream(f, bsp))
-		Com_Errorln("DB_LoadSbsp: Truncated read of {}.", sbsp_name);
-
-	return Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian>(bsp);
 }

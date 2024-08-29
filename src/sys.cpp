@@ -35,8 +35,12 @@ void Sys_Init(const char** argv) {
 
     SDL_Init(SDL_INIT_VIDEO);
 
-    vid_width  = &Dvar_RegisterInt("vid_width", DVAR_FLAG_NONE, VID_WIDTH_DEFAULT,  1, INT_MAX);
-    vid_height = &Dvar_RegisterInt("vid_hight", DVAR_FLAG_NONE, VID_HEIGHT_DEFAULT, 1, INT_MAX);
+    vid_width  = &Dvar_RegisterInt(
+        "vid_width", DVAR_FLAG_NONE, VID_WIDTH_DEFAULT,  1, INT_MAX
+    );
+    vid_height = &Dvar_RegisterInt(
+        "vid_hight", DVAR_FLAG_NONE, VID_HEIGHT_DEFAULT, 1, INT_MAX
+    );
 
     g_sdlWindow = SDL_CreateWindow(
         "Halo 1 Map Viewer",
@@ -60,6 +64,7 @@ void Sys_Init(const char** argv) {
     Sys_InitCmdline(argv);
     Sys_InitThreads();
     IN_Init();
+    DevCon_Init();
 }
 
 // Returns true if an event was handled, false if not 
@@ -84,7 +89,9 @@ bool Sys_HandleEvent() {
             IN_Mouse_Up(CL_ClientWithKbmFocus(), ev.button.button);
             break;
         case SDL_EVENT_MOUSE_MOTION:
-            IN_Mouse_Move(CL_ClientWithKbmFocus(), ev.motion.xrel, ev.motion.yrel);
+            IN_Mouse_Move(
+                CL_ClientWithKbmFocus(), ev.motion.xrel, ev.motion.yrel
+            );
             break;
         case SDL_EVENT_WINDOW_RESIZED:
             Dvar_SetInt(*vid_width, ev.window.data1);
@@ -125,9 +132,13 @@ void Sys_InitThreads() {
 }
 
 /*
-bool Sys_CreateThread(thread_t thread, const std::string& name, int(*f)(void*)) {
+bool Sys_CreateThread(
+    thread_t thread, const std::string& name, int(*f)(void*)
+) {
     sys_threadFuncs.at(thread) = f;
-    SDL_Thread* t = SDL_CreateThread(Sys_ThreadMain, name.c_str(), (void*)thread);
+    SDL_Thread* t = SDL_CreateThread(
+        Sys_ThreadMain, name.c_str(), (void*)thread
+    );
     if (t == nullptr)
         return false;
 
@@ -185,6 +196,7 @@ A_NO_RETURN Sys_Exit(int ec) {
 }
 
 void Sys_Shutdown() {
+    DevCon_Shutdown();
     Sys_ShutdownThreads();
     Sys_ShutdownCmdline();
     IN_Shutdown();

@@ -13,7 +13,7 @@ struct dgl_t {
 
 std::array<dgl_t, MAX_LOCAL_CLIENTS> s_dgl;
  
-constexpr RectDef devgui_rect = { .x = 0.1f, .y = 0.9f, .w = 0.8f, .h = 0.2f };
+constexpr RectDef devgui_rect = { .x = 0.1f, .y = 0.8f, .w = 0.8f, .h = 0.2f };
 
 dgl_t& DevGui_GetLocalClientLocals(size_t localClientNum) {
 	return s_dgl.at(localClientNum);

@@ -107,7 +107,6 @@ void CG_Frame(uint64_t) {
 			Dvar_ClearModified(*cl_splitscreen);
 		}
 
-
 		if (IN_Key_WasPressedOnCurrentFrame(i, SDLK_F10))
 			Dvar_SetBool(*r_noBorder, !Dvar_GetBool(*r_noBorder));
 
@@ -121,17 +120,17 @@ void CG_Frame(uint64_t) {
 		pm_t& pm = PM_GetLocalClientGlobals(i);
 
 		if (IN_Key_IsDown(i, SDLK_w))
-			pm.pm.cmd.vel.z =  vel;
+			pm.pm.cmd.vel.z += vel;
 		if (IN_Key_IsDown(i, SDLK_s))
-			pm.pm.cmd.vel.z = -vel;
+			pm.pm.cmd.vel.z -= vel;
 		if (IN_Key_IsDown(i, SDLK_a))
-			pm.pm.cmd.vel.x = -vel;
+			pm.pm.cmd.vel.x -= vel;
 		if (IN_Key_IsDown(i, SDLK_d))
-			pm.pm.cmd.vel.x = vel;
+			pm.pm.cmd.vel.x += vel;
 		if (IN_Key_IsDown(i, SDLK_SPACE))
-			pm.pm.cmd.vel.y =  vel;
+			pm.pm.cmd.vel.y += vel;
 		if (IN_Key_IsDown(i, SDLK_LCTRL))
-			pm.pm.cmd.vel.y = -vel;
+			pm.pm.cmd.vel.y -= vel;
 
 		if (pm.pm.cmd.vel.x != 0 && pm.pm.cmd.vel.y != 0) {
 			pm.pm.cmd.vel.x *= 0.5f;

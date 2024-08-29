@@ -36,24 +36,20 @@ struct FontDef {
 		return true;
 	}
 
-	inline bool GetGlyph(char c, A_OUT GlyphDef*& g) {
-		if (c < 32 || c > 127) {
-            g = nullptr;
-			return false;
-		}
-
-		g = &glyphs.at(c - 32);
-		return true;
-	}
-
-    inline bool GetGlyph(char c, A_OUT const GlyphDef*& g) const {
+	inline GlyphDef* GetGlyph(char c) {
         if (c < 32 || c > 127) {
-            g = nullptr;
-            return false;
+            return nullptr;
         }
 
-        g = &glyphs.at(c - 32);
-        return true;
+        return &glyphs.at(c - 32);
+	}
+
+    inline const GlyphDef* GetGlyph(char c) const {
+        if (c < 32 || c > 127) {
+            return nullptr;
+        }
+
+        return &glyphs.at(c - 32);
     }
 
     inline bool RemoveGlyph(char c) {

@@ -209,4 +209,3 @@
 
 A_EXTERN_C size_t A_npow2(size_t n);
 A_EXTERN_C size_t A_ppow2(size_t n);
-

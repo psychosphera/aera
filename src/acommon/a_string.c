@@ -1,7 +1,9 @@
 #include "a_string.h"
 #include "a_type.h"
 
+#include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include "z_mem.h"
 
@@ -677,3 +679,14 @@ void A_strdrop(string_t* A_RESTRICT s) {
     A_strshrnk(s, A_strlen(s) + 1);
 }
 
+int A_vsnprintf(string_t* dest, const str_t* fmt, va_list va) {
+    return vsnprintf(A_cstr(dest), A_strlen(dest), A_cstr(fmt), va);
+}
+
+int A_snprintf(string_t* dest, const str_t* fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    int i = A_vsnprintf(dest, fmt, va);
+    va_end(va);
+    return i;
+}

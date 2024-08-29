@@ -55,10 +55,10 @@ bool Com_Frame() {
         if (DevGui_HasText(i))
             Con_ProcessInput(DevGui_TakeText(i), i);
     }
-    R_Frame();
-    
     if (DevCon_HasText())
         Con_ProcessInput(DevCon_TakeText());
+    
+    R_Frame();
 
     return true;
 }

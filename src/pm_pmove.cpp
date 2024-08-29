@@ -75,18 +75,26 @@ void PM_UpdateViewAngles(A_INOUT playerState_t& ps, const usercmd_t& cmd) {
 
 	ps.viewyaw   += ps.deltayaw  + cmd.yaw;
 	ps.viewroll  += ps.deltaroll + cmd.roll;
-	ps.viewpitch = std::clamp(ps.viewpitch + ps.deltapitch + cmd.pitch, -89.0f, 89.0f);
+	ps.viewpitch = std::clamp(
+		ps.viewpitch + ps.deltapitch + cmd.pitch, -89.0f, 89.0f
+	);
 }
 
 void PmoveSingle(A_INOUT pmove_t& pm, A_INOUT pml_t& pml) {
 	A_memset(&pml, 0, sizeof(pml));
 
-	pml.msec = std::clamp((uint64_t)((float)pm.cmd.serverTime - (float)pm.ps->commandTime), (uint64_t)1, (uint64_t)200);
+	pml.msec = std::clamp(
+		(uint64_t)((float)pm.cmd.serverTime - (float)pm.ps->commandTime), 
+		(uint64_t)1, (uint64_t)200
+	);
 	pm.ps->commandTime = pm.cmd.serverTime;
 	pml.frametime = pml.msec * 0.001f;
 
 	PM_UpdateViewAngles(*pm.ps, pm.cmd);
-	M_AngleVectors(pm.ps->viewyaw, pm.ps->viewpitch, pm.ps->viewroll, &pml.forward, &pml.right, &pml.up);
+	M_AngleVectors(
+		pm.ps->viewyaw, pm.ps->viewpitch, pm.ps->viewroll, 
+		&pml.forward, &pml.right, &pml.up
+	);
 
 	if (pm.cmd.vel.y < 10.0f)
 	    pm.ps->pm_flags &= ~PMF_JUMP_HELD;

@@ -34,14 +34,14 @@ union DvarValue {
 };
 
 struct dvar_t {
-	DvarType    type;
-	DvarDomain  domain;
-	DvarValue   value;
-	DvarValue   latched;
-	dvarFlags_t flags;
+	DvarType                 type;
+	DvarDomain               domain;
+	DvarValue                value;
+	DvarValue                latched;
+	dvarFlags_t              flags;
 	std::vector<std::string> e;
-	bool modified;
-	bool hasLatched;
+	bool                     modified;
+	bool                     hasLatched;
 
 	inline dvar_t() {
 		type = DVAR_TYPE_NONE;
@@ -78,7 +78,8 @@ struct dvar_t {
 	}
 
 	inline dvar_t(
-		dvarFlags_t flags, float value, float min = FLT_MIN, float max = FLT_MAX
+		dvarFlags_t flags, float value, 
+		float min = FLT_MIN, float max = FLT_MAX
 	) {
 		type = DVAR_TYPE_FLOAT;
 		domain.f.min = min;
@@ -556,7 +557,8 @@ dvar_t& Dvar_RegisterInt(
 }
 
 dvar_t& Dvar_RegisterFloat(
-	const std::string& name, dvarFlags_t flags, float value, float min, float max
+	const std::string& name, dvarFlags_t flags, 
+	float value, float min, float max
 ) {
 	if (Dvar_Exists(name))
 		return *Dvar_ReregisterFloat(name, flags, value, min, max);
@@ -689,13 +691,15 @@ dvar_t* Dvar_RegisterNewLocalString(
 }
 
 dvar_t* Dvar_RegisterNewLocalEnum(
-	size_t localClientNum, const std::string& name, dvarFlags_t flags, int value,
-	const std::vector<std::string>& domain
+	size_t localClientNum, const std::string& name, dvarFlags_t flags,
+	int value, const std::vector<std::string>& domain
 ) {
 	if (Dvar_LocalExists(localClientNum, name))
 		return nullptr;
 
-	return Dvar_RegisterLocalDvar(localClientNum, name, dvar_t(flags, value, domain));
+	return Dvar_RegisterLocalDvar(
+		localClientNum, name, dvar_t(flags, value, domain)
+	);
 }
 
 dvar_t* Dvar_RegisterNewLocalVec2(
@@ -831,7 +835,8 @@ dvar_t* Dvar_ReregisterLocalVec4(
 }
 
 dvar_t* Dvar_RegisterLocalBool(
-	size_t localClientNum, const std::string& name, dvarFlags_t flags, bool value
+	size_t localClientNum, const std::string& name, 
+	dvarFlags_t flags, bool value
 ) {
 	if (Dvar_LocalExists(localClientNum, name))
 		return Dvar_ReregisterLocalBool(localClientNum, name, flags, value);
@@ -840,25 +845,38 @@ dvar_t* Dvar_RegisterLocalBool(
 }
 
 dvar_t* Dvar_RegisterLocalInt(
-	size_t localClientNum, const std::string& name, dvarFlags_t flags, int value, int min, int max
+	size_t localClientNum, const std::string& name, dvarFlags_t flags, 
+	int value, int min, int max
 ) {
-	if (Dvar_LocalExists(localClientNum, name))
-		return Dvar_ReregisterLocalInt(localClientNum, name, flags, value, min, max);
-	else
-		return Dvar_RegisterNewLocalInt(localClientNum, name, flags, value, min, max);
+	if (Dvar_LocalExists(localClientNum, name)) {
+		return Dvar_ReregisterLocalInt(
+			localClientNum, name, flags, value, min, max
+		);
+	} else {
+		return Dvar_RegisterNewLocalInt(
+			localClientNum, name, flags, value, min, max
+		);
+	}
 }
 
 dvar_t* Dvar_RegisterLocalFloat(
-	size_t localClientNum, const std::string& name, dvarFlags_t flags, float value, float min, float max
+	size_t localClientNum, const std::string& name, dvarFlags_t flags, 
+	float value, float min, float max
 ) {
-	if (Dvar_LocalExists(localClientNum, name))
-		return Dvar_ReregisterLocalFloat(localClientNum, name, flags, value, min, max);
-	else
-		return Dvar_RegisterNewLocalFloat(localClientNum, name, flags, value, min, max);
+	if (Dvar_LocalExists(localClientNum, name)) {
+		return Dvar_ReregisterLocalFloat(
+			localClientNum, name, flags, value, min, max
+		);
+	} else {
+		return Dvar_RegisterNewLocalFloat(
+			localClientNum, name, flags, value, min, max
+		);
+	}
 }
 
 dvar_t* Dvar_RegisterLocalString(
-	size_t localClientNum, const std::string& name, dvarFlags_t flags, const std::string& value
+	size_t localClientNum, const std::string& name, 
+	dvarFlags_t flags, const std::string& value
 ) {
 	if (Dvar_LocalExists(localClientNum, name))
 		return Dvar_ReregisterLocalString(localClientNum, name, flags, value);
@@ -870,40 +888,60 @@ dvar_t* Dvar_RegisterLocalEnum(
 	size_t localClientNum, const std::string& name, dvarFlags_t flags,
 	int value, const std::vector<std::string>& domain
 ) {
-	if (Dvar_LocalExists(localClientNum, name))
-		return Dvar_ReregisterLocalEnum(localClientNum, name, flags, value, domain);
-	else
-		return Dvar_RegisterNewLocalEnum(localClientNum, name, flags, value, domain);
+	if (Dvar_LocalExists(localClientNum, name)) {
+		return Dvar_ReregisterLocalEnum(
+			localClientNum, name, flags, value, domain
+		);
+	} else {
+		return Dvar_RegisterNewLocalEnum(
+			localClientNum, name, flags, value, domain
+		);
+	}
 }
 
 dvar_t* Dvar_RegisterLocalVec2(
 	size_t localClientNum, const std::string& name, dvarFlags_t flags,
 	const glm::vec2& value, float min, float max
 ) {
-	if (Dvar_LocalExists(localClientNum, name))
-		return Dvar_ReregisterLocalVec2(localClientNum, name, flags, value, min, max);
-	else
-		return Dvar_RegisterNewLocalVec2(localClientNum, name, flags, value, min, max);
+	if (Dvar_LocalExists(localClientNum, name)) {
+		return Dvar_ReregisterLocalVec2(
+			localClientNum, name, flags, value, min, max
+		);
+	} else {
+		return Dvar_RegisterNewLocalVec2(
+			localClientNum, name, flags, value, min, max
+		);
+	}
 }
 
 dvar_t* Dvar_RegisterLocalVec3(
 	size_t localClientNum, const std::string& name, dvarFlags_t flags,
 	const glm::vec3& value, float min, float max
 ) {
-	if (Dvar_LocalExists(localClientNum, name))
-		return Dvar_ReregisterLocalVec3(localClientNum, name, flags, value, min, max);
-	else
-		return Dvar_RegisterNewLocalVec3(localClientNum, name, flags, value, min, max);
+	if (Dvar_LocalExists(localClientNum, name)) {
+		return Dvar_ReregisterLocalVec3(
+			localClientNum, name, flags, value, min, max
+		);
+	} else {
+		return Dvar_RegisterNewLocalVec3(
+			localClientNum, name, flags, value, min, max
+		);
+	}
 }
 
 dvar_t* Dvar_RegisterLocalVec4(
 	size_t localClientNum, const std::string& name, dvarFlags_t flags,
 	const glm::vec4& value, float min, float max
 ) {
-	if (Dvar_LocalExists(localClientNum, name))
-		return Dvar_ReregisterLocalVec4(localClientNum, name, flags, value, min, max);
-	else
-		return Dvar_RegisterNewLocalVec4(localClientNum, name, flags, value, min, max);
+	if (Dvar_LocalExists(localClientNum, name)) {
+		return Dvar_ReregisterLocalVec4(
+			localClientNum, name, flags, value, min, max
+		);
+	} else {
+		return Dvar_RegisterNewLocalVec4(
+			localClientNum, name, flags, value, min, max
+		);
+	}
 }
 
 bool Dvar_UnregisterLocal(size_t localClientNum, const std::string& name) {
@@ -1049,7 +1087,8 @@ dvar_t* Dvar_RegisterNewFromString(
 }
 
 dvar_t* Dvar_RegisterNewFromString(
-	const std::string& name, dvarFlags_t flags, const std::deque<std::string>& v
+	const std::string& name, dvarFlags_t flags, 
+	const std::deque<std::string>& v
 ) {
 	if (Dvar_Exists(name))
 		return nullptr;
@@ -1073,7 +1112,8 @@ dvar_t* Dvar_ReregisterFromString(
 }
 
 dvar_t* Dvar_ReregisterFromString(
-	const std::string& name, dvarFlags_t flags, const std::deque<std::string>& v
+	const std::string& name, dvarFlags_t flags,
+	const std::deque<std::string>& v
 ) {
 	if (!Dvar_Exists(name))
 		return nullptr;
@@ -1094,7 +1134,8 @@ dvar_t& Dvar_RegisterFromString(
 }
 
 dvar_t& Dvar_RegisterFromString(
-	const std::string& name, dvarFlags_t flags, const std::deque<std::string>& v
+	const std::string& name, dvarFlags_t flags, 
+	const std::deque<std::string>& v
 ) {
 	if (Dvar_Exists(name))
 		return *Dvar_ReregisterFromString(name, flags, v);
@@ -1154,17 +1195,22 @@ dvar_t* Dvar_RegisterLocalFromString(
 	size_t localClientNum, const std::string& name, 
 	dvarFlags_t flags, std::string_view value
 ) {
-	if (Dvar_Exists(name))
-		return Dvar_ReregisterLocalFromString(localClientNum, name, flags, value);
-	else
-		return Dvar_RegisterNewLocalFromString(localClientNum, name, flags, value);
+	if (Dvar_Exists(name)) {
+		return Dvar_ReregisterLocalFromString(
+			localClientNum, name, flags, value
+		);
+	} else {
+		return Dvar_RegisterNewLocalFromString(
+			localClientNum, name, flags, value
+		);
+	}
 }
 
 dvar_t* Dvar_RegisterLocalFromString(
 	size_t localClientNum, const std::string& name, 
 	dvarFlags_t flags, const std::deque<std::string>& v
 ) {
-	if (Dvar_Exists(name))
+	if (Dvar_Exists(name)) 
 		return Dvar_ReregisterLocalFromString(localClientNum, name, flags, v);
 	else
 		return Dvar_RegisterNewLocalFromString(localClientNum, name, flags, v);
@@ -1181,13 +1227,13 @@ void Dvar_Set_f() {
 	
 	std::deque<std::string> v;
 
-	if (argc == 3)
+	if (argc <= 3)
 		v.push_back(std::string(Cmd_Argv(2)));
-	if (argc == 4)
+	if (argc <= 4)
 		v.push_back(std::string(Cmd_Argv(3)));
-	if (argc == 5)
+	if (argc <= 5)
 		v.push_back(std::string(Cmd_Argv(4)));
-	if (argc == 6)
+	if (argc <= 6)
 		v.push_back(std::string(Cmd_Argv(5)));
 
 	dvar_t* d = Dvar_Find(name);

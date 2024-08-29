@@ -48,8 +48,8 @@ static void R_DrawFrameInternal(size_t localClientNum);
 static void R_InitLocalClient(size_t localClientNum);
 static void R_UpdateLocalClientView(size_t localClientNum);
 
-constexpr float NEAR_PLANE_DEFAULT = 0.1f;
-constexpr float FAR_PLANE_DEFAULT  = 100.0f;
+constexpr float R_NEAR_PLANE_DEFAULT = 0.1f;
+constexpr float R_FAR_PLANE_DEFAULT  = 100.0f;
 
 dvar_t* r_vsync;
 dvar_t* r_fullscreen;
@@ -76,7 +76,10 @@ void R_Init() {
     GL_CALL(glEnable, GL_DEBUG_OUTPUT);
     GL_CALL(glEnable, GL_DEBUG_OUTPUT_SYNCHRONOUS);
     GL_CALL(glDebugMessageCallback, R_GlDebugOutput, nullptr);
-    GL_CALL(glDebugMessageControl, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, (GLboolean)GL_TRUE);
+    GL_CALL(
+        glDebugMessageControl, GL_DONT_CARE, GL_DONT_CARE, 
+        GL_DONT_CARE, 0, nullptr, (GLboolean)GL_TRUE
+    );
 #endif // _DEBUG
 
     GL_CALL(glClearColor, 0.2f, 0.3f, 0.3f, 1.0f);
@@ -104,19 +107,19 @@ void R_Init() {
 }
 
 static void R_InitLocalClient(size_t localClientNum) {
-    cg_t& cg = CG_GetLocalClientGlobals(localClientNum);
-    cg.nearPlane = NEAR_PLANE_DEFAULT;
-    cg.farPlane = FAR_PLANE_DEFAULT;
+    cg_t& cg     = CG_GetLocalClientGlobals(localClientNum);
+    cg.nearPlane = R_NEAR_PLANE_DEFAULT;
+    cg.farPlane  = R_FAR_PLANE_DEFAULT;
     R_UpdateLocalClientView(localClientNum);
 }
 
 static void R_UpdateOrtho(size_t localClientNum) {
     cg_t& cg = CG_GetLocalClientGlobals(localClientNum);
 
-    float left = cg.viewport.x * Dvar_GetInt(*vid_width);
-    float right = cg.viewport.w * Dvar_GetInt(*vid_width) + left;
+    float left   = cg.viewport.x * Dvar_GetInt(*vid_width);
+    float right  = cg.viewport.w * Dvar_GetInt(*vid_width)  + left;
     float bottom = cg.viewport.y * Dvar_GetInt(*vid_height);
-    float top = cg.viewport.h * Dvar_GetInt(*vid_height) + bottom;
+    float top    = cg.viewport.h * Dvar_GetInt(*vid_height) + bottom;
     cg.camera.orthoProjection = glm::ortho(left, right, bottom, top);
 }
 
@@ -203,9 +206,9 @@ void R_Frame() {
 }
 
 void R_WindowResized() {
-    for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
+    for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++)
         R_UpdateLocalClientView(i);
-    }
+    
 }
 
 A_NO_DISCARD bool R_CreateImage(
@@ -288,8 +291,8 @@ void R_DrawCube(const glm::vec3& pos, float angle, texture_t tex) {
 static void R_DrawFrameInternal(size_t localClientNum) {
     cg_t& cg = CG_GetLocalClientGlobals(localClientNum);
 
-    GLint x = (GLint)(cg.viewport.x * Dvar_GetInt(*vid_width));
-    GLint y = (GLint)(cg.viewport.y * Dvar_GetInt(*vid_height));
+    GLint x   = (GLint)  (cg.viewport.x * Dvar_GetInt(*vid_width));
+    GLint y   = (GLint)  (cg.viewport.y * Dvar_GetInt(*vid_height));
     GLsizei w = (GLsizei)(cg.viewport.w * Dvar_GetInt(*vid_width));
     GLsizei h = (GLsizei)(cg.viewport.h * Dvar_GetInt(*vid_height));
 
@@ -325,19 +328,19 @@ static void R_DrawFrameInternal(size_t localClientNum) {
 
     GL_CALL(glUseProgram, r_cubePrim.prog.program);
 
-    glm::vec3 pos = cg.camera.pos;
+    glm::vec3 pos    = cg.camera.pos;
     glm::vec3 center = pos + cg.camera.front;
-    glm::vec3 up = cg.camera.up;
-    glm::mat4 view = glm::lookAt(pos, center, up);
+    glm::vec3 up     = cg.camera.up;
+    glm::mat4 view   = glm::lookAt(pos, center, up);
     R_SetUniform(r_cubePrim.prog.program, "uView", view);
     R_SetUniform(
         r_cubePrim.prog.program, "uPerspectiveProjection", 
         cg.camera.perspectiveProjection
     );
 
-    for (int i = 0; i < (int)cubePositions.size(); i++) {
+    for (int i = 0; i < (int)cubePositions.size(); i++) 
         R_DrawCube(cubePositions[i], 20.0f * (float)i, r_cubePrim.tex);
-    }
+    
     GL_CALL(glUseProgram, 0);
 
     R_DrawTextDraws(localClientNum);
@@ -345,11 +348,11 @@ static void R_DrawFrameInternal(size_t localClientNum) {
 
 static void R_UnregisterDvars() {
     Dvar_Unregister("r_noBorder");
-    r_noBorder = nullptr;
     Dvar_Unregister("r_fullscreen");
-    r_fullscreen = nullptr;
     Dvar_Unregister("r_vsync");
-    r_vsync = nullptr;
+    r_noBorder   = NULL;
+    r_fullscreen = NULL;
+    r_vsync      = NULL;
 }
 
 void R_Shutdown() {
