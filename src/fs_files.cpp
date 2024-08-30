@@ -64,6 +64,17 @@ A_NO_DISCARD std::string FS_ReadFileText(std::filesystem::path path) {
 	return s;
 }
 
+A_NO_DISCARD bool FS_ReadInto(std::filesystem::path path, void* p, size_t n) {
+	SDL_RWops* f = SDL_RWFromFile(path.string().c_str(), "rb");
+	size_t max = SDL_RWsize(f);
+	if (n > max)
+		n = max;
+
+	bool b = SDL_RWread(f, p, n) == n;
+	SDL_RWclose(f);
+	return b;
+}
+
 A_NO_DISCARD StreamFile FS_StreamFile(
 	std::filesystem::path path, SeekFrom from, size_t off
 ) {
@@ -93,7 +104,7 @@ long long FS_SeekStream(A_INOUT StreamFile& file, SeekFrom from, size_t off) {
 		res = SDL_RWseek(file.f, off, SDL_RW_SEEK_END);
 		break;
 	case FS_SEEK_CUR:
-		res = SDL_RWseek(file.f, off, SDL_RW_SEEK_CUR);
+		res = SDL_RWseek(file.f, (long long)off, SDL_RW_SEEK_CUR);
 		break;
 	default:
 		assert(false);
@@ -111,4 +122,10 @@ std::vector<std::byte> FS_ReadStream(StreamFile& file, size_t count) {
 	if(sz != v.size())	
 		v.resize(sz);
 	return v;
+}
+
+void FS_CloseStream(StreamFile& f) {
+	SDL_RWclose(f.f);
+	f.f = NULL;
+	f.size = 0;
 }

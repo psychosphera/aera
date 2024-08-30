@@ -15,6 +15,7 @@ struct StreamFile {
 
 A_NO_DISCARD std::vector<std::byte> FS_ReadFile    (std::filesystem::path path);
 A_NO_DISCARD std::string            FS_ReadFileText(std::filesystem::path path);
+A_NO_DISCARD bool                   FS_ReadInto    (std::filesystem::path path, void* p, size_t n);
 
 enum SeekFrom {
 	FS_SEEK_BEGIN,
@@ -28,6 +29,7 @@ A_NO_DISCARD StreamFile FS_StreamFile(
 
 long long FS_SeekStream(A_INOUT StreamFile& file, SeekFrom from, size_t off);
 std::vector<std::byte> FS_ReadStream(StreamFile& file, size_t count);
+void FS_CloseStream(StreamFile& f);
 
 A_NO_DISCARD size_t FS_StreamPos(const StreamFile& file);
 

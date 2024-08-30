@@ -98,6 +98,7 @@ if(CLANG)
         "-Wno-gnu-zero-variadic-macro-arguments"
         "-Wno-unreachable-code-generic-assoc"
 		"-Wno-sign-compare" "-Wno-macro-redefined"
+		"-Wno-int-to-pointer-cast" "-Wno-pointer-to-int-cast"
     ) 
 endif()
 

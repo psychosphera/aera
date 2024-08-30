@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "acommon/a_format.hpp"
+#include "acommon/z_mem.h"
 
 #include "cg_cgame.hpp"
 #include "db_files.hpp"
@@ -39,7 +40,22 @@ cl_t& CL_GetLocalClientGlobals(size_t localClientNum) {
 	return s_cl.at(localClientNum);
 }
 
+struct MapLoadData {
+	StreamFile  f;
+	std::string map_name;
+	void* p;
+	size_t      n;
+	BSPSurf* surfs;
+	uint32_t    surf_count;
+	BSPEdge* edges;
+	uint32_t    edge_count;
+	BSPVertex* vertices;
+	uint32_t    vertex_count;
+} g_load;
+
 void CL_Init() {
+	A_memset((void*)&g_load, 0, sizeof(g_load));
+
 	cl_splitscreen = &Dvar_RegisterBool("cl_splitscreen", DVAR_FLAG_NONE, false);
 
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
@@ -172,210 +188,223 @@ void CL_SetKeyFocus(size_t localClientNum, KeyFocus f) {
 	CG_GetLocalClientGlobals(localClientNum).keyfocus = f;
 }
 
-struct TagData {
-	uint32_t primary_fourcc, secondary_fourcc, tertiary_fourcc;
-	std::string path;
-	uint32_t id;
-	uint32_t data_offset;
+/*
+struct BSP3DNode {
+	uint32_t plane, back_child, front_child;
 };
 
-struct ScenarioData {
-	uint32_t sbsps_offset;
-	uint32_t sbsp_count;
+struct BSPLeaf {
+	uint16_t ref_count;
+	uint32_t first_ref;
 };
 
-struct LoadData {
-	StreamFile stream;
-	uint32_t base_mem_addr;
-	uint32_t tag_data_offset;
-	uint32_t tag_data_size;
-	uint32_t tag_array_address;
-	std::vector<TagData> tag_data;
-	ScenarioData scenario_data;
-	std::vector<Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian>> sbsps;
-} g_load;
+struct BSP2DRef {
+	uint32_t plane, bsp2d_node;
+};
 
-static constexpr size_t GEARBOX_BASE_MEMORY_ADDRESS = 0x40440000;
-
-bool CL_Map_Seek_Offset(size_t off) {
-	return FS_SeekStream(g_load.stream, FS_SEEK_BEGIN, off) != -1;
-}
-
-bool CL_Map_Seek_Pointer(uint32_t ptr) {
-	return FS_SeekStream(g_load.stream, FS_SEEK_BEGIN, ptr - g_load.base_mem_addr) != -1;
-}
-
-bool CL_Map_Seek_TagPointer(uint32_t ptr) {
-	return FS_SeekStream(g_load.stream, FS_SEEK_BEGIN, ptr - g_load.base_mem_addr + g_load.tag_data_offset) != -1;
-}
-
-template<typename T>
-bool CL_Map_Read(T& t) {
-	return FS_ReadStream(g_load.stream, t);
-}
-
-bool CL_LoadMap_Header() {
-	Invader::HEK::CacheFileHeader header;
-	bool b = CL_Map_Read(header);
-	assert(b);
-	if (header.head_literal != Invader::HEK::CacheFileLiteral::CACHE_FILE_HEAD ||
-		header.foot_literal != Invader::HEK::CacheFileLiteral::CACHE_FILE_FOOT
-	) {
-		Com_Errorln("CL_LoadMap: Bad header magic (map is probably either corrupt or\
-			not a Halo 1 map.");
-	}
-
-	if (
-		header.engine == Invader::HEK::CacheFileEngine::CACHE_FILE_MCC_CEA
-	) {
-		Com_Errorln("CL_LoadMap: Refusing to load a CEA map.");
-	}
-	else if (
-		header.engine == Invader::HEK::CacheFileEngine::CACHE_FILE_DEMO
-	) {
-		Com_Errorln("CL_LoadMap: Refusing to load a demo map\
-						 (may be implemented later).");
-	}
-	else if (
-		header.engine ==
-			Invader::HEK::CacheFileEngine::CACHE_FILE_CUSTOM_EDITION
-	) {
-		Com_Errorln("CL_LoadMap: Refusing to load a Custom Edition\
-						 map (may be implemented later).");
-	}
-	else if(
-		header.engine != Invader::HEK::CacheFileEngine::CACHE_FILE_RETAIL
-	) {
-		Com_Errorln("CL_LoadMap: Bad engine version\
-						(map is either corrupt or for a later Halo game.");
-	}
-
-	g_load.base_mem_addr = GEARBOX_BASE_MEMORY_ADDRESS;
-
-	if (header.tag_data_offset.read() == 0 || header.tag_data_size.read() == 0)
-		Com_Errorln("CL_LoadMap: corrupted or missing tag data.");
-	
-
-	if (header.map_type >=
-		Invader::HEK::CacheFileType::SCENARIO_TYPE_ENUM_COUNT
-	) {
-		Com_Errorln("CL_LoadMap: bad map type ({})", (int)header.map_type);
-	}
-
-	g_load.tag_data_offset = header.tag_data_offset.read();
-	g_load.tag_data_size   = header.tag_data_size.read();
-	return true;
-}
-
-bool CL_LoadMap_TagData() {
-	Invader::HEK::CacheFileTagDataHeaderPC tag_data;
-	if (CL_Map_Read(tag_data) == false)
-		Com_Errorln("CL_LoadMap: Couldn't read tag data.");
-	
-	if(tag_data.tags_literal != Invader::HEK::CacheFileLiteral::CACHE_FILE_TAGS)
-		Com_Errorln("CL_LoadMap: Bad tag data magic (map is probably corrupt).");
-
-	uint32_t tag_count = tag_data.tag_count.read();
-	g_load.tag_data.reserve((size_t)tag_count);
-	
-	uint32_t tag_array_address = tag_data.tag_array_address.read();
-	if(!CL_Map_Seek_TagPointer(tag_array_address))
-		Com_Errorln("CL_LoadMap: Couldn't read tag data.");
-
-	g_load.tag_array_address = tag_array_address;
-
-	for (int i = 0; i < (int)tag_count; i++) {
-		Invader::HEK::CacheFileTagDataTag tag;
-		if(!CL_Map_Read(tag))
-			Com_Errorln("CL_LoadMap: Couldn't read tag {}.", i);
-
-		TagData d;
-		d.id = tag.tag_id.read().id;
-		if (tag.tag_id.read().is_null() || tag.tag_data.read() == 0)
-			continue;
-
-		d.data_offset = tag.tag_data.read();
-		d.primary_fourcc = tag.primary_class.read();
-		d.secondary_fourcc = tag.secondary_class.read();
-		d.tertiary_fourcc = tag.tertiary_class.read();
-
-		if (tag.tag_path.read() != 0x00000000) {
-			size_t pos = FS_StreamPos(g_load.stream);
-			if (!CL_Map_Seek_TagPointer(tag.tag_path.read()))
-				Com_Errorln("CL_LoadMap: Couldn't read tag path.");
-			if (!CL_Map_Read(d.path))
-				Com_Errorln("CL_LoadMap: Couldn't read tag path.");
-			if (!CL_Map_Seek_Offset(pos))
-				Com_Errorln("CL_LoadMap: Couldn't read tag path.");
-		}
-		g_load.tag_data.push_back(d);
-
-		//Com_Println(CON_DEST_CLIENT, "Loaded tag {}.\n", d.path);
-	}
-	return true;
-}
-
-bool CL_LoadMap_Scenario() {
-	Invader::HEK::Scenario<Invader::HEK::NativeEndian> scenario;
-	if (!CL_Map_Read(scenario))
-		Com_Errorln("CL_LoadMap: Failed to read scenario.");
-
-	g_load.scenario_data = { 
-		.sbsps_offset = (uint32_t)scenario.structure_bsps.pointer, 
-		.sbsp_count = scenario.structure_bsps.count 
-	};
-
-	return true;
-}
-
-bool CL_LoadMap_SBSPs() {
-	Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian> sbsp;
-	for (uint32_t i = 0; i < g_load.scenario_data.sbsp_count; i++) {
-		if (!CL_Map_Read(sbsp))
-			Com_Errorln("CL_LoadMap: Failed to read SBSP {}", i);
-		g_load.sbsps.push_back(sbsp);
-	}
-	return true;
-}
+struct BSP2DNode {
+	glm::vec3 plane;
+	uint32_t left_child, right_child;
+};
+*/
 
 bool CL_LoadMap(std::string_view map_name) {
-	StreamFile f = DB_LoadMap(map_name);
-	size_t pos = FS_StreamPos(f);
-	if(pos == (size_t)-1)
-		Com_Errorln("CL_LoadMap: Failed to open {}.", map_name);
+	g_load.f = DB_LoadMap(map_name);
+	if (g_load.f.f == NULL) {
+		return false;
+	}
 
-	g_load.stream = f;
-	if (!CL_LoadMap_Header())
-		Com_Errorln("CL_LoadMap: Failed to load header.");
-	if (!CL_Map_Seek_Offset(g_load.tag_data_offset))
-		Com_Errorln("CL_LoadMap: Couldn't seek to tag data.");
-	if (!CL_LoadMap_TagData())
-		Com_Errorln("CL_LoadMap: Couldn't load tag data.");
+	Invader::HEK::CacheFileHeader header;
+	if (!FS_ReadStream(g_load.f, header)) {
+		Com_Errorln("CL_LoadMap: Read failed.");
+		return false;
+	}
 
-	const TagData* scenario = NULL;
-	for (const auto& tag : g_load.tag_data) {
-		if (tag.primary_fourcc == Invader::HEK::TAG_FOURCC_SCENARIO) {
-			scenario = &tag;
+	if (header.head_literal != Invader::HEK::CacheFileLiteral::CACHE_FILE_HEAD) {
+		Com_Errorln("CL_LoadMap: Invalid header head literal.");
+		return false;
+	}
+
+	if (header.foot_literal != Invader::HEK::CacheFileLiteral::CACHE_FILE_FOOT) {
+		Com_Errorln("CL_LoadMap: Invalid header foot literal.");
+		return false;
+	}
+
+	if (header.engine != Invader::HEK::CacheFileEngine::CACHE_FILE_RETAIL) {
+		Com_Errorln("CL_LoadMap: Wrong engine version.");
+		return false;
+	}
+
+	size_t tag_data_size = header.tag_data_size;
+	size_t tag_data_offset = header.tag_data_offset;
+
+	FS_SeekStream(g_load.f, FS_SEEK_BEGIN, tag_data_offset);
+	Invader::HEK::CacheFileTagDataHeaderPC tag_header;
+	if (!FS_ReadStream(g_load.f, tag_header)) {
+		Com_Errorln("CL_LoadMap: Failed to load tag header.");
+		return false;
+	}
+
+	if (tag_header.tags_literal != Invader::HEK::CacheFileLiteral::CACHE_FILE_TAGS) {
+		Com_Errorln("CL_LoadMap: Invalid tag header.");
+		return false;
+	}
+
+	uint32_t tag_array_offset = tag_header.tag_array_address - 0x40440000;
+	uint32_t off = tag_array_offset - sizeof(tag_header);
+	FS_SeekStream(g_load.f, FS_SEEK_CUR, off);
+	auto v = FS_ReadStream(g_load.f, tag_data_size);
+	g_load.n = 23 * 1024 * 1024;
+	g_load.p = Z_AllocAt((void*)0x40440000, g_load.n);
+	A_memcpy((void*)((intptr_t)g_load.p + (intptr_t)sizeof(tag_header) + (intptr_t)off), v.data(), v.size());
+	A_memcpy(g_load.p, &tag_header, sizeof(tag_header));
+
+	Invader::HEK::CacheFileTagDataTag* tags = (Invader::HEK::CacheFileTagDataTag*)(tag_header.tag_array_address.read());
+	uint32_t scenario_id = tag_header.scenario_tag.read().index;
+
+	Invader::HEK::CacheFileTagDataTag* scenario_tag = NULL;
+	for (size_t i = 0; i < tag_header.tag_count; i++) {
+		if (tags[i].tag_id.read().index == scenario_id) {
+			scenario_tag = &tags[i];
 			break;
 		}
 	}
 
-	if (!CL_Map_Seek_TagPointer(scenario->data_offset))
-		Com_Errorln("CL_LoadMap: Couldn't seek to scenario.");
+	if (scenario_tag == NULL) {
+		Com_Errorln("CL_LoadMap: Unable to locate scenario tag.");
+		return false;
+	}
 
-	if(!CL_LoadMap_Scenario())
-		Com_Errorln("CL_LoadMap: Couldn't load scenario.");
+	if (scenario_tag->primary_class != Invader::HEK::TagFourCC::TAG_FOURCC_SCENARIO) {
+		Com_Errorln("CL_LoadMap: Invalid scenario tag fourcc ({}).", (uint32_t)scenario_tag->primary_class.read());
+		return false;
+	}
 
-	if (!CL_Map_Seek_TagPointer(g_load.scenario_data.sbsps_offset))
-		Com_Errorln("CL_LoadMap: Couldn't seek to SBSPs.");
+	Invader::HEK::Scenario<Invader::HEK::NativeEndian>* scenario_ptr = (Invader::HEK::Scenario<Invader::HEK::NativeEndian>*)scenario_tag->tag_data.read();
+	
+	if (!scenario_ptr) {
+		Com_Errorln("CL_LoadMap: NULL scenario pointer.");
+		return false;
+	}
 
-	if (!CL_LoadMap_SBSPs())
-		Com_Errorln("CL_LoadMap: Couldn't load SBSPs.");
+	Invader::HEK::ScenarioBSP<Invader::HEK::NativeEndian>* sbsp_ptr = (Invader::HEK::ScenarioBSP<Invader::HEK::NativeEndian>*)scenario_ptr->structure_bsps.pointer.read();
+	size_t bsp_size = sbsp_ptr->bsp_size.read();
+	size_t bsp_start = sbsp_ptr->bsp_start.read();
+	FS_SeekStream(g_load.f, FS_SEEK_BEGIN, bsp_start);
+	Invader::HEK::ScenarioStructureBSPCompiledHeader<Invader::HEK::NativeEndian> bsp_header;
+	if (!FS_ReadStream(g_load.f, bsp_header)) {
+		Com_Errorln("CL_LoadMap: Failed to read BSP header.");
+		return false;
+	}
+
+	if (bsp_header.signature != Invader::HEK::TagFourCC::TAG_FOURCC_SCENARIO_STRUCTURE_BSP) {
+		Com_Errorln("CL_LoadMap: Invalid signature for BSP header.");
+		return false;
+	}
+
+	v = FS_ReadStream(g_load.f, bsp_size - sizeof(bsp_header));
+	Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian>* bsp_ptr = (Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian>*)(sbsp_ptr->bsp_address.read() + sizeof(bsp_header));
+	A_memcpy(bsp_ptr, v.data(), v.size());
+
+	if (bsp_ptr->lightmaps_bitmap.tag_fourcc != Invader::HEK::TagFourCC::TAG_FOURCC_BITMAP) {
+		Com_Errorln("CL_LoadMap: Invalid lightmaps bitmap fourcc ({}).", (uint32_t)bsp_ptr->lightmaps_bitmap.tag_fourcc.read());
+		return false;
+	}
+
+	uint32_t cbsp_count = bsp_ptr->collision_bsp.count.read();
+	if (bsp_ptr->collision_bsp.count.read() > 1) {
+		Com_Errorln("CL_LoadMap: More than one collision BSP ({}).", cbsp_count);
+		return false;
+	}
+
+	if (bsp_ptr->collision_bsp.count.read() < 1) {
+		Com_Errorln("CL_LoadMap: No collision BSPs.");
+		return false;
+	}
+
+	// why are we off by 24? sizeof(bsp_header) == 24, so that could be a hint
+	Invader::HEK::ModelCollisionGeometryBSP<Invader::HEK::NativeEndian>* cbsp = (Invader::HEK::ModelCollisionGeometryBSP<Invader::HEK::NativeEndian>*)((uint32_t)bsp_ptr->collision_bsp.pointer.read());
+	Com_DPrintln("3d nodes: {} ({})\nplanes: {} ({})\nleaves: {} ({})\n2d refs: {} ({})\n2d nodes: {} ({})\nsurfs: {} ({})\nedges: {} ({})\nverts: {} ({})",
+		(void*)(uint32_t)cbsp->bsp3d_nodes.pointer.read(),	    (uint32_t)cbsp->bsp3d_nodes.count.read(),
+		(void*)(uint32_t)cbsp->planes.pointer.read(),			(uint32_t)cbsp->planes.count.read(),
+		(void*)(uint32_t)cbsp->leaves.pointer.read(),			(uint32_t)cbsp->leaves.count.read(),
+		(void*)(uint32_t)cbsp->bsp2d_references.pointer.read(), (uint32_t)cbsp->bsp2d_references.count.read(),
+		(void*)(uint32_t)cbsp->bsp2d_nodes.pointer.read(),	    (uint32_t)cbsp->bsp2d_nodes.count.read(),
+		(void*)(uint32_t)cbsp->surfaces.pointer.read(),		    (uint32_t)cbsp->surfaces.count.read(),
+		(void*)(uint32_t)cbsp->edges.pointer.read(),			(uint32_t)cbsp->edges.count.read(),
+		(void*)(uint32_t)cbsp->vertices.pointer.read(),		    (uint32_t)cbsp->vertices.count.read()
+	);
+	Invader::HEK::ModelCollisionGeometryBSPVertex<Invader::HEK::NativeEndian>* vertices = (Invader::HEK::ModelCollisionGeometryBSPVertex<Invader::HEK::NativeEndian>*)((uint32_t)cbsp->vertices.pointer);
+	uint32_t vertices_count = cbsp->vertices.count.read();
+	Com_DPrintln("CBSP has {} vertices ({}).", vertices_count, (void*)vertices);
+
+	g_load.surfs        = (BSPSurf*)(uint32_t)cbsp->surfaces.pointer.read();
+	g_load.surf_count   = cbsp->surfaces.count;
+	g_load.edges        = (BSPEdge*)(uint32_t)cbsp->edges.pointer.read();
+	g_load.edge_count   = cbsp->edges.count;
+	g_load.vertices     = (BSPVertex*)(uint32_t)vertices;
+	g_load.vertex_count = cbsp->vertices.count;
+
+
+	R_LoadMap();
+	return true;
+}
+
+BSPSurf* CL_Map_Surfs() {
+	assert(g_load.surfs);
+	return g_load.surfs;
+}
+
+uint32_t CL_Map_SurfCount() {
+	assert(g_load.surfs);
+	return g_load.surf_count;
+}
+
+BSPEdge* CL_Map_Edges() {
+	assert(g_load.edges);
+	return g_load.edges;
+}
+
+uint32_t CL_Map_EdgeCount() {
+	assert(g_load.edges);
+	return g_load.edge_count;
+}
+
+BSPVertex* CL_Map_Vertices() {
+	assert(g_load.vertices);
+	return g_load.vertices;
+}
+
+uint32_t CL_Map_VertexCount() {
+	assert(g_load.vertices);
+	return g_load.vertex_count;
+}
+
+bool CL_UnloadMap() {
+	R_UnloadMap();
+
+	if (g_load.f.f)
+		FS_CloseStream(g_load.f);
+
+	if (g_load.p && g_load.n > 0) {
+		Z_FreeAt(g_load.p, g_load.n);
+		g_load.p		= NULL;
+		g_load.n		= 0;
+		g_load.surfs	= NULL;
+		g_load.edges	= NULL;
+		g_load.vertices = NULL;
+	}
 
 	return true;
 }
 
+bool CL_IsMapLoaded() {
+	return g_load.f.f && g_load.p && g_load.n > 0;
+}
+
 void CL_Shutdown() {
+	CL_UnloadMap();
+
 	Dvar_SetBool(*cl_splitscreen, false);
 	Dvar_Unregister("cl_splitscreen");
 	cl_splitscreen = NULL;

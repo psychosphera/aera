@@ -4,6 +4,7 @@ CMakeSettings.json
 /deps/SDL_image/*
 /deps/SDL_image_build
 /build
+/out
 /assets/maps/*
 /assets/fonts/*
 /assets/tags/*

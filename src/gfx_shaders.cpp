@@ -44,6 +44,9 @@ A_NO_DISCARD bool R_LinkShaders(
         GL_CALL(glGetProgramInfoLog, program, len, nullptr, log->data());
     }
 
+    GL_CALL(glDeleteShader, vertShader);
+    GL_CALL(glDeleteShader, fragShader);
+
     return success == GL_TRUE;
 }
 
@@ -68,5 +71,15 @@ A_NO_DISCARD bool R_CreateShaderProgram(
     prog.vertex_shader = v;
     prog.fragment_shader = f;
     prog.program = p;
+    return true;
+}
+
+bool R_DeleteShaderProgram(
+    A_IN GfxShaderProgram& prog
+) {
+    GL_CALL(glDeleteProgram, prog.program);
+    prog.vertex_shader = 0;
+    prog.fragment_shader = 0;
+    prog.program = 0;
     return true;
 }

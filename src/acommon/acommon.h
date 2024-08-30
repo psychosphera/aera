@@ -155,6 +155,14 @@
 #define A_NO_RETURN void
 #endif // __cplusplus
 
+#if A_CXX11 || A_C23
+#define A_MAYBE_UNUSED [[maybe_unused]]
+#elif A_COMPILER_IS_GCC_COMPATIBLE
+#define A_MAYBE_UNUSED __attribute__((unused)) void
+#else 
+#define A_MAYBE_UNUSED
+#endif // __cplusplus
+
 #define A_NOP() ;
 #define A_SCOPE(...) do { __VA_ARGS__ } while(0);
 
@@ -169,6 +177,8 @@
 #else
 #define A_RESTRICT restrict
 #endif // __cplusplus
+
+#define A_UNUSED(a) 
 
 #define A_EXPAND(a) a
 

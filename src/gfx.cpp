@@ -43,17 +43,20 @@ void GLAPIENTRY R_GlDebugOutput(
 }
 
 static void R_RegisterDvars();
-static void R_InitCubePrim(A_INOUT GfxCubePrim& cubePrim);
+static void R_InitMap();
+static void R_InitCubes(A_INOUT GfxCubePrim& cubePrim);
 static void R_DrawFrameInternal(size_t localClientNum);
 static void R_InitLocalClient(size_t localClientNum);
 static void R_UpdateLocalClientView(size_t localClientNum);
 
 constexpr float R_NEAR_PLANE_DEFAULT = 0.1f;
-constexpr float R_FAR_PLANE_DEFAULT  = 100.0f;
+constexpr float R_FAR_PLANE_DEFAULT  = 1000.0f;
 
 dvar_t* r_vsync;
 dvar_t* r_fullscreen;
 dvar_t* r_noBorder;
+dvar_t* r_renderDistance;
+dvar_t* r_wireframe;
 
 GfxCubePrim r_cubePrim;
 extern FontDef r_defaultFont;
@@ -99,8 +102,9 @@ void R_Init() {
         0, nullptr, rect, "This is a test.\nWhere the fuck i am?", 1.0f, 1.0f,
         glm::vec3(0.77, 0.77, 0.2), true, false, r_testDrawId
     );
-    R_InitCubePrim(r_cubePrim);
-     
+    R_InitCubes(r_cubePrim);
+    R_InitMap();
+
     //glEnable(GL_POINT_SMOOTH);
     //glPointSize(4);
     //glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
@@ -139,12 +143,14 @@ static void R_UpdateLocalClientView(size_t localClientNum) {
 }
 
 static void R_RegisterDvars() {
-    r_vsync      = &Dvar_RegisterBool("r_vsync", DVAR_FLAG_NONE, true);
-    r_fullscreen = &Dvar_RegisterBool("r_fullscreen", DVAR_FLAG_NONE, false);
-    r_noBorder   = &Dvar_RegisterBool("r_noBorder", DVAR_FLAG_NONE, false);
+    r_vsync          = &Dvar_RegisterBool("r_vsync", DVAR_FLAG_NONE, true);
+    r_fullscreen     = &Dvar_RegisterBool("r_fullscreen", DVAR_FLAG_NONE, false);
+    r_noBorder       = &Dvar_RegisterBool("r_noBorder", DVAR_FLAG_NONE, false);
+    r_renderDistance = &Dvar_RegisterFloat("r_renderDistance", DVAR_FLAG_NONE, R_FAR_PLANE_DEFAULT, 10.0f, 1000000.0f);
+    r_wireframe      = &Dvar_RegisterBool("r_wireframe", DVAR_FLAG_NONE, false);
 }
 
-static void R_InitCubePrim(A_INOUT GfxCubePrim& cubePrim) {
+static void R_InitCubes(A_INOUT GfxCubePrim& cubePrim) {
     std::string vertSource = DB_LoadShader("vs.glsl");
     std::string fragSource = DB_LoadShader("fs.glsl");
 
@@ -186,6 +192,15 @@ static void R_InitCubePrim(A_INOUT GfxCubePrim& cubePrim) {
     GL_CALL(glUseProgram, 0);
     GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, 0);
     GL_CALL(glBindVertexArray, 0);
+}
+
+static void R_ShutdownCubes(A_INOUT GfxCubePrim& cubePrim) {
+    R_DeleteShaderProgram(cubePrim.prog);
+    R_DeleteImage(cubePrim.tex);
+    GL_CALL(glDisableVertexAttribArray, 0);
+    GL_CALL(glDisableVertexAttribArray, 1);
+    GL_CALL(glDeleteBuffers, 1, &cubePrim.vbo);
+    GL_CALL(glDeleteVertexArrays, 1, &cubePrim.vao);
 }
 
 void R_DrawFrame(size_t localClientNum) {
@@ -268,6 +283,13 @@ A_NO_DISCARD bool R_CreateImage(
     return true;
 }
 
+bool R_DeleteImage(
+    A_IN texture_t& tex
+) {
+    GL_CALL(glDeleteTextures, 1, &tex);
+    return true;
+}
+
 void R_DrawCube(const glm::vec3& pos, float angle, texture_t tex) {
     glEnable(GL_DEPTH_TEST);
     glActiveTexture(GL_TEXTURE0);
@@ -286,6 +308,131 @@ void R_DrawCube(const glm::vec3& pos, float angle, texture_t tex) {
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_DEPTH_TEST);
+}
+
+struct MapRenderGlob {
+    vao_t vao;
+    vbo_t vbo;
+    GfxShaderProgram prog;
+    texture_t tex;
+} r_mapGlob;
+
+void R_InitMap() {
+    std::string vertSource = DB_LoadShader("bsp.vs.glsl");
+    std::string fragSource = DB_LoadShader("bsp.fs.glsl");
+
+    std::string errorLog;
+    if (!R_CreateShaderProgram(
+        vertSource, fragSource, &errorLog, r_mapGlob.prog
+    )) {
+        Com_Errorln(errorLog);
+    }
+
+    R_SetUniform(r_mapGlob.prog.program, "uWireframe", Dvar_GetBool(*r_wireframe));
+
+    GL_CALL(glGenVertexArrays, 1, &r_mapGlob.vao);
+    GL_CALL(glBindVertexArray, r_mapGlob.vao);
+
+    GL_CALL(glGenBuffers, 1, &r_mapGlob.vbo);
+    GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, r_mapGlob.vbo);
+
+    GL_CALL(glVertexAttribPointer,
+        0, 3, GL_FLOAT, (GLboolean)GL_FALSE,
+        sizeof(BSPVertex), (void*)0
+    );
+}
+
+void R_LoadMap() {
+    GL_CALL(glBufferData,
+        GL_ARRAY_BUFFER, (GLsizeiptr)sizeof(*CL_Map_Vertices()) * (GLsizeiptr)CL_Map_VertexCount(),
+        (void*)CL_Map_Vertices(), GL_STATIC_DRAW
+    );
+
+    GL_CALL(glEnableVertexAttribArray, 0);
+}
+
+void R_UnloadMap() {
+    GL_CALL(glDisableVertexAttribArray, 0);
+    GL_CALL(glBufferData, GL_ARRAY_BUFFER, 0, nullptr, GL_STATIC_DRAW);
+}
+
+void R_ShutdownMap() {
+    GL_CALL(glDisableVertexAttribArray, 0);
+    GL_CALL(glDeleteBuffers, 1, &r_mapGlob.vbo);
+    GL_CALL(glDeleteVertexArrays, 1, &r_mapGlob.vao);  
+}
+
+bool R_GetBSPSurfTris(BSPSurf* surf, BSPVertex* verts, size_t max_verts) {
+    BSPVertex* pVerts = CL_Map_Vertices();
+    BSPEdge* edge = &CL_Map_Edges()[surf->first_edge];
+    BSPEdge* first_edge = edge;
+    max_verts = 3;
+    int i = 0;
+    while(1) {
+        verts[i] = pVerts[edge->start_vert];
+        edge = &CL_Map_Edges()[edge->forward_edge];
+        i++;
+        if (i >= max_verts)
+            break;
+        if (edge == first_edge)
+            break;
+    } 
+    if (i < 3) return false;
+    //if (edge != first_edge) return false;
+
+    return true;
+}
+
+struct BSPTri {
+    BSPVertex v[3];
+};
+
+static void R_SwapYZ(A_INOUT BSPVertex& v) {
+    float tmp = v.point.y;
+    v.point.y = v.point.z;
+    v.point.z = tmp;
+}
+
+void R_RenderMapInternal() {
+    GL_CALL(glEnable, GL_DEPTH_TEST);
+    GL_CALL(glBindVertexArray, r_mapGlob.vao);
+    GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, r_mapGlob.vbo);
+    GL_CALL(glUseProgram, r_mapGlob.prog.program);
+
+    glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f));
+    R_SetUniform(r_mapGlob.prog.program, "uModel", model);    
+
+    std::vector<BSPTri> tris;
+    for (uint32_t surf = 0; surf < CL_Map_SurfCount(); surf++) {
+        BSPSurf* pSurf = &CL_Map_Surfs()[surf];
+        BSPTri tri;
+        if (R_GetBSPSurfTris(pSurf, tri.v, A_countof(tri.v))) {
+            for (int i = 0; i < A_countof(tri.v); i++) 
+                R_SwapYZ(tri.v[i]);
+            
+            tris.push_back(tri);
+        }
+            
+    }
+    GL_CALL(glBufferData, GL_ARRAY_BUFFER, tris.size() * sizeof(*tris.data()), tris.data(), GL_DYNAMIC_DRAW);
+    R_SetUniform(r_mapGlob.prog.program, "uWireframe", false);
+    GL_CALL(glDrawArrays, GL_TRIANGLES, 0, tris.size());
+    if (Dvar_GetBool(*r_wireframe)) {
+        R_SetUniform(r_mapGlob.prog.program, "uWireframe", true);
+        GL_CALL(glDrawArrays, GL_LINES, 0, tris.size());
+    }
+
+    GL_CALL(glUseProgram, 0);
+    GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, 0);
+    GL_CALL(glBindVertexArray, 0);
+    GL_CALL(glDisable, GL_DEPTH_TEST);
+}
+
+void R_RenderMap() {
+    if (!CL_IsMapLoaded())
+        return;
+
+    R_RenderMapInternal();
 }
 
 static void R_DrawFrameInternal(size_t localClientNum) {
@@ -326,20 +473,30 @@ static void R_DrawFrameInternal(size_t localClientNum) {
     );
     */
 
-    GL_CALL(glUseProgram, r_cubePrim.prog.program);
-
-    glm::vec3 pos    = cg.camera.pos;
+    glm::vec3 pos = cg.camera.pos;
     glm::vec3 center = pos + cg.camera.front;
-    glm::vec3 up     = cg.camera.up;
-    glm::mat4 view   = glm::lookAt(pos, center, up);
+    glm::vec3 up = cg.camera.up;
+    glm::mat4 view = glm::lookAt(pos, center, up);
+
+    GL_CALL(glUseProgram, r_mapGlob.prog.program);
+    R_SetUniform(r_mapGlob.prog.program, "uView", view);
+    R_SetUniform(
+        r_mapGlob.prog.program, "uPerspectiveProjection",
+        cg.camera.perspectiveProjection
+    );
+
+    GL_CALL(glUseProgram, r_cubePrim.prog.program);
     R_SetUniform(r_cubePrim.prog.program, "uView", view);
     R_SetUniform(
         r_cubePrim.prog.program, "uPerspectiveProjection", 
         cg.camera.perspectiveProjection
     );
 
+   
     for (int i = 0; i < (int)cubePositions.size(); i++) 
         R_DrawCube(cubePositions[i], 20.0f * (float)i, r_cubePrim.tex);
+
+    R_RenderMap();
     
     GL_CALL(glUseProgram, 0);
 
@@ -347,17 +504,24 @@ static void R_DrawFrameInternal(size_t localClientNum) {
 }
 
 static void R_UnregisterDvars() {
+    Dvar_Unregister("r_wireframe");
+    Dvar_Unregister("r_renderDistance");
     Dvar_Unregister("r_noBorder");
     Dvar_Unregister("r_fullscreen");
     Dvar_Unregister("r_vsync");
-    r_noBorder   = NULL;
-    r_fullscreen = NULL;
-    r_vsync      = NULL;
+    r_wireframe      = NULL;
+    r_renderDistance = NULL;
+    r_noBorder       = NULL;
+    r_fullscreen     = NULL;
+    r_vsync          = NULL;
 }
 
 void R_Shutdown() {
     for(size_t i = 0; i < MAX_LOCAL_CLIENTS; i++)
         R_ClearTextDraws(i);
+
+    R_ShutdownMap();
+    R_ShutdownCubes(r_cubePrim);
 
     R_UnregisterDvars();
     IMG_Quit();
