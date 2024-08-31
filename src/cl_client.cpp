@@ -342,7 +342,7 @@ bool CL_LoadMap(std::string_view map_name) {
 	g_load.surf_count   = cbsp->surfaces.count;
 	g_load.edges        = (BSPEdge*)(uint32_t)cbsp->edges.pointer.read();
 	g_load.edge_count   = cbsp->edges.count;
-	g_load.vertices     = (BSPVertex*)(uint32_t)vertices;
+	g_load.vertices     = (BSPVertex*)vertices;
 	g_load.vertex_count = cbsp->vertices.count;
 
 

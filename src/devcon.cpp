@@ -49,7 +49,7 @@ static bool DevCon_StdinHasLine() {
     if (select(1, &devcon_fds, NULL, NULL, &devcon_timeval) < 0) {
         SDL_UnlockMutex(devcon_selectMutex);
         Com_Errorln("DevCon: select() failed with errno={}", errno);
-        return;
+        return false;
     }
 
     bool hasLine = FD_ISSET(STDIN_FILENO, &devcon_fds);

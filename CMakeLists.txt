@@ -19,7 +19,7 @@ endif()
 
 #set(VCPKG_TOOLCHAIN ) 
 #if(EXISTS VCPKG_TOOLCHAIN)
-    include("F:/vcpkg/scripts/buildsystems/vcpkg.cmake")
+#    include("F:/vcpkg/scripts/buildsystems/vcpkg.cmake")
 #endif()
 
 find_package(Freetype REQUIRED)
@@ -93,13 +93,25 @@ if(MSVC)
 	)
 endif()
 
+if(GCC)
+    target_compile_options(h1_map_viewer PRIVATE
+        "-Wno-sign-compare"
+    ) 
+endif()
+
 if(CLANG)
     target_compile_options(h1_map_viewer PRIVATE
         "-Wno-gnu-zero-variadic-macro-arguments"
         "-Wno-unreachable-code-generic-assoc"
-		"-Wno-sign-compare" "-Wno-macro-redefined"
-		"-Wno-int-to-pointer-cast" "-Wno-pointer-to-int-cast"
+	"-Wno-sign-compare" "-Wno-macro-redefined"
+    	"-Wno-pointer-to-int-cast"
     ) 
+endif()
+
+if(CLANG OR GCC)
+    target_compile_options(h1_map_viewer PRIVATE
+	"-Wno-int-to-pointer-cast"
+    )
 endif()
 
 if(MSVC AND NOT CLANG)
