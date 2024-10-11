@@ -13,18 +13,24 @@ enum KeyFocus {
 
 struct BSPSurf {
 	uint32_t plane, first_edge;
-	uint8_t flags;
-	int8_t breakable_surface;
+	uint8_t  flags;
+	int8_t   breakable_surface;
 	uint16_t material;
 };
 
 struct BSPEdge {
-	uint32_t start_vert, end_vert, forward_edge, reverse_edge, left_surf, right_surf;
+	uint32_t start_vert, end_vert;
+	uint32_t forward_edge, reverse_edge;
+	uint32_t left_surf, right_surf;
 };
 
 struct BSPVertex {
 	glm::vec3 point;
-	uint32_t first_edge;
+	uint32_t  first_edge;
+};
+
+struct BSPTri {
+	BSPVertex v[3];
 };
 
 BSPSurf*   CL_Map_Surfs();
