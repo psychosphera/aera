@@ -12,6 +12,12 @@
 #include "com_print.hpp"
 #include "dvar.hpp"
 
+#define R_SURF_MAX_VERTS 8
+#define R_SURF_MAX_TRIS (R_SURF_MAX_VERTS - 2)
+
+#define R_SURF_MIN_VERTS 3 // can't have a polygon with less than 3 vertices
+#define R_SURF_MIN_TRIS  1 
+
 typedef unsigned int vbo_t;
 typedef unsigned int vao_t;
 typedef unsigned int ebo_t;
