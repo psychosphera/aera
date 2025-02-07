@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.27)
 project(h1_map_viewer C CXX)
+include(FetchContent)
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_REQUIRED ON)
-
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_REQUIRED ON)
 
@@ -19,7 +19,7 @@ endif()
 
 #set(VCPKG_TOOLCHAIN ) 
 #if(EXISTS VCPKG_TOOLCHAIN)
-#    include("F:/vcpkg/scripts/buildsystems/vcpkg.cmake")
+    include("F:/vcpkg/scripts/buildsystems/vcpkg.cmake")
 #endif()
 
 find_package(Freetype REQUIRED)
@@ -27,6 +27,18 @@ find_package(GLEW     REQUIRED)
 find_package(OpenGL   REQUIRED)
 find_package(glm      REQUIRED)
 find_package(ZLIB     REQUIRED)
+
+#FetchContent_Declare(
+#    metalang99
+#    URL https://github.com/hirrolot/metalang99/archive/refs/tags/v1.2.3.tar.gz # v1.2.3
+#)
+#FetchContent_Declare(
+#    datatype99
+#    URL https://github.com/hirrolot/datatype99/archive/refs/tags/v1.6.4.tar.gz
+#)
+
+#FetchContent_MakeAvailable(metalang99)
+#FetchContent_MakeAvailable(datatype99)
 
 add_executable(h1_map_viewer
     src/acommon/a_string.c src/acommon/a_common.c src/acommon/a_type.c
@@ -59,10 +71,8 @@ target_link_libraries(h1_map_viewer PRIVATE Freetype::Freetype)
 target_link_libraries(h1_map_viewer PRIVATE GLEW::GLEW)
 target_link_libraries(h1_map_viewer PRIVATE OpenGL::GL)
 target_link_libraries(h1_map_viewer PRIVATE ZLIB::ZLIB)
-
-if(WIN32)
-	target_link_libraries(h1_map_viewer PRIVATE wsock32 ws2_32)
-endif()
+#target_link_libraries(h1_map_viewer PRIVATE metalang99)
+#target_link_libraries(h1_map_viewer PRIVATE datatype99)
 
 target_include_directories(h1_map_viewer PRIVATE SDL3::SDL3)
 target_include_directories(h1_map_viewer PRIVATE SDL3_image::SDL3_image)
@@ -72,6 +82,8 @@ target_include_directories(h1_map_viewer PRIVATE glm::glm)
 target_include_directories(
 	h1_map_viewer PRIVATE ${CMAKE_SOURCE_DIR}/deps/invader/include
 )
+#target_include_directories(h1_map_viewer PRIVATE metalang99)
+#target_include_directories(h1_map_viewer PRIVATE datatype99)
 
 set_target_properties(
 	h1_map_viewer PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/build
@@ -95,7 +107,7 @@ endif()
 
 if(GCC)
     target_compile_options(h1_map_viewer PRIVATE
-        "-Wno-sign-compare"
+        "-Wno-sign-compare" "-ftrack-macro-expansion=0"
     ) 
 endif()
 
@@ -103,14 +115,14 @@ if(CLANG)
     target_compile_options(h1_map_viewer PRIVATE
         "-Wno-gnu-zero-variadic-macro-arguments"
         "-Wno-unreachable-code-generic-assoc"
-	"-Wno-sign-compare" "-Wno-macro-redefined"
-    	"-Wno-pointer-to-int-cast"
+		"-Wno-sign-compare" "-Wno-macro-redefined"
+    	"-Wno-pointer-to-int-cast" "-fmacro-backtrace-limit=1"
     ) 
 endif()
 
 if(CLANG OR GCC)
     target_compile_options(h1_map_viewer PRIVATE
-	"-Wno-int-to-pointer-cast"
+		"-Wno-int-to-pointer-cast" "-Wno-c99-designator"
     )
 endif()
 

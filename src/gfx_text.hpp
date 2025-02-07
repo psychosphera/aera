@@ -14,12 +14,12 @@ void R_DrawText(
     float xscale, float yscale, const glm::vec3& color,
     bool right
 );
-bool R_AddTextDraw(
+bool R_AddTextDrawDef(
     size_t localClientNum, FontDef* font, const RectDef& rect, std::string text,
     float xscale, float yscale, glm::vec3 color, bool active, bool right,
     A_OUT size_t& id
 );
 
-bool R_UpdateTextDraw(size_t localClientNum, size_t id, std::string text);
-bool R_ActivateTextDraw(size_t localClientNum, size_t id, bool active);
-bool R_RemoveTextDraw(size_t localClientNum, size_t id);
+bool R_UpdateTextDrawDef  (size_t localClientNum, size_t id, std::string text);
+bool R_ActivateTextDrawDef(size_t localClientNum, size_t id, bool active);
+bool R_RemoveTextDrawDef  (size_t localClientNum, size_t id);

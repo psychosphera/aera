@@ -5,7 +5,6 @@
 #include "acommon/a_math.h"
 
 #include "com_defs.hpp"
-#include "gfx_defs.hpp"
 
 void M_AngleVectors(
 	float yaw, float pitch, float roll, A_OPTIONAL_OUT glm::vec3* forward, 
@@ -53,9 +52,9 @@ void M_AngleVectors(
 /// <param name="max_tris">Maximum number of tris to process</param>
 /// <returns>The actual number of tris processed, or -1 if num_verts is less 
 /// than 3</returns>
-size_t M_TriangulateSurf(const BSPVertex* verts, size_t num_verts, A_OUT BSPTri* tris, size_t max_tris) {
+size_t M_TriangulateSurf(const BSPCollVertex* verts, size_t num_verts, A_OUT GfxBSPTri* tris, size_t max_tris) {
 	assert(num_verts >= R_SURF_MIN_VERTS);
-	assert(num_verts <= R_SURF_MAX_VERTS + 1);
+	assert(num_verts <= R_SURF_MAX_VERTS + 2);
 	assert(max_tris  >= R_SURF_MIN_TRIS);
 	assert(max_tris  <= R_SURF_MAX_TRIS);
 
@@ -65,8 +64,13 @@ size_t M_TriangulateSurf(const BSPVertex* verts, size_t num_verts, A_OUT BSPTri*
 	if (max_tris > num_verts - 2)
 		max_tris = num_verts - 2;
 
-	for (size_t i = 0; i < max_tris; i++)
-		tris[i] = { verts[0], verts[i + 1], verts[i + 2] };
+	GfxBSPVertex v[3];
+	v[0] = { verts[0].point.x, verts[0].point.y, verts[0].point.z };
+	for (size_t i = 0; i < max_tris; i++) {
+		v[1] = { verts[i + 1].point.x, verts[i + 1].point.y, verts[i + 1].point.z };
+		v[2] = { verts[i + 2].point.x, verts[i + 2].point.y, verts[i + 2].point.z };
+		tris[i] = { .v = { v[0], v[1], v[2] } };
+	}
 
 	return max_tris;
 }

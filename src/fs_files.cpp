@@ -76,9 +76,27 @@ A_NO_DISCARD bool FS_ReadInto(std::filesystem::path path, void* p, size_t n) {
 }
 
 A_NO_DISCARD StreamFile FS_StreamFile(
-	std::filesystem::path path, SeekFrom from, size_t off
+	std::filesystem::path path, SeekFrom from, StreamMode mode, size_t off
 ) {
-	SDL_RWops* f = SDL_RWFromFile(path.string().c_str(), "rb");
+	const char* mode_str = NULL;
+	switch(mode) {
+	case FS_STREAM_READ_EXISTING:
+		mode_str = "rb";
+		break;
+	case FS_STREAM_WRITE_NEW:
+		mode_str = "wb";
+		break;
+	case FS_STREAM_READ_WRITE_EXISTING:
+		mode_str = "r+b";
+		break;
+	case FS_STREAM_READ_WRITE_NEW:
+		mode_str = "w+b";
+		break;
+	case FS_STREAM_APPEND:
+		mode_str = "a";
+	};
+
+	SDL_RWops* f = SDL_RWFromFile(path.string().c_str(), mode_str);
 	size_t size  = SDL_RWsize(f);
 	SDL_RWseek(f, 0, SDL_RW_SEEK_SET);
 	StreamFile s = { .f = f, .size = size };
@@ -92,6 +110,8 @@ A_NO_DISCARD size_t FS_StreamPos(const StreamFile& file) {
 }
 
 long long FS_SeekStream(A_INOUT StreamFile& file, SeekFrom from, size_t off) {
+	if (off > file.size) 
+		Com_DPrintln("FS_SeekStream: attempted to seek beyond bounds of file (off={}, expected <{})", off, file.size);
 	assert(off <= file.size);
 
 	Sint64 begin_pos = SDL_RWtell(file.f);
@@ -115,17 +135,42 @@ long long FS_SeekStream(A_INOUT StreamFile& file, SeekFrom from, size_t off) {
         return (long long)SDL_RWtell(file.f) - (long long)begin_pos;
 }
 
-std::vector<std::byte> FS_ReadStream(StreamFile& file, size_t count) {
+A_NO_DISCARD bool FS_ReadStream(StreamFile& file, void* p, size_t count) {
+	size_t sz = SDL_RWread(file.f, p, count);
+	if(sz <= 0) 
+		Com_DPrintln("FS_ReadStream: failed to write {} bytes (wrote {}): {}", count, sz, SDL_GetError());
+	return sz > 0;
+}
+
+A_NO_DISCARD std::vector<std::byte> FS_ReadStream(StreamFile& file, size_t count) {
 	std::vector<std::byte> v;
 	v.resize(count);
-	size_t sz = SDL_RWread(file.f, v.data(), count);
-	if(sz != v.size())	
-		v.resize(sz);
-	return v;
+	bool b = FS_ReadStream(file, (void*)v.data(), count);
+	if(b)
+		return v;
+	else
+		return std::vector<std::byte>();
+}
+
+A_NO_DISCARD bool FS_WriteStream(StreamFile& file, const void* src, size_t count) {
+	size_t sz = SDL_RWwrite(file.f, src, count);
+	if(sz > 0)
+		file.size += sz;
+	if(sz != count) 
+		Com_DPrintln("FS_WriteStream: failed to write {} bytes (wrote {}): {}", count, sz, SDL_GetError());
+	return sz == count;
 }
 
 void FS_CloseStream(StreamFile& f) {
 	SDL_RWclose(f.f);
 	f.f = NULL;
 	f.size = 0;
+}
+
+bool FS_DeleteFile(const char* filename) {
+	return remove(filename) == 0;
+}
+
+bool FS_FileExists(const char* filename) {
+	return SDL_RWFromFile(filename, "r") != NULL;
 }

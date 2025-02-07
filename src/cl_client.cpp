@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include <zlib.h>
+
 #include "acommon/a_format.hpp"
 #include "acommon/z_mem.h"
 
@@ -12,6 +14,10 @@
 #include "gfx_text.hpp"
 #include "in_input.hpp"
 
+#define BSP_MAX_COLLISION_MATERIALS 512
+
+BSPTag* CL_Map_Tag(BSPTagId id);
+
 struct cll_t {
 	KeyFocus keyfocus    = KF_GAME;
 	bool drawDevGui      = false;
@@ -19,7 +25,6 @@ struct cll_t {
 };
 
 std::array<cll_t, MAX_LOCAL_CLIENTS> s_cll;
-
 struct cl_t {
 	dvar_t* drawfps  = NULL;
 	bool hasKbmFocus = false;
@@ -41,20 +46,35 @@ cl_t& CL_GetLocalClientGlobals(size_t localClientNum) {
 }
 
 struct MapLoadData {
-	StreamFile  f;
-	std::string map_name;
-	void* p;
-	size_t      n;
-	BSPSurf* surfs;
-	uint32_t    surf_count;
-	BSPEdge* edges;
-	uint32_t    edge_count;
-	BSPVertex* vertices;
-	uint32_t    vertex_count;
+	StreamFile  		  f;
+	std::string 		  map_name;
+	void*       		  p;
+	size_t      		  n;
+	FileMapping           bitmaps_map;
+
+	BSPTag*               tags;
+	uint32_t              tag_count;
+	BSPSurf*              surfs;
+	uint32_t              surf_count;
+	BSPRenderedVertex*    rendered_vertices;
+	BSPLightmapVertex*    lightmap_vertices;
+	BSPCollSurf*    	  coll_surfs;
+	uint32_t    		  coll_surf_count;
+	BSPCollEdge*    	  coll_edges;
+	uint32_t    		  coll_edge_count;
+	BSPCollVertex*  	  coll_vertices;
+	uint32_t    		  coll_vertex_count;
+	BSPCollisionMaterial* collision_materials;
 } g_load;
 
 void CL_Init() {
 	A_memset((void*)&g_load, 0, sizeof(g_load));
+	g_load.bitmaps_map = DB_LoadMap_Mmap("bitmaps.map");
+	assert(g_load.bitmaps_map.p && g_load.bitmaps_map.n > 0);
+	Com_DPrintln(
+		"CL_Init: Successfully mapped bitmaps.map at 0x{:08X} ({} bytes)",
+		(size_t)g_load.bitmaps_map.p, g_load.bitmaps_map.n
+	);
 
 	cl_splitscreen = &Dvar_RegisterBool("cl_splitscreen", DVAR_FLAG_NONE, false);
 
@@ -64,7 +84,7 @@ void CL_Init() {
 		CL_GetLocalClientLocals(i).drawDevGui = false;
 		CL_SetKeyFocus(i, KF_GAME);
 		RectDef rect = { .x = 0.985f, .y = 0.99f, .w = 0.0498f, .h = 0.0498f };
-		bool b = R_AddTextDraw(
+		bool b = R_AddTextDrawDef(
 			i, NULL, rect,
 			A_Format("FPS: {:.0f}", 1000.0f / s_lastFpsDrawDelta),
 			0.5f, 0.5f,
@@ -76,7 +96,7 @@ void CL_Init() {
 
 	CL_GiveKbmFocus(0);
 	
-	bool b = CL_LoadMap("c40.map");
+	bool b = CL_LoadMap("c40_xbox.map");
 	assert(b);
 }
 
@@ -85,7 +105,7 @@ void CL_EnableFpsCounter(size_t localClientNum, bool enable) {
 }
 
 void CL_DrawFps(size_t localClientNum) {
-	R_UpdateTextDraw(
+	R_UpdateTextDrawDef(
 		localClientNum, CL_GetLocalClientLocals(localClientNum).fpsTextDrawId,
 		A_Format("FPS: {:.0f}", 1000.0f / (float)s_lastFpsDrawDelta)
 	);
@@ -95,7 +115,7 @@ void CL_Frame() {
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		cl_t&  cl  = CL_GetLocalClientGlobals(i);
 		cll_t& cll = CL_GetLocalClientLocals(i);
-		R_ActivateTextDraw(i, cll.fpsTextDrawId, Dvar_GetBool(*cl.drawfps));
+		R_ActivateTextDrawDef(i, cll.fpsTextDrawId, Dvar_GetBool(*cl.drawfps));
 
 		// Updating the FPS counter too often makes it flicker
 		if (Sys_Milliseconds() - s_lastFpsDrawTime > 40) {
@@ -188,28 +208,15 @@ void CL_SetKeyFocus(size_t localClientNum, KeyFocus f) {
 	CG_GetLocalClientGlobals(localClientNum).keyfocus = f;
 }
 
-/*
-struct BSP3DNode {
-	uint32_t plane, back_child, front_child;
-};
+// static const void* CL_BitmapOffsetToPointer(size_t off) {
+// 	assert(g_load.bitmaps_map.p);
+// 	assert(g_load.bitmaps_map.n >= off);
 
-struct BSPLeaf {
-	uint16_t ref_count;
-	uint32_t first_ref;
-};
-
-struct BSP2DRef {
-	uint32_t plane, bsp2d_node;
-};
-
-struct BSP2DNode {
-	glm::vec3 plane;
-	uint32_t left_child, right_child;
-};
-*/
+// 	return (const void*)((const char*)g_load.bitmaps_map.p + off);
+// }
 
 bool CL_LoadMap(std::string_view map_name) {
-	g_load.f = DB_LoadMap(map_name);
+	g_load.f = DB_LoadMap_Stream(map_name);
 	if (g_load.f.f == NULL) {
 		return false;
 	}
@@ -230,42 +237,121 @@ bool CL_LoadMap(std::string_view map_name) {
 		return false;
 	}
 
+	bool b = true;
+	size_t n = (size_t)header.decompressed_file_size.read();
 	if (header.engine != Invader::HEK::CacheFileEngine::CACHE_FILE_RETAIL) {
-		Com_Errorln("CL_LoadMap: Wrong engine version.");
-		return false;
+		if (header.engine != Invader::HEK::CacheFileEngine::CACHE_FILE_XBOX) {
+			Com_Errorln("CL_LoadMap: Wrong engine version.");
+			return false;
+		}
+
+		const std::string decompressed_map_name = std::string("decompressed_") + std::string(map_name);
+		if (!FS_FileExists(decompressed_map_name.data())) {
+			FileMapping f = DB_LoadMap_Mmap(map_name);
+			void* decompressed = Z_Zalloc(n - sizeof(header));
+
+			z_stream stream;
+			stream.zalloc    = Z_NULL;
+            stream.zfree     = Z_NULL;
+            stream.opaque    = Z_NULL;
+            stream.avail_in  = f.n - sizeof(header);
+            stream.next_in   = (Bytef*)f.p + sizeof(header);
+            stream.avail_out = n - sizeof(header);
+            stream.next_out  = (Bytef*)decompressed;
+			int ret = inflateInit(&stream);
+			assert(ret == Z_OK);
+			ret = inflate(&stream, Z_FINISH);
+			assert(ret == Z_STREAM_END);
+			ret = inflateEnd(&stream);
+			assert(ret == Z_OK);
+
+			Com_DPrintln(
+				"CL_LoadMap: Decompressed {} bytes ({} {}), expected {}.", 
+				stream.total_out, ret, stream.msg ? stream.msg : "<NULL>", 
+				n - sizeof(header));
+			StreamFile decompressed_map = FS_StreamFile(
+				decompressed_map_name.data(), FS_SEEK_BEGIN, 
+				FS_STREAM_READ_WRITE_NEW, 0
+			);
+			assert(decompressed_map.f);
+			b = FS_WriteStream(decompressed_map, header);
+			assert(b);
+			b = FS_WriteStream(decompressed_map, decompressed, n - sizeof(header));
+			assert(b);
+			FS_CloseStream(g_load.f);
+			g_load.f = decompressed_map;
+			b = Z_UnmapFile(&f);
+			assert(b);
+		} else {
+			g_load.f = FS_StreamFile(
+				decompressed_map_name.data(), FS_SEEK_BEGIN, 
+				FS_STREAM_READ_EXISTING, 0
+			);
+		 	assert(g_load.f.f);
+		}
 	}
 
 	size_t tag_data_size = header.tag_data_size;
 	size_t tag_data_offset = header.tag_data_offset;
+	Com_DPrintln("CL_LoadMap: tag_data_offset=0x{:08X}", tag_data_offset);
 
-	FS_SeekStream(g_load.f, FS_SEEK_BEGIN, tag_data_offset);
-	Invader::HEK::CacheFileTagDataHeaderPC tag_header;
-	if (!FS_ReadStream(g_load.f, tag_header)) {
-		Com_Errorln("CL_LoadMap: Failed to load tag header.");
-		return false;
+	b = FS_SeekStream(g_load.f, FS_SEEK_BEGIN, tag_data_offset);
+	assert(b);
+	BSPTagHeader tag_header = {};
+	if (header.engine == Invader::HEK::CacheFileEngine::CACHE_FILE_XBOX) {
+		if (!FS_ReadStream(g_load.f, tag_header.xbox)) {
+			Com_Errorln("CL_LoadMap: Failed to load tag header.");
+			return false;
+		}
+
+		if (tag_header.xbox.magic != BSP_TAGS_FOOT) {
+			Com_Errorln("CL_LoadMap: Invalid tag header.");
+			return false;
+		}
+	} else {
+		if (!FS_ReadStream(g_load.f, tag_header.pc)) {
+			Com_Errorln("CL_LoadMap: Failed to load tag header.");
+			return false;
+		}
+
+		if (tag_header.pc.magic != BSP_TAGS_FOOT) {
+			Com_Errorln("CL_LoadMap: Invalid tag header.");
+			return false;
+		}
 	}
+	
 
-	if (tag_header.tags_literal != Invader::HEK::CacheFileLiteral::CACHE_FILE_TAGS) {
-		Com_Errorln("CL_LoadMap: Invalid tag header.");
-		return false;
-	}
-
-	uint32_t tag_array_offset = tag_header.tag_array_address - 0x40440000;
-	uint32_t off = tag_array_offset - sizeof(tag_header);
+	const void* tag_base = header.engine == Invader::HEK::CacheFileEngine::CACHE_FILE_RETAIL ? 
+		(const void*)0x40440000 : (const void*)0x803A6000;
+	uint32_t tag_array_offset = tag_header.common.tag_ptr - (uint32_t)tag_base;
+	Com_DPrintln("CL_LoadMap: tag_array_offset=0x{:08X}", tag_array_offset);
+	const size_t tag_header_size = header.engine == Invader::HEK::CacheFileEngine::CACHE_FILE_XBOX ?
+		sizeof(tag_header.xbox) : sizeof(tag_header.pc); 
+	uint32_t off = tag_array_offset - tag_header_size;
 	FS_SeekStream(g_load.f, FS_SEEK_CUR, off);
-	auto v = FS_ReadStream(g_load.f, tag_data_size);
-	g_load.n = 23 * 1024 * 1024;
-	g_load.p = Z_AllocAt((void*)0x40440000, g_load.n);
-	A_memcpy((void*)((intptr_t)g_load.p + (intptr_t)sizeof(tag_header) + (intptr_t)off), v.data(), v.size());
-	A_memcpy(g_load.p, &tag_header, sizeof(tag_header));
+	std::vector<std::byte> v = FS_ReadStream(g_load.f, tag_data_size);
+	assert(v.size() > 0);
+	Com_DPrintln("CL_LoadMap: allocating {} bytes for decompressed map.", n);
+	g_load.n = n;
+	g_load.p = Z_AllocAt(tag_base, g_load.n);
+	assert(g_load.p == tag_base);
+	A_memcpy((void*)((intptr_t)g_load.p + (intptr_t)tag_header_size + (intptr_t)off), v.data(), v.size());
+	A_memcpy(g_load.p, &tag_header, tag_header_size);
 
-	Invader::HEK::CacheFileTagDataTag* tags = (Invader::HEK::CacheFileTagDataTag*)(tag_header.tag_array_address.read());
-	uint32_t scenario_id = tag_header.scenario_tag.read().index;
+	g_load.tags          = (BSPTag*)tag_header.common.tag_ptr;
+	g_load.tag_count     = tag_header.common.tag_count;
+	if(header.engine == Invader::HEK::CacheFileEngine::CACHE_FILE_XBOX) {
+		Com_DPrintln(
+			"CL_LoadMap: map contains {} tags, vertex data=0x{:08X}, tri data=0x{:08X}",
+			tag_header.common.tag_count, tag_header.xbox.vertex_data_ptr, tag_header.xbox.triangle_data_ptr
+		);
+	}
+	
 
-	Invader::HEK::CacheFileTagDataTag* scenario_tag = NULL;
-	for (size_t i = 0; i < tag_header.tag_count; i++) {
-		if (tags[i].tag_id.read().index == scenario_id) {
-			scenario_tag = &tags[i];
+	BSPTag* scenario_tag = NULL;
+	for (size_t i = 0; i < tag_header.common.tag_count; i++) {
+		if (g_load.tags[i].tag_id.id == tag_header.common.scenario_tag_id.id) {
+			scenario_tag = &g_load.tags[i];
 			break;
 		}
 	}
@@ -276,38 +362,84 @@ bool CL_LoadMap(std::string_view map_name) {
 	}
 
 	if (scenario_tag->primary_class != Invader::HEK::TagFourCC::TAG_FOURCC_SCENARIO) {
-		Com_Errorln("CL_LoadMap: Invalid scenario tag fourcc ({}).", (uint32_t)scenario_tag->primary_class.read());
+		Com_Errorln(
+			"CL_LoadMap: Invalid scenario tag fourcc ({}).", 
+			scenario_tag->primary_class
+		);
 		return false;
 	}
 
-	Invader::HEK::Scenario<Invader::HEK::NativeEndian>* scenario_ptr = (Invader::HEK::Scenario<Invader::HEK::NativeEndian>*)scenario_tag->tag_data.read();
+	Invader::HEK::Scenario<Invader::HEK::NativeEndian>* scenario_ptr = 
+		(Invader::HEK::Scenario<Invader::HEK::NativeEndian>*)
+			scenario_tag->tag_data;
 	
 	if (!scenario_ptr) {
 		Com_Errorln("CL_LoadMap: NULL scenario pointer.");
 		return false;
 	}
 
-	Invader::HEK::ScenarioBSP<Invader::HEK::NativeEndian>* sbsp_ptr = (Invader::HEK::ScenarioBSP<Invader::HEK::NativeEndian>*)scenario_ptr->structure_bsps.pointer.read();
-	size_t bsp_size = sbsp_ptr->bsp_size.read();
-	size_t bsp_start = sbsp_ptr->bsp_start.read();
-	FS_SeekStream(g_load.f, FS_SEEK_BEGIN, bsp_start);
-	Invader::HEK::ScenarioStructureBSPCompiledHeader<Invader::HEK::NativeEndian> bsp_header;
-	if (!FS_ReadStream(g_load.f, bsp_header)) {
-		Com_Errorln("CL_LoadMap: Failed to read BSP header.");
-		return false;
-	}
+	Com_DPrintln("CL_LoadMap: Scenario at 0x{:08X}", (uint32_t)scenario_ptr);
 
-	if (bsp_header.signature != Invader::HEK::TagFourCC::TAG_FOURCC_SCENARIO_STRUCTURE_BSP) {
-		Com_Errorln("CL_LoadMap: Invalid signature for BSP header.");
-		return false;
+	size_t bsp_size = 0;
+	size_t bsp_start = 0;
+	Invader::HEK::ScenarioBSP<Invader::HEK::NativeEndian>* sbsps_ptr = 
+		(Invader::HEK::ScenarioBSP<Invader::HEK::NativeEndian>*)
+			scenario_ptr->structure_bsps.pointer.read();
+	Invader::HEK::ScenarioBSP<Invader::HEK::NativeEndian>* sbsp_ptr = sbsps_ptr;
+	int sbsp_idx = 0;
+	Invader::HEK::ScenarioStructureBSPCompiledHeader<Invader::HEK::NativeEndian> bsp_header;
+	bool found = false;
+	for(; sbsp_idx < scenario_ptr->structure_bsps.count.read(); sbsp_idx++) {
+		sbsp_ptr = &sbsps_ptr[sbsp_idx];
+		bsp_size = sbsp_ptr->bsp_size.read();
+		bsp_start = sbsp_ptr->bsp_start.read();
+		// Invader::HEK::ScenarioStructureBSPCompiledHeader<Invader::HEK::NativeEndian>* bsp_header =
+		// 	(Invader::HEK::ScenarioStructureBSPCompiledHeader<Invader::HEK::NativeEndian>*)((char*)tag_base + bsp_start);
+		// Com_DPrintln("CL_LoadMap: BSP ptr=0x{:08X}, offset=0x{:08X}, size={}", (uint32_t)bsp_header, bsp_start, bsp_size);
+		// assert(bsp_header->signature == A_MAKE_FOURCC('s', 'b', 's', 'p'));
+		// Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian>* bsp_ptr = 
+		// 	(Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian>*)bsp_header->pointer.read();
+		b = FS_SeekStream(g_load.f, FS_SEEK_BEGIN, bsp_start);
+		assert(b);
+		
+		if (!FS_ReadStream(g_load.f, bsp_header)) {
+			Com_Errorln("CL_LoadMap: Failed to read BSP header.");
+			return false;
+		}
+
+		if (bsp_header.signature != Invader::HEK::TagFourCC::TAG_FOURCC_SCENARIO_STRUCTURE_BSP) {
+			Com_Errorln("CL_LoadMap: Invalid signature for BSP header.");
+			return false;
+		}
+
+		if (bsp_header.lightmap_vertices.read() != 0 || bsp_header.rendered_vertices.read() != 0) {
+			found = true;
+			break;
+		}
+	}
+	
+	if (header.engine == Invader::HEK::CacheFileEngine::CACHE_FILE_XBOX) {
+		if (found) {
+			Com_DPrintln(
+				"CL_LoadMap: Found SBSP ({}) at 0x{:08X} with lightmap vertices (0x{:08X})",
+				sbsp_idx, bsp_header.pointer.read(), (uint32_t)bsp_header.lightmap_vertices.read()
+			);
+		}
+		else {
+			Com_Errorln("CL_LoadMap: Map has no lightmap vertices.");
+		}
 	}
 
 	v = FS_ReadStream(g_load.f, bsp_size - sizeof(bsp_header));
-	Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian>* bsp_ptr = (Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian>*)(sbsp_ptr->bsp_address.read() + sizeof(bsp_header));
-	A_memcpy(bsp_ptr, v.data(), v.size());
+	void* bsp_data = (void*)sbsps_ptr->bsp_address.read();
+	A_memcpy(bsp_data, (const void*)&bsp_header, sizeof(bsp_header));
+	A_memcpy((void*)((char*)bsp_data + sizeof(bsp_header)), v.data(), v.size());
+	Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian>* bsp_ptr = 
+		(Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian>*)bsp_header.pointer.read();
+	Com_DPrintln("CL_LoadMap: BSP begin=0x{:08X}, offset=0x{:08X}, size={}, ptr=0x{:08X}", (uint32_t)bsp_data, bsp_start, bsp_size, (uint32_t)bsp_ptr);
 
 	if (bsp_ptr->lightmaps_bitmap.tag_fourcc != Invader::HEK::TagFourCC::TAG_FOURCC_BITMAP) {
-		Com_Errorln("CL_LoadMap: Invalid lightmaps bitmap fourcc ({}).", (uint32_t)bsp_ptr->lightmaps_bitmap.tag_fourcc.read());
+		Com_Errorln("CL_LoadMap: Invalid lightmaps bitmap fourcc (0x{:08X}).", (uint32_t)bsp_ptr->lightmaps_bitmap.tag_fourcc.read());
 		return false;
 	}
 
@@ -322,32 +454,157 @@ bool CL_LoadMap(std::string_view map_name) {
 		return false;
 	}
 
-	// why are we off by 24? sizeof(bsp_header) == 24, so that could be a hint
-	Invader::HEK::ModelCollisionGeometryBSP<Invader::HEK::NativeEndian>* cbsp = (Invader::HEK::ModelCollisionGeometryBSP<Invader::HEK::NativeEndian>*)((uint32_t)bsp_ptr->collision_bsp.pointer.read());
-	Com_DPrintln("3d nodes: {} ({})\nplanes: {} ({})\nleaves: {} ({})\n2d refs: {} ({})\n2d nodes: {} ({})\nsurfs: {} ({})\nedges: {} ({})\nverts: {} ({})",
-		(void*)(uint32_t)cbsp->bsp3d_nodes.pointer.read(),	    (uint32_t)cbsp->bsp3d_nodes.count.read(),
-		(void*)(uint32_t)cbsp->planes.pointer.read(),			(uint32_t)cbsp->planes.count.read(),
-		(void*)(uint32_t)cbsp->leaves.pointer.read(),			(uint32_t)cbsp->leaves.count.read(),
-		(void*)(uint32_t)cbsp->bsp2d_references.pointer.read(), (uint32_t)cbsp->bsp2d_references.count.read(),
-		(void*)(uint32_t)cbsp->bsp2d_nodes.pointer.read(),	    (uint32_t)cbsp->bsp2d_nodes.count.read(),
-		(void*)(uint32_t)cbsp->surfaces.pointer.read(),		    (uint32_t)cbsp->surfaces.count.read(),
-		(void*)(uint32_t)cbsp->edges.pointer.read(),			(uint32_t)cbsp->edges.count.read(),
-		(void*)(uint32_t)cbsp->vertices.pointer.read(),		    (uint32_t)cbsp->vertices.count.read()
+	Com_DPrintln("CL_LoadMap: found BSP with rendered vertices at 0x{:08X}", (uint32_t)bsp_header.rendered_vertices.read());
+
+	Invader::HEK::ModelCollisionGeometryBSP<Invader::HEK::NativeEndian>* cbsp = 
+		(Invader::HEK::ModelCollisionGeometryBSP<Invader::HEK::NativeEndian>*)
+			((uint32_t)bsp_ptr->collision_bsp.pointer.read());
+	Com_DPrintln(
+		"3d nodes: {} ({})\nplanes: {} ({})\nleaves: {} ({})\n2d refs: {} ({})\n2d nodes: {} ({})\nsurfs: {} ({})\nedges: {} ({})\nverts: {} ({})",
+		(void*)(uint32_t)cbsp->bsp3d_nodes.pointer.read(),	    
+		(uint32_t)cbsp->bsp3d_nodes.count.read(),
+		(void*)(uint32_t)cbsp->planes.pointer.read(),			
+		(uint32_t)cbsp->planes.count.read(),
+		(void*)(uint32_t)cbsp->leaves.pointer.read(),			
+		(uint32_t)cbsp->leaves.count.read(),
+		(void*)(uint32_t)cbsp->bsp2d_references.pointer.read(), 
+		(uint32_t)cbsp->bsp2d_references.count.read(),
+		(void*)(uint32_t)cbsp->bsp2d_nodes.pointer.read(),	    
+		(uint32_t)cbsp->bsp2d_nodes.count.read(),
+		(void*)(uint32_t)cbsp->surfaces.pointer.read(),		    
+		(uint32_t)cbsp->surfaces.count.read(),
+		(void*)(uint32_t)cbsp->edges.pointer.read(),			
+		(uint32_t)cbsp->edges.count.read(),
+		(void*)(uint32_t)cbsp->vertices.pointer.read(),		    
+		(uint32_t)cbsp->vertices.count.read()
 	);
-	Invader::HEK::ModelCollisionGeometryBSPVertex<Invader::HEK::NativeEndian>* vertices = (Invader::HEK::ModelCollisionGeometryBSPVertex<Invader::HEK::NativeEndian>*)((uint32_t)cbsp->vertices.pointer);
+	Invader::HEK::ModelCollisionGeometryBSPVertex<Invader::HEK::NativeEndian>* vertices = 
+		(Invader::HEK::ModelCollisionGeometryBSPVertex<Invader::HEK::NativeEndian>*)
+			((uint32_t)cbsp->vertices.pointer);
 	uint32_t vertices_count = cbsp->vertices.count.read();
 	Com_DPrintln("CBSP has {} vertices ({}).", vertices_count, (void*)vertices);
 
-	g_load.surfs        = (BSPSurf*)(uint32_t)cbsp->surfaces.pointer.read();
-	g_load.surf_count   = cbsp->surfaces.count;
-	g_load.edges        = (BSPEdge*)(uint32_t)cbsp->edges.pointer.read();
-	g_load.edge_count   = cbsp->edges.count;
-	g_load.vertices     = (BSPVertex*)vertices;
-	g_load.vertex_count = cbsp->vertices.count;
+	BSPCollisionMaterial* collision_materials = 
+		(BSPCollisionMaterial*)bsp_ptr->collision_materials.pointer.read();
+	uint32_t collision_materials_count = bsp_ptr->collision_materials.count;
+	assert(collision_materials_count < BSP_MAX_COLLISION_MATERIALS);
+	Com_DPrintln(
+		"collision_materials=0x{:08X}, count={}", 
+		bsp_ptr->collision_materials.pointer.read(), 
+		collision_materials_count
+	);
+	for(int i = 0; i < collision_materials_count; i++) {
+		BSPCollisionMaterial* mat = &collision_materials[i];
+		const char* path = (const char*)mat->shader.path_pointer;
+		const char* type = BSPMaterialType_to_string(mat->material);
+		Com_DPrintln(
+			"Collision Material {}: type={}, fourcc=0x{:08X}, path={}", 
+			i, type ? type : "<INVALID>", mat->shader.fourcc, path ? path : "<NULL>"
+		);
+	}
 
+	g_load.rendered_vertices   = (BSPRenderedVertex*)(uint32_t)bsp_header.rendered_vertices.read();
+	g_load.lightmap_vertices   = (BSPLightmapVertex*)(uint32_t)bsp_header.lightmap_vertices.read();
+	g_load.surfs               = (BSPSurf*)(uint32_t)bsp_ptr->surfaces.pointer.read();
+	g_load.surf_count          = bsp_ptr->surfaces.count.read();
+	g_load.coll_surfs          = (BSPCollSurf*)(uint32_t)cbsp->surfaces.pointer.read();
+	g_load.coll_surf_count     = cbsp->surfaces.count;
+	g_load.coll_edges          = (BSPCollEdge*)(uint32_t)cbsp->edges.pointer.read();
+	g_load.coll_edge_count     = cbsp->edges.count;
+	g_load.coll_vertices       = (BSPCollVertex*)vertices;
+	g_load.coll_vertex_count   = cbsp->vertices.count;
+	g_load.collision_materials = collision_materials;
+	g_load.tag_count           = tag_header.common.tag_count;
+
+	Invader::HEK::ScenarioStructureBSPLightmap<Invader::HEK::NativeEndian>* lightmaps =
+		(Invader::HEK::ScenarioStructureBSPLightmap<Invader::HEK::NativeEndian>*)bsp_ptr->lightmaps.pointer.read();
+	for(uint32_t i = 0; i < bsp_ptr->lightmaps.count; i++) {
+		Invader::HEK::ScenarioStructureBSPLightmap<Invader::HEK::NativeEndian>* lightmap = &lightmaps[i];
+		Invader::HEK::ScenarioStructureBSPMaterial<Invader::HEK::NativeEndian>* materials =
+			(Invader::HEK::ScenarioStructureBSPMaterial<Invader::HEK::NativeEndian>*)lightmap->materials.pointer.read();
+		for(uint32_t j = 0; j < lightmap->materials.count; j++) {
+			Invader::HEK::ScenarioStructureBSPMaterial<Invader::HEK::NativeEndian>* material = &materials[j];
+			BSPTagId shader_id = BSPTagId { .id = material->shader.tag_id.read().id };
+			if(shader_id.index == 0xFFFF)
+					continue;
+			BSPTag* shader_tag = CL_Map_Tag(shader_id);
+			const char* shader_path = (const char *)shader_tag->tag_path;
+			assert(shader_tag);
+			assert(shader_path);
+			Com_DPrintln(
+				"Lightmap {} Material {} (0x{:08X}, 0x{:08X}, 0x{:08X}): {} (0x{:08X}), rendered vertices: type={}, count={}, offset=0x{:08X}, lightmap vertices: type={}, count={}, offset=0x{:08X}", i, j,
+				shader_tag->primary_class, shader_tag->secondary_class,
+				shader_tag->tertiary_class, shader_path,
+				shader_tag->tag_data, 
+				(uint16_t)material->rendered_vertices_type.read(), 
+				(uint32_t)material->rendered_vertices_count.read(),
+				(uint32_t)material->rendered_vertices_offset.read(),
+				(uint16_t)material->lightmap_vertices_type.read(), 
+				(uint32_t)material->lightmap_vertices_count.read(),
+				(uint32_t)material->lightmap_vertices_offset.read()
+			);
+			//assert((uint16_t)material->rendered_vertices_type.read() == 0);
+			//assert((uint16_t)material->lightmap_vertices_type.read() == 0);
+
+			assert(shader_tag->tag_data);
+			if(shader_tag->primary_class == A_MAKE_FOURCC('s', 'c', 'n', 'r'))
+				continue;
+			assert(shader_tag->secondary_class == A_MAKE_FOURCC('s', 'h', 'd', 'r'));
+			if (shader_tag->primary_class == A_MAKE_FOURCC('s', 'e', 'n', 'v')) {
+				BSPShaderEnvironment* shader = (BSPShaderEnvironment*)shader_tag->tag_data;
+				BSPTagId tag_id = BSPTagId { .id = shader_tag->tag_id.id };
+
+				// const char* base_map_path = (const char*)shader->base_map.path_pointer;
+				// Com_DPrintln(
+				// 	"{} ({}): base_map: {} (0x{:08X})", shader_path, tag_id.index,
+				// 	base_map_path ? base_map_path : "<NULL>", shader->base_map.fourcc
+				// );
+				tag_id = shader->base_map.id;
+				if(tag_id.index == 0xFFFF)
+					continue;
+				BSPTag* base_map_tag = CL_Map_Tag(tag_id);
+				assert(base_map_tag->primary_class == A_MAKE_FOURCC('b', 'i', 't', 'm'));
+
+				// Com_DPrintln(
+				// 	"{}: base_map tag: primary_group=0x{:08X}, secondary_group=0x{:08X}, tertiary_group=0x{:08X}, data=0x{:08X}, external={}",
+				// 	shader_path, base_map_tag->primary_class, base_map_tag->secondary_class,
+				// 	base_map_tag->tertiary_class, base_map_tag->tag_data, base_map_tag->external
+				// );
+
+				// BSPBitmap* base_map_bitmap = (BSPBitmap*)base_map_tag->tag_data;
+
+				// tag_id = base_map_tag->tag_id;
+				// Com_DPrintln(
+				// 	"{} ({}): Found {} bitmap data.", 
+				// 	base_map_path, tag_id.index, base_map_bitmap->bitmap_data.count
+				// );
+				// BSPBitmapData* bitmap_data = (BSPBitmapData*)base_map_bitmap->bitmap_data.pointer;
+				// for (uint32_t k = 0; k < base_map_bitmap->bitmap_data.count; k++) {
+				// 	// const void* pixels = CL_BitmapOffsetToPointer((size_t)bitmap_data[k].pixel_data_offset);
+				// 	// Com_DPrintln(
+				// 	// 	"Lightmap {} Material {} Bitmap Data {}: class=0x{:08X}, type={}, width={}, height={}, depth={}, format={}, pixel_data_size={}, pixels=0x{:08X} (offset=0x{:08X})", i, j, k,
+				// 	// 	bitmap_data[k].klass,
+				// 	// 	BSPBitmapDataType_to_string(bitmap_data[k].type),
+				// 	// 	bitmap_data[k].width, bitmap_data[k].height, bitmap_data[k].depth, 
+				// 	// 	BSPBitmapDataFormat_to_string(bitmap_data[k].format),
+				// 	// 	bitmap_data[k].pixel_data_size, (size_t)pixels, 
+				// 	// 	bitmap_data[k].pixel_data_offset
+				// 	// );
+				// }
+			}
+		}
+	}
 
 	R_LoadMap();
 	return true;
+}
+
+BSPTag* CL_Map_Tag(BSPTagId id) {
+	assert(g_load.tags);
+	if(id.index >= g_load.tag_count)
+		Com_DPrintln("invalid tag ({} > g_load.tag_count {})", id.index, g_load.tag_count);
+	assert(id.index < g_load.tag_count);
+	return &g_load.tags[id.index];
 }
 
 BSPSurf* CL_Map_Surfs() {
@@ -360,24 +617,50 @@ uint32_t CL_Map_SurfCount() {
 	return g_load.surf_count;
 }
 
-BSPEdge* CL_Map_Edges() {
-	assert(g_load.edges);
-	return g_load.edges;
+BSPRenderedVertex* CL_Map_RenderedVertices() {
+	assert(g_load.rendered_vertices);
+	return g_load.rendered_vertices;
 }
 
-uint32_t CL_Map_EdgeCount() {
-	assert(g_load.edges);
-	return g_load.edge_count;
+BSPLightmapVertex* CL_Map_LightmapVertices() {
+	assert(g_load.lightmap_vertices);
+	return g_load.lightmap_vertices;
 }
 
-BSPVertex* CL_Map_Vertices() {
-	assert(g_load.vertices);
-	return g_load.vertices;
+BSPCollSurf* CL_Map_CollSurfs() {
+	assert(g_load.coll_surfs);
+	return g_load.coll_surfs;
 }
 
-uint32_t CL_Map_VertexCount() {
-	assert(g_load.vertices);
-	return g_load.vertex_count;
+uint32_t CL_Map_CollSurfCount() {
+	assert(g_load.coll_surfs);
+	return g_load.coll_surf_count;
+}
+
+BSPCollEdge* CL_Map_CollEdges() {
+	assert(g_load.coll_edges);
+	return g_load.coll_edges;
+}
+
+uint32_t CL_Map_CollEdgeCount() {
+	assert(g_load.coll_edges);
+	return g_load.coll_edge_count;
+}
+
+BSPCollVertex* CL_Map_CollVertices() {
+	assert(g_load.coll_vertices);
+	return g_load.coll_vertices;
+}
+
+uint32_t CL_Map_CollVertexCount() {
+	assert(g_load.coll_vertices);
+	return g_load.coll_vertex_count;
+}
+
+BSPCollisionMaterial* CL_Map_CollisionMaterial(uint16_t i) {
+	assert(g_load.collision_materials);
+	assert(i < BSP_MAX_COLLISION_MATERIALS);
+	return &g_load.collision_materials[i];
 }
 
 bool CL_UnloadMap() {
@@ -388,11 +671,14 @@ bool CL_UnloadMap() {
 
 	if (g_load.p && g_load.n > 0) {
 		Z_FreeAt(g_load.p, g_load.n);
-		g_load.p		= NULL;
-		g_load.n		= 0;
-		g_load.surfs	= NULL;
-		g_load.edges	= NULL;
-		g_load.vertices = NULL;
+		g_load.p			       = NULL;
+		g_load.n			       = 0;
+		g_load.collision_materials = NULL;
+		g_load.rendered_vertices   = NULL;
+		g_load.surfs               = NULL;
+		g_load.coll_surfs	       = NULL;
+		g_load.coll_edges	       = NULL;
+		g_load.coll_vertices       = NULL;
 	}
 
 	return true;
@@ -403,6 +689,8 @@ bool CL_IsMapLoaded() {
 }
 
 void CL_Shutdown() {
+	Z_UnmapFile(&g_load.bitmaps_map);
+	A_memset((void*)&g_load, 0, sizeof(g_load));
 	CL_UnloadMap();
 
 	Dvar_SetBool(*cl_splitscreen, false);

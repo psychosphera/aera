@@ -140,13 +140,13 @@ void R_DrawText(
     float x = min_x;
     float y = min_y;
 
-    GL_CALL(glUseProgram, font->prog.program);
-    GL_CALL(glEnable, GL_BLEND);
-    GL_CALL(glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    GL_CALL(glUseProgram,      font->prog.program);
+    GL_CALL(glEnable,          GL_BLEND);
+    GL_CALL(glBlendFunc,       GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     GL_CALL(glBindVertexArray, font->vao);
-    GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, font->vbo);
-    GL_CALL(glActiveTexture, GL_TEXTURE0);
-    GL_CALL(glBindTexture, GL_TEXTURE_2D, font->tex);
+    GL_CALL(glBindBuffer,      GL_ARRAY_BUFFER, font->vbo);
+    GL_CALL(glActiveTexture,   GL_TEXTURE0);
+    GL_CALL(glBindTexture,     GL_TEXTURE_2D, font->tex);
 
     R_SetUniform(font->prog.program, "uTextColor", color);
 
@@ -303,7 +303,7 @@ bool R_FindFreeTextDraw(
     return false;
 }
 
-bool R_AddTextDraw(
+bool R_AddTextDrawDef(
     size_t localClientNum, FontDef* font, const RectDef& rect, 
     std::string text, float xscale, float yscale, glm::vec3 color, bool active,
     bool right, A_OUT size_t& id
@@ -325,7 +325,7 @@ bool R_AddTextDraw(
     return true;
 }
 
-bool R_UpdateTextDraw(size_t localClientNum, size_t id, std::string text) {
+bool R_UpdateTextDrawDef(size_t localClientNum, size_t id, std::string text) {
     GfxTextDraw* d = nullptr;
     if (!R_GetTextDraw(localClientNum, id, d))
         return false;
@@ -334,7 +334,7 @@ bool R_UpdateTextDraw(size_t localClientNum, size_t id, std::string text) {
     return true;
 }
 
-bool R_ActivateTextDraw(size_t localClientNum, size_t id, bool active) {
+bool R_ActivateTextDrawDef(size_t localClientNum, size_t id, bool active) {
     GfxTextDraw* d = nullptr;
     R_GetTextDraw(localClientNum, id, d);
     bool wasActive = d->active;
@@ -342,7 +342,7 @@ bool R_ActivateTextDraw(size_t localClientNum, size_t id, bool active) {
     return wasActive;
 }
 
-bool R_RemoveTextDraw(size_t localClientNum, size_t id) {
+bool R_RemoveTextDrawDef(size_t localClientNum, size_t id) {
     GfxTextDraw* d = nullptr;
     if (!R_GetTextDraw(localClientNum, id, d))
         return false;
@@ -355,14 +355,14 @@ bool R_RemoveTextDraw(size_t localClientNum, size_t id) {
     return true;
 }
 
-void R_ClearTextDraws(size_t localClientNum) {
+void R_ClearTextDrawDefs(size_t localClientNum) {
     for (auto& c : r_textDraws.at(localClientNum)) {
         c.active = false;
         c.free   = true;
     }
 }
 
-void R_DrawTextDraws(size_t localClientNum) {
+void R_DrawTextDrawDefs(size_t localClientNum) {
     for (const auto& c : r_textDraws.at(localClientNum)) {
         if (!c.free && c.active) {
             R_DrawText(

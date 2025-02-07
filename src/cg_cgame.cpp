@@ -66,7 +66,7 @@ extern dvar_t* r_fullscreen;
 extern dvar_t* r_noBorder;
 extern dvar_t* cl_splitscreen;
  
-void CG_Frame(uint64_t) {
+void CG_Frame(uint64_t deltaTime) {
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		cg_t& cg = CG_GetLocalClientGlobals(i);
 		float w = cg.viewport.w * (float)Dvar_GetInt(*vid_width);
@@ -78,14 +78,14 @@ void CG_Frame(uint64_t) {
 		if (!CL_HasKbmFocus(i) || CL_KeyFocus(i) != KF_GAME)
 			continue;
 
-		if (IN_Key_WasPressedOnCurrentFrame(i, SDLK_m)) {
+		if (IN_Key_WasPressedOnCurrentFrame(i, SDLK_n)) {
 			CL_GiveKbmFocus(1);
 			IN_Key_Clear(0);
 			if (!Dvar_GetBool(*cl_splitscreen)) {
 				CG_ActivateLocalClient(1);
 				CG_DectivateLocalClient(0);
 			}
-		} else if (IN_Key_WasPressedOnCurrentFrame(i, SDLK_n)) {
+		} else if (IN_Key_WasPressedOnCurrentFrame(i, SDLK_m)) {
 			CL_GiveKbmFocus(0);
 			IN_Key_Clear(1);
 			if (!Dvar_GetBool(*cl_splitscreen)) {
@@ -113,7 +113,10 @@ void CG_Frame(uint64_t) {
 		if (IN_Key_WasPressedOnCurrentFrame(i, SDLK_F11))
 			Dvar_SetBool(*r_fullscreen, !Dvar_GetBool(*r_fullscreen));
 
-		float vel = 40.0f;
+		// velocity is normalized from the last frame delta so that
+		// movement speed is consistent regardless of framerate
+		// (the scaling factor is completely arbitrary)
+		float vel = 40.0f * (deltaTime / (1000.0f / 144.0f));
 		if (IN_Key_IsDown(i, SDLK_LSHIFT))
 			vel *= 1.5f;
 

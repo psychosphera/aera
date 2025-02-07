@@ -9,6 +9,8 @@
 struct dgl_t {
 	size_t promptDrawId;
 	std::string buffer;
+	std::string saved_lines[DEVGUI_MAX_SAVED_LINES];
+	size_t saved_idx;
 };
 
 std::array<dgl_t, MAX_LOCAL_CLIENTS> s_dgl;
@@ -22,9 +24,10 @@ dgl_t& DevGui_GetLocalClientLocals(size_t localClientNum) {
 void DevGui_Init() {
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		dgl_t& dgl = DevGui_GetLocalClientLocals(i);
+		dgl.saved_idx = 0;
 		dgl.buffer = "> ";
 
-		R_AddTextDraw(
+		R_AddTextDrawDef(
 			i, nullptr, devgui_rect, dgl.buffer,
 			1.0f, 1.0f, glm::vec3(0.9f, 0.2f, 0.2f),
 			false, false, dgl.promptDrawId
@@ -36,6 +39,19 @@ bool DevGui_HasText(size_t localClientNum) {
 	return DevGui_GetLocalClientLocals(localClientNum).buffer.contains('\n');
 }
 
+void DevGui_SaveLine(size_t localClientNum, const std::string& line) {
+	dgl_t& dgl = DevGui_GetLocalClientLocals(localClientNum);
+	
+	if (dgl.saved_idx == DEVGUI_MAX_SAVED_LINES - 1) {
+		for (size_t i = 0; i < DEVGUI_MAX_SAVED_LINES - 2; i++) 
+			dgl.saved_lines[i] = dgl.saved_lines[i + 1];
+		dgl.saved_lines[DEVGUI_MAX_SAVED_LINES - 1] = line;
+		return;
+
+	}
+	dgl.saved_lines[dgl.saved_idx++] = line;
+}
+
 std::string DevGui_TakeText(size_t localClientNum) {
 	dgl_t& dgl = DevGui_GetLocalClientLocals(localClientNum);
 
@@ -43,6 +59,7 @@ std::string DevGui_TakeText(size_t localClientNum) {
 	size_t len = pos - 2;
 	std::string input = dgl.buffer.substr(2, len);
 	dgl.buffer.erase(2, len + 1);
+	DevGui_SaveLine(localClientNum, input);
 	return input;
 }
 
@@ -50,7 +67,7 @@ void DevGui_Frame() {
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		dgl_t& dgl = DevGui_GetLocalClientLocals(i);
 		if (CL_KeyFocus(i) != KF_DEVGUI) {
-			R_ActivateTextDraw(i, dgl.promptDrawId, false);
+			R_ActivateTextDrawDef(i, dgl.promptDrawId, false);
 			continue;
 		}
 
@@ -62,17 +79,29 @@ void DevGui_Frame() {
 				dgl.buffer.pop_back();
 			else if (k == SDLK_DELETE)
 				dgl.buffer = "> ";
+			else if (k == SDLK_UP) {
+				if (dgl.saved_idx > 0)
+					dgl.buffer = "> " + dgl.saved_lines[--dgl.saved_idx];
+			}
+			else if (k == SDLK_DOWN) {
+				if (dgl.saved_idx + 1 < DEVGUI_MAX_SAVED_LINES &&
+					!dgl.saved_lines[dgl.saved_idx + 1].empty()
+				) {
+					dgl.buffer = "> " + dgl.saved_lines[++dgl.saved_idx];
+				}
+			}
 		}
 
-		R_UpdateTextDraw(i, dgl.promptDrawId, dgl.buffer);
-		R_ActivateTextDraw(i, dgl.promptDrawId, true);
+		R_UpdateTextDrawDef(i, dgl.promptDrawId, dgl.buffer);
+		R_ActivateTextDrawDef(i, dgl.promptDrawId, true);
 	}
 }
 
 void DevGui_Shutdown() {
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		dgl_t& dgl = DevGui_GetLocalClientLocals(i);
-		R_RemoveTextDraw(i, dgl.promptDrawId);
+		R_RemoveTextDrawDef(i, dgl.promptDrawId);
 		dgl.buffer.clear();
+		dgl.saved_idx = 0;
 	}
 }

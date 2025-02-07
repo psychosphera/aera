@@ -23,20 +23,29 @@ enum SeekFrom {
 	FS_SEEK_END
 };
 
+enum StreamMode {
+	FS_STREAM_READ_EXISTING,
+	FS_STREAM_WRITE_NEW,
+	FS_STREAM_READ_WRITE_EXISTING,
+	FS_STREAM_READ_WRITE_NEW,
+	FS_STREAM_APPEND
+};
+
 A_NO_DISCARD StreamFile FS_StreamFile(
-	std::filesystem::path path, SeekFrom from = FS_SEEK_BEGIN, size_t off = 0
+	std::filesystem::path path, SeekFrom from, StreamMode mode, size_t off
 );
 
 long long FS_SeekStream(A_INOUT StreamFile& file, SeekFrom from, size_t off);
-std::vector<std::byte> FS_ReadStream(StreamFile& file, size_t count);
 void FS_CloseStream(StreamFile& f);
 
 A_NO_DISCARD size_t FS_StreamPos(const StreamFile& file);
 
+A_NO_DISCARD bool FS_ReadStream(StreamFile& file, void* p, size_t count);
+A_NO_DISCARD std::vector<std::byte> FS_ReadStream(StreamFile& file, size_t count);
+
 template<typename T>
 A_NO_DISCARD inline bool FS_ReadStream(StreamFile& file, T& t) {
-	size_t sz = SDL_RWread(file.f, (void*)&t, sizeof(t));
-	return sz == sizeof(t);
+	return FS_ReadStream(file, (void*)&t, sizeof(t));
 }
 
 template<>
@@ -56,3 +65,18 @@ A_NO_DISCARD inline bool FS_ReadStream(StreamFile& file, std::string& t) {
 
 	return true;
 }
+
+A_NO_DISCARD bool FS_WriteStream(StreamFile& file, const void* src, size_t count);
+
+template<typename T>
+A_NO_DISCARD inline bool FS_WriteStream(StreamFile& file, T& t) {
+	return FS_WriteStream(file, (const void*)&t, sizeof(t));
+}
+
+template<>
+A_NO_DISCARD inline bool FS_WriteStream(StreamFile& file, std::string& t) {
+	return FS_WriteStream(file, (const void*)t.data(), (size_t)t.length());
+}
+
+bool FS_DeleteFile(const char* filename);
+bool FS_FileExists(const char* filename);

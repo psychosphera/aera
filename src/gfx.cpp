@@ -20,8 +20,8 @@
 
 extern dvar_t* vid_width;
 extern dvar_t* vid_height;
-extern void R_DrawTextDraws (size_t localClientNum);
-extern void R_ClearTextDraws(size_t localClientNum);
+extern void R_DrawTextDrawDefs (size_t localClientNum);
+extern void R_ClearTextDrawDefs(size_t localClientNum);
 
 void GLAPIENTRY R_GlDebugOutput(
     GLenum source, GLenum type, unsigned int id, GLenum severity,
@@ -46,7 +46,7 @@ void GLAPIENTRY R_GlDebugOutput(
 static void   R_RegisterDvars        ();
 static void   R_InitMap              ();
 static void   R_InitCubes            (A_INOUT GfxCubePrim& cubePrim);
-static size_t R_GetBSPSurfTris(BSPSurf* surf, BSPTri* tris, size_t max_tris);
+//static size_t R_GetBSPSurfTris       (const BSPCollSurf* surf, GfxBSPTri* tris, size_t max_tris);
 static void   R_DrawFrameInternal    (size_t localClientNum);
 static void   R_InitLocalClient      (size_t localClientNum);
 static void   R_UpdateLocalClientView(size_t localClientNum);
@@ -81,17 +81,15 @@ void R_Init() {
     GL_CALL(glEnable, GL_DEBUG_OUTPUT);
     GL_CALL(glEnable, GL_DEBUG_OUTPUT_SYNCHRONOUS);
     GL_CALL(glDebugMessageCallback, R_GlDebugOutput, nullptr);
-    GL_CALL(
-        glDebugMessageControl, GL_DONT_CARE, GL_DONT_CARE, 
-        GL_DONT_CARE, 0, nullptr, (GLboolean)GL_TRUE
-    );
+    GL_CALL(glDebugMessageControl, GL_DONT_CARE, GL_DONT_CARE, 
+            GL_DONT_CARE, 0, nullptr, (GLboolean)GL_TRUE);
 #endif // _DEBUG
 
     GL_CALL(glClearColor, 0.2f, 0.3f, 0.3f, 1.0f);
     
     for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
         R_InitLocalClient(i);
-        R_ClearTextDraws(i);
+        R_ClearTextDrawDefs(i);
     }
 
     R_RegisterDvars();
@@ -100,7 +98,7 @@ void R_Init() {
     assert(b);
     
     RectDef rect = { .x = 0.1f, .y = 0.1f, .w = 0.8f, .h = 0.2f };
-    R_AddTextDraw(
+    R_AddTextDrawDef(
         0, nullptr, rect, "This is a test.\nWhere the fuck i am?", 1.0f, 1.0f,
         glm::vec3(0.77, 0.77, 0.2), true, false, r_testDrawId
     );
@@ -230,7 +228,7 @@ void R_WindowResized() {
 
 A_NO_DISCARD bool R_CreateImage(
     std::string_view image_name, A_OPTIONAL_OUT int* width, 
-    A_OPTIONAL_OUT int* height, A_OUT texture_t& tex
+    A_OPTIONAL_OUT int* height,  A_OUT texture_t& tex
 ) {
     if(width)
         *width  = 0;
@@ -286,6 +284,58 @@ A_NO_DISCARD bool R_CreateImage(
     return true;
 }
 
+// static image_format_t R_BSPToGLImageFormat(BSPBitmapDataFormat format) {
+//     image_format_t gl_format = 0;
+//     switch(format) {
+//     case BSP_BITMAP_DATA_FORMAT_A8: 
+//         gl_format = GL_ALPHA8;
+//         break;
+//     case BSP_BITMAP_DATA_FORMAT_R5G6B5:
+//         gl_format = GL_RGB565;
+//         break;
+//     case BSP_BITMAP_DATA_FORMAT_DXT1:
+//         gl_format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+//         break;
+//     case BSP_BITMAP_DATA_FORMAT_DXT3:
+//         gl_format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+//         break;
+//     case BSP_BITMAP_DATA_FORMAT_DXT5:
+//         gl_format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+//         break;
+//     default:
+//         Com_Errorln("R_BSPToGLImageFormat: Unimplemented BSPBitmapDataFormat {}.", BSPBitmapDataFormat_to_string(format));
+//     };
+
+//     return gl_format;
+// }
+
+// static bool R_BSPImageFormatIsCompressed(BSPBitmapDataFormat format) {
+//     switch(format) {
+//     case BSP_BITMAP_DATA_FORMAT_DXT1:
+//     case BSP_BITMAP_DATA_FORMAT_DXT3:
+//     case BSP_BITMAP_DATA_FORMAT_DXT5:
+//         return true;
+//     case BSP_BITMAP_DATA_FORMAT_A8:
+//     case BSP_BITMAP_DATA_FORMAT_R5G6B5:
+//         return false;
+//     }
+// }
+
+// A_NO_DISCARD bool R_CreateBSPImage(const void* pixels, size_t pixel_count, int width, int height, int depth, BSPBitmapDataFormat format) {
+//     assert(depth == 1);
+
+//     image_format_t gl_format = R_BSPToGLImageFormat(format);
+    
+//     if(R_BSPImageFormatIsCompressed(format)) {
+//         GL_CALL(glCompressedTexImage2D, GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, pixel_count, pixels);
+//     } else {
+//         GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, gl_format, GL_UNSIGNED_BYTE, pixels);
+//     }
+    
+//     GL_CALL(glGenerateMipmap, GL_TEXTURE_2D);
+//     return true;
+// }
+
 bool R_DeleteImage(
     A_IN texture_t& tex
 ) {
@@ -318,6 +368,7 @@ struct MapRenderGlob {
     vbo_t vbo;
     GfxShaderProgram prog;
     texture_t tex;
+    std::vector<GfxBSPTri> tris;
 } r_mapGlob;
 
 void R_InitMap() {
@@ -331,7 +382,9 @@ void R_InitMap() {
         Com_Errorln(errorLog);
     }
 
+    GL_CALL(glUseProgram, r_mapGlob.prog.program);
     R_SetUniform(r_mapGlob.prog.program, "uWireframe", Dvar_GetBool(*r_wireframe));
+    GL_CALL(glUseProgram, 0);
 
     GL_CALL(glGenVertexArrays, 1, &r_mapGlob.vao);
     GL_CALL(glBindVertexArray, r_mapGlob.vao);
@@ -341,96 +394,116 @@ void R_InitMap() {
 
     GL_CALL(glVertexAttribPointer,
         0, 3, GL_FLOAT, (GLboolean)GL_FALSE,
-        sizeof(BSPVertex), (void*)0
+        sizeof(GfxBSPVertex), (void*)0
     );
+
+    GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, 0);
+    GL_CALL(glBindVertexArray, 0);
 }
 
-static void R_SwapYZ(A_INOUT BSPVertex& v) {
-    float tmp = v.point.y;
-    v.point.y = v.point.z;
-    v.point.z = tmp;
+static void R_SwapYZ(A_INOUT GfxBSPVertex& v) {
+    float tmp = v.y;
+    v.y = v.z;
+    v.z = tmp;
 }
-
-static std::vector<BSPTri> r_mapTris;
 
 void R_LoadMap() {
     GL_CALL(glBindVertexArray, r_mapGlob.vao);
-    GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, r_mapGlob.vbo);
+    GL_CALL(glBindBuffer,      GL_ARRAY_BUFFER, r_mapGlob.vbo);
+    BSPRenderedVertex* vertices = CL_Map_RenderedVertices();
+    BSPSurf* pSurfs = CL_Map_Surfs();
     for (uint32_t surf = 0; surf < CL_Map_SurfCount(); surf++) {
-        BSPSurf* pSurf = &CL_Map_Surfs()[surf];
-        BSPTri t[R_SURF_MAX_TRIS] = {};
-        size_t triCount = R_GetBSPSurfTris(pSurf, t, A_countof(t));
-        assert(triCount > 0);
-        if (triCount) {
-            for (int i = 0; i < triCount; i++) {
-                for (int j = 0; j < 3; j++)
-                    R_SwapYZ(t[i].v[j]);
-                r_mapTris.push_back(t[i]);
+        BSPSurf* pSurf = &pSurfs[surf];
+
+        GfxBSPTri t = GfxBSPTri { .v = { 
+            GfxBSPVertex { 
+                .x = vertices[pSurf->verts[0]].pos.x, 
+                .y = vertices[pSurf->verts[0]].pos.y, 
+                .z = vertices[pSurf->verts[0]].pos.z 
+            },                                 
+            GfxBSPVertex {                     
+                .x = vertices[pSurf->verts[1]].pos.x, 
+                .y = vertices[pSurf->verts[1]].pos.y, 
+                .z = vertices[pSurf->verts[1]].pos.z 
+            },                                 
+            GfxBSPVertex {                     
+                .x = vertices[pSurf->verts[2]].pos.x, 
+                .y = vertices[pSurf->verts[2]].pos.y, 
+                .z = vertices[pSurf->verts[2]].pos.z 
             }
-        }
+        }};
+        for (int i = 0; i < 3; i++)
+            R_SwapYZ(t.v[i]);
+        r_mapGlob.tris.push_back(t);
 
     }
-    GL_CALL(glBufferData, GL_ARRAY_BUFFER, r_mapTris.size() * sizeof(*r_mapTris.data()), r_mapTris.data(), GL_STATIC_DRAW);
+    GL_CALL(glBufferData, GL_ARRAY_BUFFER, 
+            r_mapGlob.tris.size() * sizeof(*r_mapGlob.tris.data()), 
+            r_mapGlob.tris.data(), GL_STATIC_DRAW);
     GL_CALL(glEnableVertexAttribArray, 0);
-    GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, 0);
-    GL_CALL(glBindVertexArray, 0);
+    GL_CALL(glBindBuffer,              GL_ARRAY_BUFFER, 0);
+    GL_CALL(glBindVertexArray,         0);
 }
 
 void R_UnloadMap() {
-    GL_CALL(glBindVertexArray, r_mapGlob.vao);
-    GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, r_mapGlob.vbo);
+    GL_CALL(glBindVertexArray,          r_mapGlob.vao);
+    GL_CALL(glBindBuffer,               GL_ARRAY_BUFFER, r_mapGlob.vbo);
     GL_CALL(glDisableVertexAttribArray, 0);
-    GL_CALL(glBufferData, GL_ARRAY_BUFFER, 0, nullptr, GL_STATIC_DRAW);
-    GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, 0);
-    GL_CALL(glBindVertexArray, 0);
+    GL_CALL(glBufferData,               GL_ARRAY_BUFFER, 0, nullptr, GL_STATIC_DRAW);
+    GL_CALL(glBindBuffer,               GL_ARRAY_BUFFER, 0);
+    GL_CALL(glBindVertexArray,          0);
 }
 
 void R_ShutdownMap() {
-    GL_CALL(glBindVertexArray, r_mapGlob.vao);
-    GL_CALL(glDisableVertexAttribArray, 0);
-    GL_CALL(glBindVertexArray, 0);
+    GL_CALL(glBindVertexArray,           r_mapGlob.vao);
+    GL_CALL(glDisableVertexAttribArray,  0);
+    GL_CALL(glBindVertexArray,           0);
     GL_CALL(glDeleteBuffers,             1, &r_mapGlob.vbo);
     GL_CALL(glDeleteVertexArrays,        1, &r_mapGlob.vao);  
 }
 
-size_t R_GetBSPSurfTris(BSPSurf* surf, BSPTri* tris, size_t max_tris) {
-    BSPVertex* pVerts     = CL_Map_Vertices();
-    BSPEdge*   edge       = &CL_Map_Edges()[surf->first_edge];
-    //BSPEdge*   first_edge = edge;
+// size_t R_GetBSPSurfTris(const BSPCollSurf* surf, A_OUT GfxBSPTri* tris, size_t max_tris) {
+//     BSPCollVertex* pVerts     = CL_Map_CollVertices();
+//     BSPCollEdge*   edge       = &CL_Map_CollEdges()[surf->first_edge];
+//     BSPCollEdge*   first_edge = edge;
 
-    assert(max_tris <= R_SURF_MAX_TRIS);
-    if (max_tris > R_SURF_MAX_TRIS)
-        max_tris = R_SURF_MAX_TRIS;
+//     assert(max_tris <= R_SURF_MAX_TRIS);
+//     if (max_tris > R_SURF_MAX_TRIS)
+//         max_tris = R_SURF_MAX_TRIS;
 
-    int i = 0;
-    BSPVertex v[R_SURF_MAX_VERTS] = {};
-    for (; i < A_countof(v); i++) {
-        v[i] = pVerts[edge->end_vert];
-        edge = &CL_Map_Edges()[edge->forward_edge];
-        //if (edge == first_edge)
-        //    break;
-    }
-    assert(i >= R_SURF_MIN_VERTS - 1);
+//     int i = 1;
+//     BSPCollVertex v[R_SURF_MAX_VERTS] = {};
+//     v[0] = pVerts[edge->start_vert];
+//     for (; i < A_countof(v); i++) {
+//         v[i] = pVerts[edge->end_vert];
+//         edge = &CL_Map_CollEdges()[edge->forward_edge];
+//         if (edge == first_edge)
+//             break;
+//     }
+//     assert(i >= R_SURF_MIN_VERTS - 1);
 
-    //assert(first_edge == edge);
-    //if (edge != first_edge) return 0;
-
-    return M_TriangulateSurf(v, i + 1, tris, max_tris);
-}
+//     //assert(first_edge == edge);
+//     //if (edge != first_edge) return 0;
+    
+//     return M_TriangulateSurf(v, i + 1, tris, max_tris);
+// }
 
 void R_RenderMapInternal() {
-    GL_CALL(glEnable, GL_DEPTH_TEST);
+    GL_CALL(glEnable,          GL_DEPTH_TEST);
     GL_CALL(glBindVertexArray, r_mapGlob.vao);
-    GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, r_mapGlob.vbo);
-    GL_CALL(glUseProgram, r_mapGlob.prog.program);
+    GL_CALL(glBindBuffer,      GL_ARRAY_BUFFER, r_mapGlob.vbo);
+    GL_CALL(glUseProgram,      r_mapGlob.prog.program);
 
     glm::mat4 model(1.0f);
     R_SetUniform(r_mapGlob.prog.program, "uModel", model);    
     R_SetUniform(r_mapGlob.prog.program, "uWireframe", false);
-    GL_CALL(glDrawArrays, GL_TRIANGLES, 0, r_mapTris.size() * 3);
+    GLsizei vertex_count = (GLsizei)r_mapGlob.tris.size() * 3;
+    GL_CALL(glDrawArrays, GL_TRIANGLES, 0, vertex_count);
     if (Dvar_GetBool(*r_wireframe)) {
         R_SetUniform(r_mapGlob.prog.program, "uWireframe", true);
-        GL_CALL(glDrawArrays, GL_LINES, 0, r_mapTris.size());
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        GL_CALL(glDrawArrays, GL_TRIANGLES, 0, vertex_count);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
     GL_CALL(glUseProgram, 0);
@@ -464,16 +537,16 @@ static void R_DrawFrameInternal(size_t localClientNum) {
     GL_CALL(glClear, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     static const std::array<glm::vec3, 10> cubePositions = {
-        glm::vec3( 0.0f,  0.0f,  0.0f),
+        glm::vec3( 0.0f,  0.0f,  0.0f ),
         glm::vec3( 2.0f,  5.0f, -15.0f),
-        glm::vec3(-1.5f, -2.2f, -2.5f),
+        glm::vec3(-1.5f, -2.2f, -2.5f ),
         glm::vec3(-3.8f, -2.0f, -12.3f),
-        glm::vec3( 2.4f, -0.4f, -3.5f),
-        glm::vec3(-1.7f,  3.0f, -7.5f),
-        glm::vec3( 1.3f, -2.0f, -2.5f),
-        glm::vec3( 1.5f,  2.0f, -2.5f),
-        glm::vec3( 1.5f,  0.2f, -1.5f),
-        glm::vec3(-1.3f,  1.0f, -1.5f)
+        glm::vec3( 2.4f, -0.4f, -3.5f ),
+        glm::vec3(-1.7f,  3.0f, -7.5f ),
+        glm::vec3( 1.3f, -2.0f, -2.5f ),
+        glm::vec3( 1.5f,  2.0f, -2.5f ),
+        glm::vec3( 1.5f,  0.2f, -1.5f ),
+        glm::vec3(-1.3f,  1.0f, -1.5f )
     };
 
     /*
@@ -484,10 +557,10 @@ static void R_DrawFrameInternal(size_t localClientNum) {
     );
     */
 
-    glm::vec3 pos = cg.camera.pos;
+    glm::vec3 pos    = cg.camera.pos;
     glm::vec3 center = pos + cg.camera.front;
-    glm::vec3 up = cg.camera.up;
-    glm::mat4 view = glm::lookAt(pos, center, up);
+    glm::vec3 up     = cg.camera.up;
+    glm::mat4 view   = glm::lookAt(pos, center, up);
 
     GL_CALL(glUseProgram, r_mapGlob.prog.program);
     R_SetUniform(r_mapGlob.prog.program, "uView", view);
@@ -511,7 +584,7 @@ static void R_DrawFrameInternal(size_t localClientNum) {
     
     GL_CALL(glUseProgram, 0);
 
-    R_DrawTextDraws(localClientNum);
+    R_DrawTextDrawDefs(localClientNum);
 }
 
 static void R_UnregisterDvars() {
@@ -529,7 +602,7 @@ static void R_UnregisterDvars() {
 
 void R_Shutdown() {
     for(size_t i = 0; i < MAX_LOCAL_CLIENTS; i++)
-        R_ClearTextDraws(i);
+        R_ClearTextDrawDefs(i);
 
     R_ShutdownMap();
     R_ShutdownCubes(r_cubePrim);

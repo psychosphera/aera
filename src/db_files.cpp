@@ -26,7 +26,7 @@ std::map<AssetType, std::string_view> s_assetDirs = {
 	{ AT_MAP,    "maps"      },
 };
 
-std::string_view DB_AssetDirForType(AssetType at) {
+A_NO_DISCARD std::string_view DB_AssetDirForType(AssetType at) {
 	return s_assetDirs.at(at);
 }
 
@@ -53,30 +53,34 @@ A_NO_DISCARD std::filesystem::path DB_SbspPath(std::string_view sbsp_name) {
 	return DB_AssetPath(AT_SBSP, sbsp_name);
 }
 
-std::string DB_LoadAsset_Text(
+A_NO_DISCARD std::string DB_LoadAsset_Text(
 	AssetType assetType, std::string_view assetName
 ) {
 	return FS_ReadFileText(DB_AssetPath(assetType, assetName));
 }
 
-std::vector<std::byte> DB_LoadAsset_Binary(
+A_NO_DISCARD std::vector<std::byte> DB_LoadAsset_Binary(
 	AssetType assetType, std::string_view assetName
 ) {
 	return FS_ReadFile(DB_AssetPath(assetType, assetName));
 }
 
-std::string DB_LoadShader(std::string_view shader_name) {
+A_NO_DISCARD std::string DB_LoadShader(std::string_view shader_name) {
 	return DB_LoadAsset_Text(AT_SHADER, shader_name);
 }
 
-std::vector<std::byte> DB_LoadFont(std::string_view font_name) {
+A_NO_DISCARD std::vector<std::byte> DB_LoadFont(std::string_view font_name) {
 	return DB_LoadAsset_Binary(AT_FONT, font_name);
 }
 
-std::vector<std::byte> DB_LoadImage(std::string_view image_name) {
+A_NO_DISCARD std::vector<std::byte> DB_LoadImage(std::string_view image_name) {
 	return DB_LoadAsset_Binary(AT_IMAGE, image_name);
 }
 
-A_NO_DISCARD StreamFile DB_LoadMap(std::string_view map_name) {
-	return FS_StreamFile(DB_MapPath(map_name));
+A_NO_DISCARD StreamFile DB_LoadMap_Stream(std::string_view map_name) {
+	return FS_StreamFile(DB_MapPath(map_name), FS_SEEK_BEGIN, FS_STREAM_READ_EXISTING, 0);
+}
+
+A_NO_DISCARD FileMapping DB_LoadMap_Mmap(std::string_view map_name) {
+	return Z_MapFile(DB_MapPath(map_name).string().c_str());
 }

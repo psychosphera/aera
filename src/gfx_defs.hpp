@@ -25,7 +25,7 @@ typedef unsigned int vertex_shader_t;
 typedef unsigned int fragment_shader_t;
 typedef unsigned int shader_program_t;
 typedef unsigned int texture_t;
-typedef unsigned int image_format_t;
+typedef GLenum       image_format_t;
 
 constexpr inline float VFOV_DEFAULT = 74.0f;
 
@@ -158,6 +158,14 @@ struct GfxTextDraw {
     glm::vec3 color;
     bool active;
     bool right;
+};
+
+struct GfxBSPVertex {
+    float x, y, z;
+};
+
+struct GfxBSPTri {
+    GfxBSPVertex v[3];
 };
 
 A_NO_DISCARD constexpr inline std::string_view GL_ERROR_STR(GLenum err) {
