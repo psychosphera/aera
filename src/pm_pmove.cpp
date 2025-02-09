@@ -88,7 +88,7 @@ void PmoveSingle(A_INOUT pmove_t& pm, A_INOUT pml_t& pml) {
 		(uint64_t)1, (uint64_t)200
 	);
 	pm.ps->commandTime = pm.cmd.serverTime;
-	pml.frametime = pml.msec * 0.001f;
+	pml.frametime      = pml.msec * 0.001f;
 
 	PM_UpdateViewAngles(*pm.ps, pm.cmd);
 	M_AngleVectors(
@@ -104,4 +104,35 @@ void PmoveSingle(A_INOUT pmove_t& pm, A_INOUT pml_t& pml) {
 	}
 
 	A_memset(&pm.cmd, 0, sizeof(pm.cmd));
+}
+
+void Pmove(A_INOUT pmove_t& pm, A_INOUT pml_t& pml) {
+	int finalTime = pm.cmd.serverTime;
+
+	if (finalTime < pm.ps->commandTime) {
+		return;	
+	}
+
+	if (finalTime > pm.ps->commandTime + 1000) {
+		pm.ps->commandTime = finalTime - 1000;
+	}
+
+	// chop the move up if it is too long, to prevent framerate
+	// dependent behavior
+	while (pm.ps->commandTime != finalTime) {
+		int msec = finalTime - pm.ps->commandTime;
+
+		if (msec > 66) {
+			msec = 66;
+		}
+		pm.cmd.serverTime = pm.ps->commandTime + msec;
+		PmoveSingle(pm, pml);
+
+		if (pm.ps->pm_flags & PMF_JUMP_HELD) {
+			pm.cmd.vel.y = 20;
+		}
+	}
+
+	//PM_CheckStuck();
+
 }

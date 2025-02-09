@@ -66,7 +66,7 @@ extern dvar_t* r_fullscreen;
 extern dvar_t* r_noBorder;
 extern dvar_t* cl_splitscreen;
  
-void CG_Frame(uint64_t deltaTime) {
+void CG_Frame(uint64_t) {
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		cg_t& cg = CG_GetLocalClientGlobals(i);
 		float w = cg.viewport.w * (float)Dvar_GetInt(*vid_width);
@@ -113,10 +113,7 @@ void CG_Frame(uint64_t deltaTime) {
 		if (IN_Key_WasPressedOnCurrentFrame(i, SDLK_F11))
 			Dvar_SetBool(*r_fullscreen, !Dvar_GetBool(*r_fullscreen));
 
-		// velocity is normalized from the last frame delta so that
-		// movement speed is consistent regardless of framerate
-		// (the scaling factor is completely arbitrary)
-		float vel = 40.0f * deltaTime;
+		float vel = 100.0f;
 		if (IN_Key_IsDown(i, SDLK_LSHIFT))
 			vel *= 1.5f;
 
@@ -135,10 +132,10 @@ void CG_Frame(uint64_t deltaTime) {
 		if (IN_Key_IsDown(i, SDLK_LCTRL))
 			pm.pm.cmd.vel.y -= vel;
 
-		if (pm.pm.cmd.vel.x != 0 && pm.pm.cmd.vel.y != 0) {
+		/*if (pm.pm.cmd.vel.x != 0 && pm.pm.cmd.vel.y != 0) {
 			pm.pm.cmd.vel.x *= 0.5f;
 			pm.pm.cmd.vel.y *= 0.5f;
-		}
+		}*/
 
 		float x = IN_Mouse_X(i);
 		float y = IN_Mouse_Y(i);
@@ -161,7 +158,7 @@ void CG_Frame(uint64_t deltaTime) {
 		}
 
 		pm.pm.cmd.serverTime = Sys_Milliseconds();
-		PmoveSingle(pm.pm, pm.pml);
+		Pmove(pm.pm, pm.pml);
 		cg.camera.pos   = pm.pm.ps->origin;
 		cg.camera.front = pm.pml.forward;
 	}

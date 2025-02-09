@@ -57,3 +57,4 @@ constexpr float PM_ACCELERATE = 10.0f;
 pm_t& PM_GetLocalClientGlobals(size_t localClientNum);
 void PM_Init();
 void PmoveSingle(A_INOUT pmove_t& pm, A_INOUT pml_t& pml);
+void Pmove      (A_INOUT pmove_t& pm, A_INOUT pml_t& pml);
