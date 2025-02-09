@@ -36,12 +36,12 @@ void CG_Init() {
 
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		cg_t& cg = CG_GetLocalClientGlobals(i);
-		cg.camera.pos = glm::vec3(0.0f, 0.0f, 0.0f);
-		cg.camera.worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
-		cg.camera.front = glm::vec3(0.0f, 0.0f, -1.0f);
-		cg.camera.up = glm::vec3(0.0f, 1.0f, 0.0f);
-		cg.camera.pitch = 0.0f;
-		cg.camera.yaw = -90.0f;
+		cg.camera.pos     =  glm::vec3(0.0f,  0.0f,  0.0f);
+		cg.camera.worldUp =  glm::vec3(0.0f,  1.0f,  0.0f);
+		cg.camera.front   =  glm::vec3(0.0f,  0.0f, -1.0f);
+		cg.camera.up      =  glm::vec3(0.0f,  1.0f,  0.0f);
+		cg.camera.pitch   =  0.0f;
+		cg.camera.yaw     = -90.0f;
 
 		cg.viewport.x = 0.0f;
 		cg.viewport.y = 0.0f;
@@ -116,7 +116,7 @@ void CG_Frame(uint64_t deltaTime) {
 		// velocity is normalized from the last frame delta so that
 		// movement speed is consistent regardless of framerate
 		// (the scaling factor is completely arbitrary)
-		float vel = 40.0f * (deltaTime / (1000.0f / 144.0f));
+		float vel = 40.0f * deltaTime;
 		if (IN_Key_IsDown(i, SDLK_LSHIFT))
 			vel *= 1.5f;
 

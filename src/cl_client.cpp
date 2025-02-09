@@ -65,6 +65,10 @@ struct MapLoadData {
 	BSPCollVertex*  	  coll_vertices;
 	uint32_t    		  coll_vertex_count;
 	BSPCollisionMaterial* collision_materials;
+	uint32_t              lightmap_count;
+	BSPLightmap*          lightmaps;
+
+	Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian>* bsp_ptr;
 } g_load;
 
 void CL_Init() {
@@ -214,6 +218,45 @@ void CL_SetKeyFocus(size_t localClientNum, KeyFocus f) {
 
 // 	return (const void*)((const char*)g_load.bitmaps_map.p + off);
 // }
+
+#define CL_DECOMPRESS_FLOAT_SIGN_BIT(bits) (1 << ((bits) - 1))
+#define CL_DECOMPRESS_FLOAT_MASK(bits) (CL_DECOMPRESS_FLOAT_SIGN_BIT(bits) - 1)
+#define CL_DECOMPRESS_FLOAT(f, bits) (                         \
+(float)(                                                       \
+	((f) & CL_DECOMPRESS_FLOAT_MASK(bits)) /                   \
+	CL_DECOMPRESS_FLOAT_MASK(bits)                             \
+) * ((f) & CL_DECOMPRESS_FLOAT_SIGN_BIT(bits) ? -1.0f : 1.0f))
+
+static void CL_DecompressVector(A_OUT avec3f_t* decompressed, uint32_t compressed) {
+	// uint32_t compressed_x = compressed >> 0;
+	uint32_t compressed_y = compressed >> 11;
+	uint32_t compressed_z = compressed >> 22;
+	
+	decompressed->x = CL_DECOMPRESS_FLOAT(compressed,   11);
+	decompressed->y = CL_DECOMPRESS_FLOAT(compressed_y, 11);
+	decompressed->z = CL_DECOMPRESS_FLOAT(compressed_z, 10);
+
+	A_vec3f_normalize(decompressed);
+}
+
+static void CL_DecompressRenderedVertex(
+	A_OUT BSPRenderedVertex* decompressed, 
+	const BSPRenderedVertexCompressed* compressed
+) {
+	decompressed->pos        = compressed->pos;
+	decompressed->tex_coords = compressed->tex_coords;
+	CL_DecompressVector   (&decompressed->normal,        compressed->normal);
+	CL_DecompressVector   (&decompressed->binormal,      compressed->binormal);
+	CL_DecompressVector   (&decompressed->tangent,       compressed->tangent);
+}
+
+static void CL_DecompressLightmapVertex(
+	A_OUT BSPLightmapVertex* decompressed, 
+	const BSPLightmapVertexCompressed* compressed
+) {
+	CL_DecompressVector(&decompressed->normal, compressed->normal);
+	decompressed->tex_coords = compressed->tex_coords;
+}
 
 bool CL_LoadMap(std::string_view map_name) {
 	g_load.f = DB_LoadMap_Stream(map_name);
@@ -454,7 +497,23 @@ bool CL_LoadMap(std::string_view map_name) {
 		return false;
 	}
 
-	Com_DPrintln("CL_LoadMap: found BSP with rendered vertices at 0x{:08X}", (uint32_t)bsp_header.rendered_vertices.read());
+	assert(bsp_header.lightmap_vertices.read() > bsp_header.rendered_vertices.read());
+	size_t rendered_vertices_size = bsp_header.lightmap_vertices.read() - bsp_header.rendered_vertices.read();
+	bool compressed = header.engine == Invader::HEK::CacheFileEngine::CACHE_FILE_XBOX;
+	size_t rendered_vertex_size = compressed ?
+		sizeof(Invader::HEK::ScenarioStructureBSPMaterialCompressedRenderedVertex<Invader::HEK::NativeEndian>) :
+		sizeof(Invader::HEK::ScenarioStructureBSPMaterialUncompressedRenderedVertex<Invader::HEK::NativeEndian>);
+	size_t lightmap_vertex_size = compressed ?
+		sizeof(Invader::HEK::ScenarioStructureBSPMaterialCompressedLightmapVertex<Invader::HEK::NativeEndian>) :
+		sizeof(Invader::HEK::ScenarioStructureBSPMaterialUncompressedLightmapVertex<Invader::HEK::NativeEndian>);
+	size_t vertices_count = rendered_vertices_size / rendered_vertex_size;
+	size_t lightmap_vertices_size = lightmap_vertex_size * vertices_count;
+	Com_DPrintln(
+		"CL_LoadMap: found BSP with {} vertices (rendered vertices at 0x{:08X}..0x{:08X}, lightmap vertices at 0x{:08X}..0x{:08X})", 
+		vertices_count, 
+		(uint32_t)bsp_header.rendered_vertices.read(), (uint32_t)bsp_header.rendered_vertices.read() + rendered_vertices_size,
+		(uint32_t)bsp_header.lightmap_vertices.read(), (uint32_t)bsp_header.lightmap_vertices.read() + lightmap_vertices_size
+	);
 
 	Invader::HEK::ModelCollisionGeometryBSP<Invader::HEK::NativeEndian>* cbsp = 
 		(Invader::HEK::ModelCollisionGeometryBSP<Invader::HEK::NativeEndian>*)
@@ -478,11 +537,12 @@ bool CL_LoadMap(std::string_view map_name) {
 		(void*)(uint32_t)cbsp->vertices.pointer.read(),		    
 		(uint32_t)cbsp->vertices.count.read()
 	);
+
 	Invader::HEK::ModelCollisionGeometryBSPVertex<Invader::HEK::NativeEndian>* vertices = 
 		(Invader::HEK::ModelCollisionGeometryBSPVertex<Invader::HEK::NativeEndian>*)
 			((uint32_t)cbsp->vertices.pointer);
-	uint32_t vertices_count = cbsp->vertices.count.read();
-	Com_DPrintln("CBSP has {} vertices ({}).", vertices_count, (void*)vertices);
+	uint32_t coll_vertices_count = cbsp->vertices.count.read();
+	Com_DPrintln("CBSP has {} vertices ({}).", coll_vertices_count, (void*)vertices);
 
 	BSPCollisionMaterial* collision_materials = 
 		(BSPCollisionMaterial*)bsp_ptr->collision_materials.pointer.read();
@@ -515,7 +575,11 @@ bool CL_LoadMap(std::string_view map_name) {
 	g_load.coll_vertex_count   = cbsp->vertices.count;
 	g_load.collision_materials = collision_materials;
 	g_load.tag_count           = tag_header.common.tag_count;
+	g_load.lightmap_count      = bsp_ptr->lightmaps.count.read();
+	g_load.lightmaps           = (BSPLightmap*)bsp_ptr->lightmaps.pointer.read();
+	g_load.bsp_ptr             = bsp_ptr;
 
+	size_t total_vertex_count = 0;
 	Invader::HEK::ScenarioStructureBSPLightmap<Invader::HEK::NativeEndian>* lightmaps =
 		(Invader::HEK::ScenarioStructureBSPLightmap<Invader::HEK::NativeEndian>*)bsp_ptr->lightmaps.pointer.read();
 	for(uint32_t i = 0; i < bsp_ptr->lightmaps.count; i++) {
@@ -524,6 +588,14 @@ bool CL_LoadMap(std::string_view map_name) {
 			(Invader::HEK::ScenarioStructureBSPMaterial<Invader::HEK::NativeEndian>*)lightmap->materials.pointer.read();
 		for(uint32_t j = 0; j < lightmap->materials.count; j++) {
 			Invader::HEK::ScenarioStructureBSPMaterial<Invader::HEK::NativeEndian>* material = &materials[j];
+			uint32_t rendered_vertices_count = (uint32_t)material->rendered_vertices_count.read();
+			uint32_t lightmap_vertices_count = (uint32_t)material->lightmap_vertices_count.read();
+
+			if ((rendered_vertices_count == 0 || lightmap_vertices_count == 0) && i < bsp_ptr->lightmaps.count.read() - 1) {
+				Com_DPrintln("Lightmap {} Material {}: bitmap == -1", i, j);
+				assert(false);
+			}
+
 			BSPTagId shader_id = BSPTagId { .id = material->shader.tag_id.read().id };
 			if(shader_id.index == 0xFFFF)
 					continue;
@@ -531,18 +603,55 @@ bool CL_LoadMap(std::string_view map_name) {
 			const char* shader_path = (const char *)shader_tag->tag_path;
 			assert(shader_tag);
 			assert(shader_path);
+			
+
 			Com_DPrintln(
-				"Lightmap {} Material {} (0x{:08X}, 0x{:08X}, 0x{:08X}): {} (0x{:08X}), rendered vertices: type={}, count={}, offset=0x{:08X}, lightmap vertices: type={}, count={}, offset=0x{:08X}", i, j,
+				"Lightmap {} Material {} (0x{:08X}, 0x{:08X}, 0x{:08X}): {} (0x{:08X}), surfaces: start={}, count={}, rendered vertices: type={}, count={}, offset=0x{:08X}, lightmap vertices: type={}, count={}, offset=0x{:08X}, compressed vertices: size={}, offset=0x{:08X}", i, j,
 				shader_tag->primary_class, shader_tag->secondary_class,
 				shader_tag->tertiary_class, shader_path,
 				shader_tag->tag_data, 
+				material->surfaces.read(), material->surface_count.read(),
 				(uint16_t)material->rendered_vertices_type.read(), 
-				(uint32_t)material->rendered_vertices_count.read(),
-				(uint32_t)material->rendered_vertices_offset.read(),
+				rendered_vertices_count,
+				lightmap_vertices_count,
 				(uint16_t)material->lightmap_vertices_type.read(), 
 				(uint32_t)material->lightmap_vertices_count.read(),
-				(uint32_t)material->lightmap_vertices_offset.read()
+				(uint32_t)material->lightmap_vertices_offset.read(),
+				(uint32_t)material->compressed_vertices.size.read(),
+				(uint32_t)material->compressed_vertices.file_offset.read()
 			);
+			total_vertex_count += rendered_vertices_count;
+			const BSPRenderedVertexCompressed* compressed_rendered_vertices = (const BSPRenderedVertexCompressed*)material->compressed_vertices.pointer.read();
+			const BSPLightmapVertexCompressed* compressed_lightmap_vertices = 
+				(const BSPLightmapVertexCompressed*)(
+					(const BSPRenderedVertexCompressed*)material->compressed_vertices.pointer.read() + (uint32_t)material->rendered_vertices_count.read()
+				);
+
+			size_t decompressed_rendered_vertices_size = rendered_vertices_count * sizeof(BSPRenderedVertex);
+			size_t decompressed_lightmap_vertices_size = lightmap_vertices_count * sizeof(BSPLightmapVertex);
+			size_t decompressed_vertices_size = decompressed_rendered_vertices_size + decompressed_lightmap_vertices_size;
+			// Com_DPrintln(
+			// 	"CL_LoadMap: Lightmap {} Material {}: Allocating {} bytes for {} rendered vertices, {} lightmap vertices.", i, j, 
+			// 	decompressed_vertices_size, rendered_vertices_count, lightmap_vertices_count
+			// );
+			void*  decompressed_vertices = Z_Alloc(decompressed_vertices_size);
+			material->uncompressed_vertices.pointer.write((uint64_t)decompressed_vertices);
+			BSPRenderedVertex* rendered_vertices = (BSPRenderedVertex*)decompressed_vertices;
+			for (uint32_t k = 0; k < rendered_vertices_count; k++)
+				CL_DecompressRenderedVertex(&rendered_vertices[k], &compressed_rendered_vertices[k]);
+			BSPLightmapVertex* lightmap_vertices = (BSPLightmapVertex*)((char*)decompressed_vertices + decompressed_rendered_vertices_size);
+			for (uint32_t k = 0; k < material->lightmap_vertices_count.read(); k++)
+				CL_DecompressLightmapVertex(&lightmap_vertices[k], &compressed_lightmap_vertices[k]);
+
+			for (uint32_t k = material->surfaces.read(); k < material->surfaces.read() + material->surface_count.read(); k++) {
+				for (int l = 0; l < 3; l++) {
+					if (g_load.surfs[k].verts[l] >= rendered_vertices_count)
+						Com_DPrintln("CL_LoadMap: Lightmap {} Material {}: out of bounds vertex index {} for surf {}, vert {}", i, j, g_load.surfs[k].verts[l], k, l);
+					assert(g_load.surfs[k].verts[l] < rendered_vertices_count);
+				}
+				//Com_DPrintln("CL_LoadMap: Lightmap {} Material {} Surf {}: ({}, {}, {})", i, j, k, g_load.surfs[k].verts[0], g_load.surfs[k].verts[1], g_load.surfs[k].verts[2]);
+			}
+			
 			//assert((uint16_t)material->rendered_vertices_type.read() == 0);
 			//assert((uint16_t)material->lightmap_vertices_type.read() == 0);
 
@@ -594,6 +703,7 @@ bool CL_LoadMap(std::string_view map_name) {
 			}
 		}
 	}
+	Com_DPrintln("CL_LoadMap: Total Vertex Count={}.", total_vertex_count);
 
 	R_LoadMap();
 	return true;
@@ -663,11 +773,35 @@ BSPCollisionMaterial* CL_Map_CollisionMaterial(uint16_t i) {
 	return &g_load.collision_materials[i];
 }
 
+BSPLightmap* CL_Map_Lightmap(uint16_t i) {
+	assert(g_load.lightmaps);
+	assert(i < g_load.lightmap_count);
+	return &g_load.lightmaps[i];
+}
+
+uint32_t CL_Map_LightmapCount() {
+	assert(g_load.lightmaps);
+	return g_load.lightmap_count;
+}
+
+
 bool CL_UnloadMap() {
 	R_UnloadMap();
 
 	if (g_load.f.f)
 		FS_CloseStream(g_load.f);
+
+	Invader::HEK::ScenarioStructureBSPLightmap<Invader::HEK::NativeEndian>* lightmaps =
+		(Invader::HEK::ScenarioStructureBSPLightmap<Invader::HEK::NativeEndian>*)g_load.bsp_ptr->lightmaps.pointer.read();
+	for (uint32_t i = 0; i < g_load.bsp_ptr->lightmaps.count; i++) {
+		Invader::HEK::ScenarioStructureBSPLightmap<Invader::HEK::NativeEndian>* lightmap = &lightmaps[i];
+		Invader::HEK::ScenarioStructureBSPMaterial<Invader::HEK::NativeEndian>* materials =
+			(Invader::HEK::ScenarioStructureBSPMaterial<Invader::HEK::NativeEndian>*)lightmap->materials.pointer.read();
+		for (uint32_t j = 0; j < lightmap->materials.count; j++) {
+			Invader::HEK::ScenarioStructureBSPMaterial<Invader::HEK::NativeEndian>* material = &materials[j];
+			Z_Free((void*)material->uncompressed_vertices.pointer.read());
+		}
+	}
 
 	if (g_load.p && g_load.n > 0) {
 		Z_FreeAt(g_load.p, g_load.n);
@@ -679,6 +813,7 @@ bool CL_UnloadMap() {
 		g_load.coll_surfs	       = NULL;
 		g_load.coll_edges	       = NULL;
 		g_load.coll_vertices       = NULL;
+		g_load.lightmaps           = NULL;
 	}
 
 	return true;
@@ -690,8 +825,8 @@ bool CL_IsMapLoaded() {
 
 void CL_Shutdown() {
 	Z_UnmapFile(&g_load.bitmaps_map);
-	A_memset((void*)&g_load, 0, sizeof(g_load));
 	CL_UnloadMap();
+	A_memset((void*)&g_load, 0, sizeof(g_load));
 
 	Dvar_SetBool(*cl_splitscreen, false);
 	Dvar_Unregister("cl_splitscreen");

@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 
 #include "acommon/acommon.h"
+#include "acommon/a_math.h"
 
 #include "fs_files.hpp"
 
@@ -101,11 +102,24 @@ A_PACK(struct BSPRenderedVertex {
 });
 A_STATIC_ASSERT(sizeof(BSPRenderedVertex) == 56);
 
+A_PACK(struct BSPRenderedVertexCompressed {
+	apoint3f_t pos;
+	uint32_t   normal, binormal, tangent;
+	apoint2f_t tex_coords;
+});
+A_STATIC_ASSERT(sizeof(BSPRenderedVertexCompressed) == 32);
+
 A_PACK(struct BSPLightmapVertex {
 	avec3f_t   normal;
 	apoint2f_t tex_coords;
 });
 A_STATIC_ASSERT(sizeof(BSPLightmapVertex) == 20);
+
+A_PACK(struct BSPLightmapVertexCompressed {
+	uint32_t   normal;
+	apoint2f_t tex_coords;
+});
+A_STATIC_ASSERT(sizeof(BSPLightmapVertexCompressed) == 12);
 
 A_PACK(struct BSPCollSurf {
 	uint32_t plane, first_edge;
@@ -455,6 +469,57 @@ A_PACK(struct BSPBitmap {
 });
 A_STATIC_ASSERT(sizeof(BSPBitmap) == 108);
 
+enum BSPVertexType: uint16_t {
+	BSP_VERTEX_TYPE_UNCOMPRESSED_RENDERED,
+	BSP_VERTEX_TYPE_COMPRESSED_RENDERED,
+	BSP_VERTEX_TYPE_UNCOMPRESSED_LIGHTMAP,
+	BSP_VERTEX_TYPE_COMPRESSED_LIGHTMAP,
+	BSP_VERTEX_TYPE_UNCOMPRESSED_MODEL,
+	BSP_VERTEX_TYPE_COMPRESSED_MODEL,
+	BSP_VERTEX_TYPE_COUNT
+};
+
+A_PACK(struct BSPMaterial {
+	BSPTagDependency shader;
+	uint16_t shader_permutation;
+	uint16_t flags;
+	uint32_t surfaces, surface_count;
+	apoint3f_t centroid;
+	acolor_rgb_t ambient_color;
+	uint16_t distant_light_count;
+	uint16_t __pad1;
+	acolor_rgb_t distant_light_0_color;
+	avec3f_t distant_light_0_direction;
+	acolor_rgb_t distant_light_1_color;
+	avec3f_t distant_light_1_direction;
+	uint8_t __pad2[12];
+	acolor_argb_t reflection_tint;
+	avec3f_t shadow_vector;
+	acolor_rgb_t shadow_color;
+	aplane3f_t plane;
+	uint16_t breakable_surface;
+	uint16_t __pad3;
+	BSPVertexType rendered_vertices_type;
+	uint16_t __pad4;
+	uint32_t rendered_vertices_count, rendered_vertices_offset;
+	uint32_t __pad5;
+	uint32_t rendered_vertices_index_pointer;
+	BSPVertexType lightmap_vertices_type;
+	uint16_t __pad6;
+	uint32_t lightmap_vertices_count, lightmap_vertices_offset;
+	uint32_t __pad7;
+	uint32_t lightmap_vertices_index_pointer;
+	BSPTagDataOffset uncompressed_vertices, compressed_vertices;
+});
+A_STATIC_ASSERT(sizeof(BSPMaterial) == 256);
+
+A_PACK(struct BSPLightmap {
+	uint16_t bitmap_data_index;
+	uint8_t __pad[18];
+	BSPTagReflexive materials;
+});
+A_STATIC_ASSERT(sizeof(BSPLightmap) == 32);
+
 A_PACK(struct BSPShader {
 	uint16_t             flags;
 	BSPShaderDetailLevel detail_level;
@@ -491,6 +556,8 @@ BSPCollEdge*   	   CL_Map_CollEdges();
 uint32_t       	   CL_Map_CollEdgeCount();
 BSPCollVertex* 	   CL_Map_CollVertices();
 uint32_t       	   CL_Map_CollVertexCount();
+BSPLightmap*       CL_Map_Lightmap(uint16_t i);
+uint32_t           CL_Map_LightmapCount();
 
 void       CL_Init              ();
 void       CL_EnableFpsCounter  (size_t localClientNum, bool enable);

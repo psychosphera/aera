@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstdio>
+#include <cstddef>
 
 #include <GL/glew.h>
 #include <SDL3/SDL.h>
@@ -363,12 +364,21 @@ void R_DrawCube(const glm::vec3& pos, float angle, texture_t tex) {
     glDisable(GL_DEPTH_TEST);
 }
 
-struct MapRenderGlob {
+struct GfxMaterial {
     vao_t vao;
     vbo_t vbo;
+    GLsizei vertices_count;
+};
+
+struct GfxLightmap {
+    GfxMaterial*     materials;
+    uint32_t         material_count;
+};
+
+struct MapRenderGlob {
+    GfxLightmap*     lightmaps;
+    uint32_t         lightmap_count;
     GfxShaderProgram prog;
-    texture_t tex;
-    std::vector<GfxBSPTri> tris;
 } r_mapGlob;
 
 void R_InitMap() {
@@ -383,83 +393,175 @@ void R_InitMap() {
     }
 
     GL_CALL(glUseProgram, r_mapGlob.prog.program);
-    R_SetUniform(r_mapGlob.prog.program, "uWireframe", Dvar_GetBool(*r_wireframe));
+    R_SetUniform(r_mapGlob.prog.program, 
+                 "uWireframe", Dvar_GetBool(*r_wireframe));
     GL_CALL(glUseProgram, 0);
-
-    GL_CALL(glGenVertexArrays, 1, &r_mapGlob.vao);
-    GL_CALL(glBindVertexArray, r_mapGlob.vao);
-
-    GL_CALL(glGenBuffers, 1, &r_mapGlob.vbo);
-    GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, r_mapGlob.vbo);
-
-    GL_CALL(glVertexAttribPointer,
-        0, 3, GL_FLOAT, (GLboolean)GL_FALSE,
-        sizeof(GfxBSPVertex), (void*)0
-    );
-
-    GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, 0);
-    GL_CALL(glBindVertexArray, 0);
 }
 
-static void R_SwapYZ(A_INOUT GfxBSPVertex& v) {
-    float tmp = v.y;
-    v.y = v.z;
-    v.z = tmp;
+static void R_SwapYZPoint3(A_INOUT apoint3f_t* p) {
+    float tmp = p->y;
+    p->y = p->z;
+    p->z = tmp;
+}
+
+static void R_SwapYZVec3(A_INOUT avec3f_t* p) {
+    float tmp = p->y;
+    p->y = p->z;
+    p->z = tmp;
+}
+
+static void R_SwapRenderedVertexYZ(A_INOUT BSPRenderedVertex* v) {
+    R_SwapYZPoint3(&v->pos);
+    R_SwapYZVec3(&v->normal);
+    R_SwapYZVec3(&v->binormal);
+    R_SwapYZVec3(&v->tangent);
+}
+
+static void R_SwapLightmapVertexYZ(A_INOUT BSPLightmapVertex* v) {
+    R_SwapYZVec3(&v->normal);
 }
 
 void R_LoadMap() {
-    GL_CALL(glBindVertexArray, r_mapGlob.vao);
-    GL_CALL(glBindBuffer,      GL_ARRAY_BUFFER, r_mapGlob.vbo);
-    BSPRenderedVertex* vertices = CL_Map_RenderedVertices();
-    BSPSurf* pSurfs = CL_Map_Surfs();
-    for (uint32_t surf = 0; surf < CL_Map_SurfCount(); surf++) {
-        BSPSurf* pSurf = &pSurfs[surf];
+    r_mapGlob.lightmap_count = CL_Map_LightmapCount();
+    r_mapGlob.lightmaps = (GfxLightmap*)Z_Alloc(
+        r_mapGlob.lightmap_count * sizeof(*r_mapGlob.lightmaps)
+    );
+    for (uint32_t i = 0; i < r_mapGlob.lightmap_count; i++) {
+        const BSPLightmap* lightmap = CL_Map_Lightmap(i);
+        r_mapGlob.lightmaps[i].materials = (GfxMaterial*)Z_Alloc(
+            lightmap->materials.count * 
+            sizeof(*r_mapGlob.lightmaps[i].materials)
+        );
+        r_mapGlob.lightmaps[i].material_count = lightmap->materials.count;
+        const BSPMaterial* materials = (const BSPMaterial*)lightmap->materials.pointer;
+        for (uint32_t j = 0; j < lightmap->materials.count; j++) {
+            GL_CALL(glGenVertexArrays, 
+                1, &r_mapGlob.lightmaps[i].materials[j].vao);
+            GL_CALL(glGenBuffers,      
+                1, &r_mapGlob.lightmaps[i].materials[j].vbo);
 
-        GfxBSPTri t = GfxBSPTri { .v = { 
-            GfxBSPVertex { 
-                .x = vertices[pSurf->verts[0]].pos.x, 
-                .y = vertices[pSurf->verts[0]].pos.y, 
-                .z = vertices[pSurf->verts[0]].pos.z 
-            },                                 
-            GfxBSPVertex {                     
-                .x = vertices[pSurf->verts[1]].pos.x, 
-                .y = vertices[pSurf->verts[1]].pos.y, 
-                .z = vertices[pSurf->verts[1]].pos.z 
-            },                                 
-            GfxBSPVertex {                     
-                .x = vertices[pSurf->verts[2]].pos.x, 
-                .y = vertices[pSurf->verts[2]].pos.y, 
-                .z = vertices[pSurf->verts[2]].pos.z 
+            GL_CALL(glBindVertexArray, 
+                r_mapGlob.lightmaps[i].materials[j].vao);
+            GL_CALL(glBindBuffer,     
+                GL_ARRAY_BUFFER, r_mapGlob.lightmaps[i].materials[j].vbo);
+
+            const BSPMaterial* material = &materials[j];
+            uint32_t start_surf = material->surfaces;
+            uint32_t surf_count = material->surface_count;
+            BSPRenderedVertex* rendered_vertices = 
+                (BSPRenderedVertex*)Z_Alloc(
+                    3 * surf_count * sizeof(BSPRenderedVertex));
+            BSPLightmapVertex* lightmap_vertices =
+                (BSPLightmapVertex*)Z_Alloc(
+                    3 * surf_count * sizeof(BSPLightmapVertex));
+            const BSPRenderedVertex* bsp_rendered_vertices =
+                (BSPRenderedVertex*)material->uncompressed_vertices.pointer;
+            const BSPLightmapVertex* bsp_lightmap_vertices =
+                (BSPLightmapVertex*)
+                (rendered_vertices + material->rendered_vertices_count);
+
+            const BSPSurf* surfs = &CL_Map_Surfs()[start_surf];
+            for (uint32_t k = 0; k < surf_count; k++) {
+                for (int l = 0; l < 3; l++) {
+                    rendered_vertices[k * 3 + l] =
+                        bsp_rendered_vertices[surfs[k].verts[l]];
+                    R_SwapRenderedVertexYZ(&rendered_vertices[k * 3 + l]);
+                }
             }
-        }};
-        for (int i = 0; i < 3; i++)
-            R_SwapYZ(t.v[i]);
-        r_mapGlob.tris.push_back(t);
+            for (uint32_t k = 0; k < surf_count; k++) {
+                for (int l = 0; l < 3; l++) {
+                    lightmap_vertices[k * 3 + l] =
+                        bsp_lightmap_vertices[surfs[k].verts[l]];
+                    R_SwapLightmapVertexYZ(&lightmap_vertices[k * 3 + l]);
+                }
+            }
 
+            r_mapGlob.lightmaps[i].materials[j].vertices_count = 
+                surf_count * 3;
+
+            GLsizei rendered_vertices_size =
+                r_mapGlob.lightmaps[i].materials[j].vertices_count * 
+                    sizeof(BSPRenderedVertex);
+            GLsizei lightmap_vertices_size =
+                r_mapGlob.lightmaps[i].materials[j].vertices_count *
+                    sizeof(BSPLightmapVertex);
+            GLsizei vertices_size =
+                rendered_vertices_size + lightmap_vertices_size;
+           
+            GL_CALL(glBufferData, 
+                GL_ARRAY_BUFFER, vertices_size, nullptr, GL_STATIC_DRAW
+            );
+
+            GL_CALL(glBufferSubData,
+                GL_ARRAY_BUFFER, 0, rendered_vertices_size, 
+                (const void*)rendered_vertices
+            );
+
+            glBufferSubData(GL_ARRAY_BUFFER,
+                rendered_vertices_size, lightmap_vertices_size, 
+                (const void*)lightmap_vertices
+            );
+
+            Z_Free(rendered_vertices);
+            Z_Free(lightmap_vertices);
+
+            GL_CALL(glVertexAttribPointer, 
+                0, 3, GL_FLOAT, GL_FALSE, sizeof(BSPRenderedVertex),
+                (const void*)offsetof(BSPRenderedVertex, pos)
+            );
+            GL_CALL(glVertexAttribPointer,
+                1, 3, GL_FLOAT, GL_FALSE, sizeof(BSPRenderedVertex),
+                (const void*)offsetof(BSPRenderedVertex, normal)
+            );
+            GL_CALL(glVertexAttribPointer,
+                2, 3, GL_FLOAT, GL_FALSE, sizeof(BSPRenderedVertex),
+                (const void*)offsetof(BSPRenderedVertex, binormal)
+            );
+            GL_CALL(glVertexAttribPointer,
+                3, 3, GL_FLOAT, GL_FALSE, sizeof(BSPRenderedVertex),
+                (const void*)offsetof(BSPRenderedVertex, tangent)
+            );
+            GL_CALL(glVertexAttribPointer,
+                4, 2, GL_FLOAT, GL_FALSE, sizeof(BSPRenderedVertex),
+                (const void*)offsetof(BSPRenderedVertex, tex_coords)
+            );
+            GL_CALL(glVertexAttribPointer, 
+                5, 3, GL_FLOAT, GL_FALSE, sizeof(BSPLightmapVertex),
+                (const void*)(rendered_vertices_size + 
+                              offsetof(BSPLightmapVertex, normal))
+            );
+            GL_CALL(glVertexAttribPointer,
+                6, 2, GL_FLOAT, GL_FALSE, sizeof(BSPLightmapVertex),
+                (const void*)(rendered_vertices_size +
+                              offsetof(BSPLightmapVertex, tex_coords))
+            );
+
+            GL_CALL(glEnableVertexAttribArray, 0);
+            GL_CALL(glEnableVertexAttribArray, 1);
+            GL_CALL(glEnableVertexAttribArray, 2);
+            GL_CALL(glEnableVertexAttribArray, 3);
+            GL_CALL(glEnableVertexAttribArray, 4);
+            GL_CALL(glEnableVertexAttribArray, 5);
+            GL_CALL(glEnableVertexAttribArray, 6);
+        }
     }
-    GL_CALL(glBufferData, GL_ARRAY_BUFFER, 
-            r_mapGlob.tris.size() * sizeof(*r_mapGlob.tris.data()), 
-            r_mapGlob.tris.data(), GL_STATIC_DRAW);
-    GL_CALL(glEnableVertexAttribArray, 0);
-    GL_CALL(glBindBuffer,              GL_ARRAY_BUFFER, 0);
-    GL_CALL(glBindVertexArray,         0);
 }
 
 void R_UnloadMap() {
-    GL_CALL(glBindVertexArray,          r_mapGlob.vao);
-    GL_CALL(glBindBuffer,               GL_ARRAY_BUFFER, r_mapGlob.vbo);
-    GL_CALL(glDisableVertexAttribArray, 0);
-    GL_CALL(glBufferData,               GL_ARRAY_BUFFER, 0, nullptr, GL_STATIC_DRAW);
-    GL_CALL(glBindBuffer,               GL_ARRAY_BUFFER, 0);
-    GL_CALL(glBindVertexArray,          0);
+    for (uint32_t i = 0; i < r_mapGlob.lightmap_count; i++) {
+        BSPLightmap* lightmap = CL_Map_Lightmap(i);
+        for (uint32_t j = 0; j < lightmap->materials.count; j++) {
+            glDeleteVertexArrays(1, &r_mapGlob.lightmaps[i].materials[j].vao);
+            glDeleteBuffers     (1, &r_mapGlob.lightmaps[i].materials[j].vbo);
+        }
+        Z_Free((void*)r_mapGlob.lightmaps[i].materials);   
+    }
+    Z_Free((void*)r_mapGlob.lightmaps);
 }
 
 void R_ShutdownMap() {
-    GL_CALL(glBindVertexArray,           r_mapGlob.vao);
-    GL_CALL(glDisableVertexAttribArray,  0);
-    GL_CALL(glBindVertexArray,           0);
-    GL_CALL(glDeleteBuffers,             1, &r_mapGlob.vbo);
-    GL_CALL(glDeleteVertexArrays,        1, &r_mapGlob.vao);  
+    if (CL_IsMapLoaded())
+        R_UnloadMap();
 }
 
 // size_t R_GetBSPSurfTris(const BSPCollSurf* surf, A_OUT GfxBSPTri* tris, size_t max_tris) {
@@ -489,26 +591,32 @@ void R_ShutdownMap() {
 // }
 
 void R_RenderMapInternal() {
-    GL_CALL(glEnable,          GL_DEPTH_TEST);
-    GL_CALL(glBindVertexArray, r_mapGlob.vao);
-    GL_CALL(glBindBuffer,      GL_ARRAY_BUFFER, r_mapGlob.vbo);
-    GL_CALL(glUseProgram,      r_mapGlob.prog.program);
+    GL_CALL(glEnable,     GL_DEPTH_TEST);
+    GL_CALL(glUseProgram, r_mapGlob.prog.program);
 
     glm::mat4 model(1.0f);
     R_SetUniform(r_mapGlob.prog.program, "uModel", model);    
-    R_SetUniform(r_mapGlob.prog.program, "uWireframe", false);
-    GLsizei vertex_count = (GLsizei)r_mapGlob.tris.size() * 3;
-    GL_CALL(glDrawArrays, GL_TRIANGLES, 0, vertex_count);
-    if (Dvar_GetBool(*r_wireframe)) {
-        R_SetUniform(r_mapGlob.prog.program, "uWireframe", true);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        GL_CALL(glDrawArrays, GL_TRIANGLES, 0, vertex_count);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    for (uint32_t i = 0; i < r_mapGlob.lightmap_count; i++) {
+        for (uint32_t j = 0; j < r_mapGlob.lightmaps[i].material_count; j++) {
+            GL_CALL(glBindVertexArray, 
+                r_mapGlob.lightmaps[i].materials[j].vao);
+            GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, 
+                r_mapGlob.lightmaps[i].materials[j].vbo);
+            GLsizei vertices_count = 
+                r_mapGlob.lightmaps[i].materials[j].vertices_count;
+
+            R_SetUniform(r_mapGlob.prog.program, "uWireframe", false);
+            GL_CALL(glDrawArrays, GL_TRIANGLES, 0, vertices_count);
+            if (Dvar_GetBool(*r_wireframe)) {
+                R_SetUniform(r_mapGlob.prog.program, "uWireframe", true);
+                GL_CALL(glPolygonMode, GL_FRONT_AND_BACK, GL_LINE);
+                GL_CALL(glDrawArrays,  GL_TRIANGLES,      0, vertices_count);
+                GL_CALL(glPolygonMode, GL_FRONT_AND_BACK, GL_FILL);
+            }
+        }
     }
 
     GL_CALL(glUseProgram, 0);
-    GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, 0);
-    GL_CALL(glBindVertexArray, 0);
     GL_CALL(glDisable, GL_DEPTH_TEST);
 }
 

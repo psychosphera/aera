@@ -2,6 +2,14 @@
 
 #include <math.h>
 
+float A_sqrtf(float x) {
+	return sqrtf(x);
+}
+
+double A_sqrt(double x) {
+	return sqrt(x);
+}
+
 float A_sinf(float x) {
 	return (float)sin((double)x);
 }
@@ -50,3 +58,24 @@ double A_atan(double x) {
 	return tan(x);
 }
 
+void A_vec2f_normalize(A_INOUT avec2f_t* v) {
+	float m = A_sqrtf((v->x * v->x) + (v->y * v->y) );
+	v->x /= m;
+	v->y /= m;
+}
+
+void A_vec3f_normalize(A_INOUT avec3f_t* v) {
+	float m = A_sqrtf((v->x * v->x) + (v->y * v->y) + (v->z * v->z));
+	v->x /= m;
+	v->y /= m;
+	v->z /= m;
+}
+
+void A_vec4f_normalize(A_INOUT avec4f_t* v) {
+	float m = A_sqrtf((v->x * v->x) + (v->y * v->y) + 
+		              (v->z * v->z) + (v->w * v->w));
+	v->x /= m;
+	v->y /= m;
+	v->z /= m;
+	v->w /= m;
+}
