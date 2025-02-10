@@ -14,10 +14,29 @@ enum KeyFocus {
 	KF_GAME,
 };
 
-enum {
-	BSP_MAP_HEADER_HEAD = A_MAKE_FOURCC('h', 'e', 'a', 'd'),
-	BSP_MAP_HEADER_FOOT = A_MAKE_FOURCC('f', 'o', 'o', 't'),
-	BSP_TAGS_FOOT       = A_MAKE_FOURCC('t', 'a', 'g', 's')
+enum : uint32_t {
+	MAP_HEADER_HEAD = A_MAKE_FOURCC('h', 'e', 'a', 'd'),
+	MAP_HEADER_FOOT = A_MAKE_FOURCC('f', 'o', 'o', 't'),
+	TAGS_FOOT       = A_MAKE_FOURCC('t', 'a', 'g', 's'),
+
+	TAGS_MAX_SIZE_XBOX    = 22 * 1024 * 1024,
+	TAGS_MAX_SIZE_GEARBOX = 23 * 1024 * 1024,
+
+	TAGS_BASE_ADDR_XBOX    = 0x803A6000,
+	TAGS_BASE_ADDR_GEARBOX = 0x40440000
+};
+
+enum MapEngine: uint32_t {
+	MAP_ENGINE_XBOX    = 5,
+	MAP_ENGINE_GEARBOX = 7
+};
+
+enum TagFourCC : uint32_t {
+	TAG_FOURCC_SCENARIO           = A_MAKE_FOURCC('s', 'c', 'n', 'r'),
+	TAG_FOURCC_SBSP               = A_MAKE_FOURCC('s', 'b', 's', 'p'),
+	TAG_FOURCC_BITMAP             = A_MAKE_FOURCC('b', 'i', 't', 'm'),
+	TAG_FOURCC_SHADER             = A_MAKE_FOURCC('s', 'h', 'd', 'r'),
+	TAG_FOURCC_SHADER_ENVIRONMENT = A_MAKE_FOURCC('s', 'e', 'n', 'v')
 };
 
 // enum MapEngine {
@@ -25,69 +44,79 @@ enum {
 // 	MAP_ENGINE_PC = 7
 // };
 
-union BSPTagId {
+union TagId {
 	uint32_t id;
 	uint16_t index;
 };
-A_STATIC_ASSERT(sizeof(BSPTagId) == 4);
+A_STATIC_ASSERT(sizeof(TagId) == 4);
 
-A_PACK(struct BSPTag {
+A_PACK(struct Tag {
 	uint32_t primary_class, secondary_class, tertiary_class;
-	BSPTagId tag_id;
+	TagId    tag_id;
 	uint32_t tag_path;
 	uint32_t tag_data;
 	uint32_t external;
 	uint32_t __pad;
 });
-A_STATIC_ASSERT(sizeof(BSPTag) == 32);
+A_STATIC_ASSERT(sizeof(Tag) == 32);
 
-A_PACK(struct BSPTagDependency {
+A_PACK(struct TagDependency {
 	uint32_t fourcc, path_pointer, path_size;
-	BSPTagId id;
+	TagId id;
 });
-A_STATIC_ASSERT(sizeof(BSPTagDependency) == 16);
+A_STATIC_ASSERT(sizeof(TagDependency) == 16);
 
-A_PACK(struct BSPTagDataOffset {
+A_PACK(struct TagDataOffset {
 	uint32_t size, external, file_offset;
 	uint64_t pointer;
 });
-A_STATIC_ASSERT(sizeof(BSPTagDataOffset) == 20);
+A_STATIC_ASSERT(sizeof(TagDataOffset) == 20);
 
-A_PACK(struct BSPTagReflexive {
+A_PACK(struct TagReflexive {
 	uint32_t count;
 	uint64_t pointer;
 });
-A_STATIC_ASSERT(sizeof(BSPTagReflexive) == 12);
+A_STATIC_ASSERT(sizeof(TagReflexive) == 12);
 
-A_PACK(struct BSPTagHeaderPC {
+A_PACK(struct TagHeaderPC {
 	uint32_t tag_ptr;
-	BSPTagId scenario_tag_id;
+	TagId scenario_tag_id;
 	uint32_t checksum, tag_count, model_part_count, model_data_file_offset;
 	uint32_t model_part_count_2, vertex_data_size, model_data_size;
 	uint32_t magic;
 });
-A_STATIC_ASSERT(sizeof(BSPTagHeaderPC) == 40);
+A_STATIC_ASSERT(sizeof(TagHeaderPC) == 40);
 
-A_PACK(struct BSPTagHeaderXbox {
+A_PACK(struct TagHeaderXbox {
 	uint32_t tag_ptr;
-	BSPTagId scenario_tag_id;
+	TagId scenario_tag_id;
 	uint32_t checksum, tag_count, model_part_count, vertex_data_ptr;
 	uint32_t model_part_count_2, triangle_data_ptr;
 	uint32_t magic;
 });
-A_STATIC_ASSERT(sizeof(BSPTagHeaderXbox) == 36);
+A_STATIC_ASSERT(sizeof(TagHeaderXbox) == 36);
 
-A_PACK(struct BSPTagHeaderCommon {
+A_PACK(struct TagHeaderCommon {
 	uint32_t tag_ptr;
-	BSPTagId scenario_tag_id;
+	TagId scenario_tag_id;
 	uint32_t checksum, tag_count, model_part_count;
 });
-A_STATIC_ASSERT(sizeof(BSPTagHeaderCommon) == 20);
+A_STATIC_ASSERT(sizeof(TagHeaderCommon) == 20);
 
-union BSPTagHeader {
-	BSPTagHeaderPC     pc;
-	BSPTagHeaderXbox   xbox;
-	BSPTagHeaderCommon common;
+A_PACK(struct BSPHeader {
+	uint32_t pointer;
+	uint32_t lightmap_material_count;
+	uint32_t rendered_vertices;
+	uint32_t lightmap_material_count_2;
+	uint32_t lightmap_vertices;
+	uint32_t magic;
+});
+A_STATIC_ASSERT(sizeof(BSPHeader) == 24);
+
+union TagHeader {
+	TagHeaderPC     pc;
+	TagHeaderXbox   xbox;
+	TagHeaderCommon common;
 };
 
 A_PACK(struct BSPSurf {
@@ -426,7 +455,7 @@ inline const char* BSPBitmapSpriteUsage_to_string(BSPBitmapSpriteUsage usage) {
 #undef DISCRIMINANT_TO_STRING
 
 A_PACK(struct BSPCollisionMaterial {
-	BSPTagDependency shader;
+	TagDependency shader;
 	uint16_t         __pad;
 	BSPMaterialType  material;
 });
@@ -443,7 +472,7 @@ A_PACK(struct BSPBitmapData {
 	uint16_t            __pad1;
 	uint32_t            pixel_data_offset;
 	uint32_t            pixel_data_size;
-	BSPTagId            bitmap_tag_id;
+	TagId               bitmap_tag_id;
 	uint32_t            pointer;
 	uint64_t            __pad2;
 });
@@ -458,14 +487,14 @@ A_PACK(struct BSPBitmap {
 	BSPBitmapSpriteBudgetSize size;
 	uint16_t                  sprite_budget_count;
 	uint16_t                  color_palate_width, color_palate_height;
-	BSPTagDataOffset          compressed_color_palate_data;
-	BSPTagDataOffset          processed_pixel_data;
+	TagDataOffset             compressed_color_palate_data;
+	TagDataOffset             processed_pixel_data;
 	float                     blur_filter_size, alpha_bias;
 	uint16_t                  mipmap_count;
 	BSPBitmapSpriteUsage      sprite_usage;
 	uint16_t                  sprite_spacing;
 	uint16_t                  __pad;
-	BSPTagReflexive           bitmap_group_sequence, bitmap_data;
+	TagReflexive              bitmap_group_sequence, bitmap_data;
 });
 A_STATIC_ASSERT(sizeof(BSPBitmap) == 108);
 
@@ -480,7 +509,7 @@ enum BSPVertexType: uint16_t {
 };
 
 A_PACK(struct BSPMaterial {
-	BSPTagDependency shader;
+	TagDependency shader;
 	uint16_t shader_permutation;
 	uint16_t flags;
 	uint32_t surfaces, surface_count;
@@ -509,14 +538,14 @@ A_PACK(struct BSPMaterial {
 	uint32_t lightmap_vertices_count, lightmap_vertices_offset;
 	uint32_t __pad7;
 	uint32_t lightmap_vertices_index_pointer;
-	BSPTagDataOffset uncompressed_vertices, compressed_vertices;
+	TagDataOffset uncompressed_vertices, compressed_vertices;
 });
 A_STATIC_ASSERT(sizeof(BSPMaterial) == 256);
 
 A_PACK(struct BSPLightmap {
 	uint16_t bitmap_data_index;
 	uint8_t __pad[18];
-	BSPTagReflexive materials;
+	TagReflexive materials;
 });
 A_STATIC_ASSERT(sizeof(BSPLightmap) == 32);
 
@@ -537,11 +566,11 @@ A_PACK(struct BSPShaderEnvironment {
 	uint16_t                 flags;
 	BSPShaderEnvironmentType type;
 	float                    lens_flare_spacing;
-	BSPTagDependency         lens_flare;
+	TagDependency            lens_flare;
 	char                     __pad1[44];
 	uint16_t                 diffuse_flags;
 	char                     __pad2[26];
-	BSPTagDependency         base_map;
+	TagDependency            base_map;
 	char                     __pad3[684];
 });
 A_STATIC_ASSERT(sizeof(BSPShaderEnvironment) == 836);

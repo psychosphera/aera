@@ -114,7 +114,6 @@ long long FS_SeekStream(A_INOUT StreamFile& file, SeekFrom from, size_t off) {
 		Com_DPrintln("FS_SeekStream: attempted to seek beyond bounds of file (off={}, expected <{})", off, file.size);
 	assert(off <= file.size);
 
-	Sint64 begin_pos = SDL_RWtell(file.f);
 	Sint64 res       = -1;
 	switch (from) {
 	case FS_SEEK_BEGIN:
@@ -129,10 +128,12 @@ long long FS_SeekStream(A_INOUT StreamFile& file, SeekFrom from, size_t off) {
 	default:
 		assert(false);
 	}
-    if(res < 0)
-        return res;
-	else
-        return (long long)SDL_RWtell(file.f) - (long long)begin_pos;
+	if (res < 0) {
+		Com_DPrintln("FS_SeekStream failed: {}", SDL_GetError());
+		
+	}
+
+	return res;
 }
 
 A_NO_DISCARD bool FS_ReadStream(StreamFile& file, void* p, size_t count) {
