@@ -55,6 +55,7 @@ bool Font_Load(
 
 	bool b = R_CreateTextureAtlas(fd);
 	assert(b);
+	(void)b;
 
 	FT_Done_Face(face);
 	return true;

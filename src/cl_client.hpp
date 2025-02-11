@@ -473,8 +473,14 @@ A_PACK(struct BSPBitmapData {
 	uint32_t            pixel_data_offset;
 	uint32_t            pixel_data_size;
 	TagId               bitmap_tag_id;
-	uint32_t            pointer;
-	uint64_t            __pad2;
+	void*               pixels;
+#if   A_POINTER_SIZE == 64
+#elif A_POINTER_SIZE == 32
+	uint32_t            __pad2;
+#else
+#error "pointer size???"
+#endif
+	uint32_t           actual_size;
 });
 A_STATIC_ASSERT(sizeof(BSPBitmapData) == 48);
 
@@ -575,6 +581,7 @@ A_PACK(struct BSPShaderEnvironment {
 });
 A_STATIC_ASSERT(sizeof(BSPShaderEnvironment) == 836);
 
+Tag*               CL_Map_Tag(TagId id);
 BSPSurf*       	   CL_Map_Surfs();
 uint32_t       	   CL_Map_SurfCount();
 BSPRenderedVertex* CL_Map_RenderedVertices();
@@ -598,6 +605,8 @@ bool	   CL_HasKbmFocus		(size_t localClientNum);
 size_t     CL_ClientWithKbmFocus();
 KeyFocus   CL_KeyFocus		    (size_t localClientNum);
 void       CL_SetKeyFocus		(size_t localClientNum, KeyFocus f);
+bool       CL_BitmapDataFormatIsCompressed(BSPBitmapDataFormat format);
+size_t     CL_BitmapDataFormatBPP(BSPBitmapDataFormat format);
 bool       CL_LoadMap			(std::string_view map_name);
 bool       CL_UnloadMap         ();
 bool       CL_IsMapLoaded       ();

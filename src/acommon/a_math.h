@@ -2,6 +2,13 @@
 
 #include "acommon.h"
 
+#define A_MIN(a, b) ((a) < (b) ? (a) : (b))
+#define A_MAX(a, b) ((a) > (b) ? (a) : (b))
+
+#define A_ROUND(from, by) (from + ((~(from - 1)) & (by - 1)))
+
+#define A_IS_MULTIPLE_OF(a, m) (((a) / (m)) * (m) == (a))
+
 A_PACK(union apoint2i_t {
     struct { int x, y; };
     int array[2];

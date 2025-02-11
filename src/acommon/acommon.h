@@ -133,6 +133,14 @@
 #define A_OPTIONAL_OUT
 #endif // A_TARGET_OS_IS_WINDOWS
 
+#define A_POINTER_SIZE (UINTPTR_MAX == UINT32_MAX ? 32 : \
+                            UINTPTR_MAX == UINT64_MAX ? 64 \
+                                : -1) 
+
+#if A_POINTER_SIZE == -1
+#error "pointer size ????"
+#endif
+
 #if A_CXX17 || A_C23
 #define A_NO_DISCARD [[nodiscard]]
 #elif A_COMPILER_IS_GCC_COMAPTIBLE

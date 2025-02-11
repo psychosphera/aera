@@ -96,12 +96,14 @@ void CL_Init() {
 			CL_GetLocalClientLocals(i).fpsTextDrawId
 		);
 		assert(b);
+		(void)b;
 	}
 
 	CL_GiveKbmFocus(0);
 	
 	bool b = CL_LoadMap("c40_xbox.map");
 	assert(b);
+	(void)b;
 }
 
 void CL_EnableFpsCounter(size_t localClientNum, bool enable) {
@@ -212,14 +214,26 @@ void CL_SetKeyFocus(size_t localClientNum, KeyFocus f) {
 	CG_GetLocalClientGlobals(localClientNum).keyfocus = f;
 }
 
-static const void* CL_BitmapOffsetToPointer(size_t off, MapEngine engine, void* bsp_base) {
-	assert(g_load.bitmaps_map.p);
-	assert(g_load.bitmaps_map.n >= off);
+//static const void* CL_BitmapOffsetToPointer(size_t off, MapEngine engine, void* bsp_base) {
+//	assert(g_load.bitmaps_map.p);
+//	assert(g_load.bitmaps_map.n >= off);
+//
+//	if (engine == MAP_ENGINE_XBOX) 
+//		return (const void*)((char*)bsp_base + off);
+//
+//	return (const void*)((const char*)g_load.bitmaps_map.p + off);
+//}
 
-	if (engine == MAP_ENGINE_XBOX) 
-		return (const void*)((char*)bsp_base + off);
-
-	return (const void*)((const char*)g_load.bitmaps_map.p + off);
+bool CL_BitmapDataFormatIsCompressed(BSPBitmapDataFormat format) {
+	switch (format) {
+	case BSP_BITMAP_DATA_FORMAT_DXT1:
+	case BSP_BITMAP_DATA_FORMAT_DXT3:
+	case BSP_BITMAP_DATA_FORMAT_DXT5:
+	case BSP_BITMAP_DATA_FORMAT_BC7:
+		return true;
+	default:
+		return false;
+	};
 }
 
 #define CL_DECOMPRESS_FLOAT_SIGN_BIT(bits) (1 << ((bits) - 1))
@@ -264,6 +278,7 @@ static void CL_DecompressLightmapVertex(
 static bool CL_LoadMap_Header(A_OUT Invader::HEK::CacheFileHeader* header) {
 	long long pos = FS_SeekStream(g_load.f, FS_SEEK_BEGIN, 0);
 	assert(pos == 0);
+	(void)pos;
 	if (!FS_ReadStream(g_load.f, *header)) {
 		Com_Errorln("CL_LoadMap: Read failed.");
 		return false;
@@ -318,6 +333,7 @@ static bool CL_LoadMap_Decompress(
 		assert(decompressed_map.f);
 		bool b = FS_WriteStream(decompressed_map, header);
 		assert(b);
+		(void)b;
 		b = FS_WriteStream(decompressed_map, decompressed, decompressed_map_size - sizeof(header));
 		assert(b);
 		FS_CloseStream(g_load.f);
@@ -349,6 +365,7 @@ bool CL_LoadMap_TagHeader(
 
 	long long pos = FS_SeekStream(g_load.f, FS_SEEK_BEGIN, tag_data_offset);
 	assert(pos == tag_data_offset);
+	(void)pos;
 
 	if (is_xbox) {
 		if (!FS_ReadStream(g_load.f, tag_header->xbox)) {
@@ -447,9 +464,11 @@ bool CL_LoadMap_BSPHeader(
 ) {
 	long long pos = FS_SeekStream(g_load.f, FS_SEEK_BEGIN, sbsp->bsp_start.read());
 	assert(pos == sbsp->bsp_start.read());
+	(void)pos;
 	*bsp_header = (BSPHeader*)sbsp->bsp_address.read();
 	bool b = FS_ReadStream(g_load.f, **bsp_header);
 	assert(b);
+	(void)b;
 	assert((*bsp_header)->pointer);
 
 	void* bsp_data = (void*)sbsp->bsp_address.read();
@@ -479,6 +498,7 @@ bool CL_LoadMap_BSP(
 	void* bsp_data = (void*)(sbsp->bsp_address.read() + sizeof(*bsp_header));
 	bool b = FS_ReadStream(g_load.f, bsp_data, sbsp->bsp_size - sizeof(*bsp_header));
 	assert(b);
+	(void)b;
 
 	*bsp = (Invader::HEK::ScenarioStructureBSP< Invader::HEK::NativeEndian>*)bsp_header->pointer;
 
@@ -556,6 +576,7 @@ bool CL_LoadMap_CollisionMaterials(
 		(BSPCollisionMaterial*)bsp->collision_materials.pointer.read();
 	uint32_t collision_materials_count = bsp->collision_materials.count;
 	assert(collision_materials_count < BSP_MAX_COLLISION_MATERIALS);
+	(void)collision_materials_count;
 	/*Com_DPrintln(
 		"collision_materials=0x{:08X}, count={}",
 		bsp_ptr->collision_materials.pointer.read(),
@@ -571,6 +592,47 @@ bool CL_LoadMap_CollisionMaterials(
 		);
 	}*/
 	return true;
+}
+
+size_t CL_BitmapDataFormatBPP(BSPBitmapDataFormat format) {
+	switch (format) {
+	case BSP_BITMAP_DATA_FORMAT_A8R8G8B8:
+	case BSP_BITMAP_DATA_FORMAT_X8R8G8B8:
+		return 32;
+	case BSP_BITMAP_DATA_FORMAT_R5G6B5:
+	case BSP_BITMAP_DATA_FORMAT_A1R5G5B5:
+	case BSP_BITMAP_DATA_FORMAT_A4R4G4B4:
+	case BSP_BITMAP_DATA_FORMAT_A8Y8:
+		return 16;
+	case BSP_BITMAP_DATA_FORMAT_P8_BUMP:
+	case BSP_BITMAP_DATA_FORMAT_A8:
+	case BSP_BITMAP_DATA_FORMAT_AY8:
+	case BSP_BITMAP_DATA_FORMAT_Y8:
+	case BSP_BITMAP_DATA_FORMAT_DXT5:
+	case BSP_BITMAP_DATA_FORMAT_DXT3:
+	case BSP_BITMAP_DATA_FORMAT_BC7:
+		return 8;
+	case BSP_BITMAP_DATA_FORMAT_DXT1:
+		return 4;
+	default:
+		assert(false);
+		return 0;
+	}
+}
+
+size_t CL_BitmapDataSize(const BSPBitmapData* bitmap_data) {
+	assert(bitmap_data->type  == BSP_BITMAP_DATA_TYPE_2D_TEXTURE || 
+		   bitmap_data->type == BSP_BITMAP_DATA_TYPE_3D_TEXTURE);
+
+	if (bitmap_data->type == BSP_BITMAP_DATA_TYPE_2D_TEXTURE)
+		assert(bitmap_data->depth == 1);
+
+	size_t bpp          = CL_BitmapDataFormatBPP(bitmap_data->format);
+	//bool   compressed   = CL_BitmapDataFormatIsCompressed(bitmap_data->format);
+
+	size_t size = (bitmap_data->width * bitmap_data->height * bitmap_data->depth * bpp) / 8;
+	assert(A_IS_MULTIPLE_OF(size, 8));
+	return size;
 }
 
 bool CL_LoadMap(std::string_view map_name) {
@@ -612,6 +674,7 @@ bool CL_LoadMap(std::string_view map_name) {
 
 	Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian>* bsp = NULL;
 	if (!CL_LoadMap_BSP(&sbsps[0], bsp_header, &bsp)) return false;
+	assert(bsp);
 	g_load.bsp_ptr = bsp;
 	g_load.surfs = (BSPSurf*)(uint32_t)bsp->surfaces.pointer.read();
 	g_load.surf_count = bsp->surfaces.count.read();
@@ -621,6 +684,7 @@ bool CL_LoadMap(std::string_view map_name) {
 	Invader::HEK::ModelCollisionGeometryBSPVertex<Invader::HEK::NativeEndian>* vertices = NULL;
 	Invader::HEK::ModelCollisionGeometryBSP<Invader::HEK::NativeEndian>* cbsp = NULL;
 	if (!CL_LoadMap_CBSP(bsp, &vertices, &cbsp)) return false;
+	assert(vertices && cbsp);
 	g_load.coll_surfs = (BSPCollSurf*)(uint32_t)cbsp->surfaces.pointer.read();
 	g_load.coll_surf_count = cbsp->surfaces.count;
 	g_load.coll_edges = (BSPCollEdge*)(uint32_t)cbsp->edges.pointer.read();
@@ -630,6 +694,7 @@ bool CL_LoadMap(std::string_view map_name) {
 
 	BSPCollisionMaterial* collision_materials = NULL;
 	if (!CL_LoadMap_CollisionMaterials(bsp, &collision_materials)) return false;
+	assert(collision_materials);
 	g_load.collision_materials = collision_materials;
 
 	size_t total_vertex_count = 0;
@@ -709,8 +774,6 @@ bool CL_LoadMap(std::string_view map_name) {
 			//assert((uint16_t)material->lightmap_vertices_type.read() == 0);
 
 			assert(shader_tag->tag_data);
-			if(shader_tag->primary_class == TAG_FOURCC_SCENARIO)
-				continue;
 			assert(shader_tag->secondary_class == TAG_FOURCC_SHADER);
 			if (shader_tag->primary_class == TAG_FOURCC_SHADER_ENVIRONMENT) {
 				BSPShaderEnvironment* shader = (BSPShaderEnvironment*)shader_tag->tag_data;
@@ -742,19 +805,36 @@ bool CL_LoadMap(std::string_view map_name) {
 				);
 				BSPBitmapData* bitmap_data = (BSPBitmapData*)base_map_bitmap->bitmap_data.pointer;
 				for (uint32_t k = 0; k < base_map_bitmap->bitmap_data.count; k++) {
-					const void* pixels = CL_BitmapOffsetToPointer(
-						(size_t)bitmap_data[k].pixel_data_offset, 
-						(MapEngine)header.engine.read(), 
-						g_load.p
-					);
+					bitmap_data[k].pixels = NULL;
+
+					if (bitmap_data[k].type != BSP_BITMAP_DATA_TYPE_2D_TEXTURE &&
+						bitmap_data[k].type != BSP_BITMAP_DATA_TYPE_3D_TEXTURE
+					) {
+						continue;
+					}
+
+					bitmap_data->actual_size = CL_BitmapDataSize(&bitmap_data[k]);
+					assert(bitmap_data->actual_size < 4 * 1024 * 1024);
+					bitmap_data[k].pixels = Z_Alloc(bitmap_data->actual_size);
+					assert(bitmap_data[k].pixels);
+					long long pos = FS_SeekStream(g_load.f, FS_SEEK_BEGIN, bitmap_data[k].pixel_data_offset);
+					assert(pos == bitmap_data[k].pixel_data_offset);
+					(void)pos;
+
+					bool b = FS_ReadStream(g_load.f, bitmap_data[k].pixels, bitmap_data->actual_size);
+					assert(b);
+					(void)b;
 					Com_DPrintln(
-						"Lightmap {} Material {} Bitmap Data {}: class=0x{:08X}, type={}, width={}, height={}, depth={}, format={}, pixel_data_size={}, pixels=0x{:08X} (offset=0x{:08X})", i, j, k,
+						"Lightmap {} Material {} Bitmap Data {} ({}): class=0x{:08X}, type={}, width={}, height={}, depth={}, format={}, pixel_data: size={}, offset=0x{:08X}, pointer={}",
+						i, j, k,
+						bitmap_data[k].pixels,
 						bitmap_data[k].klass,
 						BSPBitmapDataType_to_string(bitmap_data[k].type),
 						bitmap_data[k].width, bitmap_data[k].height, bitmap_data[k].depth, 
 						BSPBitmapDataFormat_to_string(bitmap_data[k].format),
-						bitmap_data[k].pixel_data_size, (size_t)pixels, 
-						bitmap_data[k].pixel_data_offset
+						bitmap_data->actual_size,
+						bitmap_data[k].pixel_data_offset,
+						bitmap_data[k].pixels
 					);
 				}
 			}
@@ -848,6 +928,9 @@ bool CL_UnloadMap() {
 	if (g_load.f.f)
 		FS_CloseStream(g_load.f);
 
+	if (!g_load.bsp_ptr)
+		return false;
+
 	Invader::HEK::ScenarioStructureBSPLightmap<Invader::HEK::NativeEndian>* lightmaps =
 		(Invader::HEK::ScenarioStructureBSPLightmap<Invader::HEK::NativeEndian>*)g_load.bsp_ptr->lightmaps.pointer.read();
 	for (uint32_t i = 0; i < g_load.bsp_ptr->lightmaps.count; i++) {
@@ -857,6 +940,42 @@ bool CL_UnloadMap() {
 		for (uint32_t j = 0; j < lightmap->materials.count; j++) {
 			Invader::HEK::ScenarioStructureBSPMaterial<Invader::HEK::NativeEndian>* material = &materials[j];
 			Z_Free((void*)material->uncompressed_vertices.pointer.read());
+
+			TagId shader_id = TagId { .id = material->shader.tag_id.read().id };
+			if (shader_id.index == 0xFFFF)
+				continue;
+			Tag* shader_tag = CL_Map_Tag(shader_id);
+			const char* shader_path = (const char*)shader_tag->tag_path;
+			assert(shader_tag);
+			assert(shader_path);
+			(void)shader_path;
+			assert(shader_tag->tag_data);
+
+			assert(shader_tag->secondary_class == TAG_FOURCC_SHADER);
+			if (shader_tag->primary_class == TAG_FOURCC_SHADER_ENVIRONMENT) {
+				BSPShaderEnvironment* shader = (BSPShaderEnvironment*)shader_tag->tag_data;
+				TagId tag_id = TagId{ .id = shader_tag->tag_id.id };
+
+				tag_id = shader->base_map.id;
+				if (tag_id.index == 0xFFFF)
+					continue;
+				Tag* base_map_tag = CL_Map_Tag(tag_id);
+				assert(base_map_tag->primary_class == TAG_FOURCC_BITMAP);
+
+
+				BSPBitmap* base_map_bitmap = (BSPBitmap*)base_map_tag->tag_data;
+				BSPBitmapData* bitmap_data = (BSPBitmapData*)base_map_bitmap->bitmap_data.pointer;
+				for (uint32_t k = 0; k < base_map_bitmap->bitmap_data.count; k++) {
+					if (bitmap_data[k].type != BSP_BITMAP_DATA_TYPE_2D_TEXTURE &&
+						bitmap_data[k].type != BSP_BITMAP_DATA_TYPE_3D_TEXTURE
+					) {
+						continue;
+					}
+
+					assert(bitmap_data[k].pixels && bitmap_data[k].pixels != (void*)0xFFFFFFFF);
+					Z_Free(bitmap_data[k].pixels);
+				}
+			}
 		}
 	}
 

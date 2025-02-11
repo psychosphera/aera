@@ -28,8 +28,8 @@ void GLAPIENTRY R_GlDebugOutput(
     GLenum source, GLenum type, unsigned int id, GLenum severity,
     GLsizei /*unused*/, const char* message, const void* /*unused*/
 ) {
-    if (id == 131169 || id == 131185 ||
-        id == 131218 || id == 131204 || id == 131139
+    if (/*id == 131169 ||*/ id == 131185/* ||
+        id == 131218 || id == 131204 || id == 131139*/
     ) {
         return;
     }
@@ -39,8 +39,8 @@ void GLAPIENTRY R_GlDebugOutput(
     std::string_view sev = GL_DEBUG_SEVERITY_STR(severity);
     
     Com_DPrintln(
-        "OpenGL debug message (source={}, type={}, severity={}): {}", 
-        src, t, sev, message
+        "OpenGL debug message (id={}, source={}, type={}, severity={}): {}", 
+        id, src, t, sev, message
     );
 }
 
@@ -79,6 +79,11 @@ void R_Init() {
     //if ((flags & GL_CONTEXT_FLAG_DEBUG_BIT) == 0)
     //    Com_Errorln("Failed to initialize OpenGL debug context in debug build.");
 
+    GLint num_extensions = 0;
+    GL_CALL(glGetIntegerv, GL_NUM_EXTENSIONS, &num_extensions);
+    for (GLint i = 0; i < num_extensions; i++)
+        Com_Println(CON_DEST_CLIENT, "{} ", (const char*)glGetStringi(GL_EXTENSIONS, i));
+
     GL_CALL(glEnable, GL_DEBUG_OUTPUT);
     GL_CALL(glEnable, GL_DEBUG_OUTPUT_SYNCHRONOUS);
     GL_CALL(glDebugMessageCallback, R_GlDebugOutput, nullptr);
@@ -97,7 +102,8 @@ void R_Init() {
 
     bool b = Font_Load("consola.ttf", 0, 48, r_defaultFont);
     assert(b);
-    
+    (void)b;
+
     RectDef rect = { .x = 0.1f, .y = 0.1f, .w = 0.8f, .h = 0.2f };
     R_AddTextDrawDef(
         0, nullptr, rect, "This is a test.\nWhere the fuck i am?", 1.0f, 1.0f,
@@ -187,6 +193,7 @@ static void R_InitCubes(A_INOUT GfxCubePrim& cubePrim) {
 
     bool b = R_CreateImage("container.jpg", NULL, NULL, cubePrim.tex);
     assert(b);
+    (void)b;
 
     GL_CALL(glUseProgram, cubePrim.prog.program);
     R_SetUniform(cubePrim.prog.program, "uContainerTex", 0);
@@ -285,57 +292,76 @@ A_NO_DISCARD bool R_CreateImage(
     return true;
 }
 
-// static image_format_t R_BSPToGLImageFormat(BSPBitmapDataFormat format) {
-//     image_format_t gl_format = 0;
-//     switch(format) {
-//     case BSP_BITMAP_DATA_FORMAT_A8: 
-//         gl_format = GL_ALPHA8;
-//         break;
-//     case BSP_BITMAP_DATA_FORMAT_R5G6B5:
-//         gl_format = GL_RGB565;
-//         break;
-//     case BSP_BITMAP_DATA_FORMAT_DXT1:
-//         gl_format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-//         break;
-//     case BSP_BITMAP_DATA_FORMAT_DXT3:
-//         gl_format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-//         break;
-//     case BSP_BITMAP_DATA_FORMAT_DXT5:
-//         gl_format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-//         break;
-//     default:
-//         Com_Errorln("R_BSPToGLImageFormat: Unimplemented BSPBitmapDataFormat {}.", BSPBitmapDataFormat_to_string(format));
-//     };
+static image_format_t R_BSPToGLImageFormat(BSPBitmapDataFormat format) {
+    image_format_t gl_format = 0;
+    switch(format) {
+    case BSP_BITMAP_DATA_FORMAT_A8: 
+        gl_format = GL_ALPHA8;
+        break;
+    case BSP_BITMAP_DATA_FORMAT_R5G6B5:
+        gl_format = GL_RGB565;
+        break;
+    case BSP_BITMAP_DATA_FORMAT_DXT1:
+        gl_format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+        break;
+    case BSP_BITMAP_DATA_FORMAT_DXT3:
+        gl_format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+        break;
+    case BSP_BITMAP_DATA_FORMAT_DXT5:
+        gl_format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+        break;
+    default:
+        Com_Errorln("R_BSPToGLImageFormat: Unimplemented BSPBitmapDataFormat {}.", BSPBitmapDataFormat_to_string(format));
+    };
 
-//     return gl_format;
-// }
+    return gl_format;
+}
 
-// static bool R_BSPImageFormatIsCompressed(BSPBitmapDataFormat format) {
-//     switch(format) {
-//     case BSP_BITMAP_DATA_FORMAT_DXT1:
-//     case BSP_BITMAP_DATA_FORMAT_DXT3:
-//     case BSP_BITMAP_DATA_FORMAT_DXT5:
-//         return true;
-//     case BSP_BITMAP_DATA_FORMAT_A8:
-//     case BSP_BITMAP_DATA_FORMAT_R5G6B5:
-//         return false;
-//     }
-// }
+A_NO_DISCARD bool R_CreateBSPImage(const void* pixels, size_t pixels_size, int width, int height, int depth, BSPBitmapDataType type, BSPBitmapDataFormat format, A_OUT texture_t* tex) {
+    if (type == BSP_BITMAP_DATA_TYPE_2D_TEXTURE)
+        assert(depth == 1);
 
-// A_NO_DISCARD bool R_CreateBSPImage(const void* pixels, size_t pixel_count, int width, int height, int depth, BSPBitmapDataFormat format) {
-//     assert(depth == 1);
+    assert(type == BSP_BITMAP_DATA_TYPE_2D_TEXTURE ||
+           type == BSP_BITMAP_DATA_TYPE_3D_TEXTURE);
 
-//     image_format_t gl_format = R_BSPToGLImageFormat(format);
+    GLenum target = 0;
+    if (type == BSP_BITMAP_DATA_TYPE_2D_TEXTURE) {
+        target = GL_TEXTURE_2D;
+    } else if (type == BSP_BITMAP_DATA_TYPE_3D_TEXTURE) {
+        target = GL_TEXTURE_3D;
+    } else {
+        assert(false);
+        return false;
+    }
+
+    GL_CALL(glActiveTexture, GL_TEXTURE0);
+    GL_CALL(glGenTextures,   1, tex);
+    GL_CALL(glBindTexture,   target, *tex);
+    GL_CALL(glTexParameteri, target, GL_TEXTURE_WRAP_S,     GL_REPEAT);
+    GL_CALL(glTexParameteri, target, GL_TEXTURE_WRAP_T,     GL_REPEAT);
+    GL_CALL(glTexParameteri, target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    GL_CALL(glTexParameteri, target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    image_format_t gl_format = R_BSPToGLImageFormat(format);
     
-//     if(R_BSPImageFormatIsCompressed(format)) {
-//         GL_CALL(glCompressedTexImage2D, GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, pixel_count, pixels);
-//     } else {
-//         GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, gl_format, GL_UNSIGNED_BYTE, pixels);
-//     }
+    if (type == BSP_BITMAP_DATA_TYPE_2D_TEXTURE) {
+        if (CL_BitmapDataFormatIsCompressed(format)) {
+            GL_CALL(glCompressedTexImage2D, GL_TEXTURE_2D, 0, gl_format, width, height, 0, pixels_size, pixels);
+        } else {
+            GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, gl_format, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+        }
+    } else {
+        if (CL_BitmapDataFormatIsCompressed(format)) {
+            GL_CALL(glCompressedTexImage3D, GL_TEXTURE_3D, 0, gl_format, width, height, depth, 0, pixels_size, pixels);
+        } else {
+            GL_CALL(glTexImage3D, GL_TEXTURE_3D, 0, gl_format, width, height, depth, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+        }
+    }
+
+    GL_CALL(glGenerateMipmap, target);
     
-//     GL_CALL(glGenerateMipmap, GL_TEXTURE_2D);
-//     return true;
-// }
+    return true;
+}
 
 bool R_DeleteImage(
     A_IN texture_t& tex
@@ -365,9 +391,10 @@ void R_DrawCube(const glm::vec3& pos, float angle, texture_t tex) {
 }
 
 struct GfxMaterial {
-    vao_t vao;
-    vbo_t vbo;
-    GLsizei vertices_count;
+    vao_t     vao;
+    vbo_t     vbo;
+    GLsizei   vertices_count;
+    texture_t tex;
 };
 
 struct GfxLightmap {
@@ -429,26 +456,26 @@ void R_LoadMap() {
     for (uint32_t i = 0; i < r_mapGlob.lightmap_count; i++) {
         const BSPLightmap* lightmap = CL_Map_Lightmap(i);
         r_mapGlob.lightmaps[i].materials = (GfxMaterial*)Z_Alloc(
-            lightmap->materials.count * 
+            lightmap->materials.count *
             sizeof(*r_mapGlob.lightmaps[i].materials)
         );
         r_mapGlob.lightmaps[i].material_count = lightmap->materials.count;
         const BSPMaterial* materials = (const BSPMaterial*)lightmap->materials.pointer;
         for (uint32_t j = 0; j < lightmap->materials.count; j++) {
-            GL_CALL(glGenVertexArrays, 
+            GL_CALL(glGenVertexArrays,
                 1, &r_mapGlob.lightmaps[i].materials[j].vao);
-            GL_CALL(glGenBuffers,      
+            GL_CALL(glGenBuffers,
                 1, &r_mapGlob.lightmaps[i].materials[j].vbo);
 
-            GL_CALL(glBindVertexArray, 
+            GL_CALL(glBindVertexArray,
                 r_mapGlob.lightmaps[i].materials[j].vao);
-            GL_CALL(glBindBuffer,     
+            GL_CALL(glBindBuffer,
                 GL_ARRAY_BUFFER, r_mapGlob.lightmaps[i].materials[j].vbo);
 
             const BSPMaterial* material = &materials[j];
             uint32_t start_surf = material->surfaces;
             uint32_t surf_count = material->surface_count;
-            BSPRenderedVertex* rendered_vertices = 
+            BSPRenderedVertex* rendered_vertices =
                 (BSPRenderedVertex*)Z_Alloc(
                     3 * surf_count * sizeof(BSPRenderedVertex));
             BSPLightmapVertex* lightmap_vertices =
@@ -476,36 +503,68 @@ void R_LoadMap() {
                 }
             }
 
-            r_mapGlob.lightmaps[i].materials[j].vertices_count = 
+            r_mapGlob.lightmaps[i].materials[j].vertices_count =
                 surf_count * 3;
 
             GLsizei rendered_vertices_size =
-                r_mapGlob.lightmaps[i].materials[j].vertices_count * 
-                    sizeof(BSPRenderedVertex);
+                r_mapGlob.lightmaps[i].materials[j].vertices_count *
+                sizeof(BSPRenderedVertex);
             GLsizei lightmap_vertices_size =
                 r_mapGlob.lightmaps[i].materials[j].vertices_count *
-                    sizeof(BSPLightmapVertex);
+                sizeof(BSPLightmapVertex);
             GLsizei vertices_size =
                 rendered_vertices_size + lightmap_vertices_size;
-           
-            GL_CALL(glBufferData, 
+
+            Tag* shader_tag = CL_Map_Tag(material->shader.id);
+            assert(shader_tag);
+            assert(shader_tag->secondary_class == TAG_FOURCC_SHADER);
+            if (shader_tag->primary_class == TAG_FOURCC_SHADER_ENVIRONMENT) {
+                BSPShaderEnvironment* shader = (BSPShaderEnvironment*)shader_tag->tag_data;
+                assert(shader);
+                Tag* base_map_tag = CL_Map_Tag(shader->base_map.id);
+                assert(base_map_tag);
+                assert(base_map_tag->primary_class == TAG_FOURCC_BITMAP);
+                BSPBitmap* bitmap = (BSPBitmap*)base_map_tag->tag_data;
+                assert(bitmap);
+                BSPBitmapData* bitmap_data = (BSPBitmapData*)bitmap->bitmap_data.pointer;
+                if (bitmap_data->type == BSP_BITMAP_DATA_TYPE_2D_TEXTURE || bitmap_data->type == BSP_BITMAP_DATA_TYPE_3D_TEXTURE) {
+                    bool b = R_CreateBSPImage(
+                        bitmap_data->pixels,
+                        bitmap_data->actual_size,
+                        bitmap_data->width,
+                        bitmap_data->height,
+                        bitmap_data->depth,
+                        bitmap_data->type,
+                        bitmap_data->format,
+                        &r_mapGlob.lightmaps[i].materials[j].tex
+                    );
+                    assert(b);
+                    (void)b;
+                }
+            } else {
+                const char* shader_path = (const char*)shader_tag->tag_path;
+                Com_DPrintln("R_LoadMap: Cannot create shader {}: shader type 0x{:08X} unsupported.", shader_path, shader_tag->primary_class);
+                r_mapGlob.lightmaps[i].materials[j].tex = 0;
+            }
+
+            GL_CALL(glBufferData,
                 GL_ARRAY_BUFFER, vertices_size, nullptr, GL_STATIC_DRAW
             );
 
             GL_CALL(glBufferSubData,
-                GL_ARRAY_BUFFER, 0, rendered_vertices_size, 
+                GL_ARRAY_BUFFER, 0, rendered_vertices_size,
                 (const void*)rendered_vertices
             );
 
             glBufferSubData(GL_ARRAY_BUFFER,
-                rendered_vertices_size, lightmap_vertices_size, 
+                rendered_vertices_size, lightmap_vertices_size,
                 (const void*)lightmap_vertices
             );
 
             Z_Free(rendered_vertices);
             Z_Free(lightmap_vertices);
 
-            GL_CALL(glVertexAttribPointer, 
+            GL_CALL(glVertexAttribPointer,
                 0, 3, GL_FLOAT, GL_FALSE, sizeof(BSPRenderedVertex),
                 (const void*)offsetof(BSPRenderedVertex, pos)
             );
@@ -525,15 +584,15 @@ void R_LoadMap() {
                 4, 2, GL_FLOAT, GL_FALSE, sizeof(BSPRenderedVertex),
                 (const void*)offsetof(BSPRenderedVertex, tex_coords)
             );
-            GL_CALL(glVertexAttribPointer, 
+            GL_CALL(glVertexAttribPointer,
                 5, 3, GL_FLOAT, GL_FALSE, sizeof(BSPLightmapVertex),
-                (const void*)(rendered_vertices_size + 
-                              offsetof(BSPLightmapVertex, normal))
+                (const void*)(rendered_vertices_size +
+                    offsetof(BSPLightmapVertex, normal))
             );
             GL_CALL(glVertexAttribPointer,
                 6, 2, GL_FLOAT, GL_FALSE, sizeof(BSPLightmapVertex),
                 (const void*)(rendered_vertices_size +
-                              offsetof(BSPLightmapVertex, tex_coords))
+                    offsetof(BSPLightmapVertex, tex_coords))
             );
 
             GL_CALL(glEnableVertexAttribArray, 0);
@@ -552,9 +611,10 @@ void R_UnloadMap() {
         BSPLightmap* lightmap = CL_Map_Lightmap(i);
         for (uint32_t j = 0; j < lightmap->materials.count; j++) {
             glDeleteVertexArrays(1, &r_mapGlob.lightmaps[i].materials[j].vao);
-            glDeleteBuffers     (1, &r_mapGlob.lightmaps[i].materials[j].vbo);
+            glDeleteBuffers(1, &r_mapGlob.lightmaps[i].materials[j].vbo);
+            R_DeleteImage(r_mapGlob.lightmaps[i].materials[j].tex);
         }
-        Z_Free((void*)r_mapGlob.lightmaps[i].materials);   
+        Z_Free((void*)r_mapGlob.lightmaps[i].materials);
     }
     Z_Free((void*)r_mapGlob.lightmaps);
 }
@@ -562,37 +622,14 @@ void R_UnloadMap() {
 void R_ShutdownMap() {
     if (CL_IsMapLoaded())
         R_UnloadMap();
+
+    R_DeleteShaderProgram(r_mapGlob.prog);
 }
-
-// size_t R_GetBSPSurfTris(const BSPCollSurf* surf, A_OUT GfxBSPTri* tris, size_t max_tris) {
-//     BSPCollVertex* pVerts     = CL_Map_CollVertices();
-//     BSPCollEdge*   edge       = &CL_Map_CollEdges()[surf->first_edge];
-//     BSPCollEdge*   first_edge = edge;
-
-//     assert(max_tris <= R_SURF_MAX_TRIS);
-//     if (max_tris > R_SURF_MAX_TRIS)
-//         max_tris = R_SURF_MAX_TRIS;
-
-//     int i = 1;
-//     BSPCollVertex v[R_SURF_MAX_VERTS] = {};
-//     v[0] = pVerts[edge->start_vert];
-//     for (; i < A_countof(v); i++) {
-//         v[i] = pVerts[edge->end_vert];
-//         edge = &CL_Map_CollEdges()[edge->forward_edge];
-//         if (edge == first_edge)
-//             break;
-//     }
-//     assert(i >= R_SURF_MIN_VERTS - 1);
-
-//     //assert(first_edge == edge);
-//     //if (edge != first_edge) return 0;
-    
-//     return M_TriangulateSurf(v, i + 1, tris, max_tris);
-// }
 
 void R_RenderMapInternal() {
     GL_CALL(glEnable,     GL_DEPTH_TEST);
     GL_CALL(glUseProgram, r_mapGlob.prog.program);
+    R_SetUniform(r_mapGlob.prog.program, "uTex", 0);
 
     glm::mat4 model(1.0f);
     R_SetUniform(r_mapGlob.prog.program, "uModel", model);    
@@ -604,6 +641,9 @@ void R_RenderMapInternal() {
                 r_mapGlob.lightmaps[i].materials[j].vbo);
             GLsizei vertices_count = 
                 r_mapGlob.lightmaps[i].materials[j].vertices_count;
+
+            GL_CALL(glActiveTexture, GL_TEXTURE0);
+            GL_CALL(glBindTexture, GL_TEXTURE_2D, r_mapGlob.lightmaps[i].materials[j].tex);
 
             R_SetUniform(r_mapGlob.prog.program, "uWireframe", false);
             GL_CALL(glDrawArrays, GL_TRIANGLES, 0, vertices_count);
@@ -684,13 +724,16 @@ static void R_DrawFrameInternal(size_t localClientNum) {
         cg.camera.perspectiveProjection
     );
 
-   
+    GL_CALL(glActiveTexture, GL_TEXTURE0);
+    GL_CALL(glBindTexture, GL_TEXTURE_2D, r_cubePrim.tex);
     for (int i = 0; i < (int)cubePositions.size(); i++) 
         R_DrawCube(cubePositions[i], 20.0f * (float)i, r_cubePrim.tex);
 
+    GL_CALL(glUseProgram, 0);
+
     R_RenderMap();
     
-    GL_CALL(glUseProgram, 0);
+    
 
     R_DrawTextDrawDefs(localClientNum);
 }

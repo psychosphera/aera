@@ -17,3 +17,4 @@ A_NO_DISCARD bool R_CreateShaderProgram(
     const std::string& vertexSource, const std::string& fragmentSource,
     A_OPTIONAL_OUT std::string* log, A_OUT GfxShaderProgram& prog
 );
+bool R_DeleteShaderProgram(A_IN GfxShaderProgram& prog);

@@ -78,9 +78,9 @@ void inline Com_DPrint(
 #else // _DEBUG
 template<typename ...Args>
 void inline Com_DPrint(
-    print_msg_dest_t dest, std::string_view fmt, Args&&... args
+    print_msg_dest_t, std::string_view, Args&&...
 ) {
-    NOP();
+    
 }
 #endif // _DEBUG
 

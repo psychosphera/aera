@@ -95,14 +95,18 @@ target_compile_definitions(
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	target_compile_definitions(h1_map_viewer PRIVATE _DEBUG=1)
-else()
-	target_compile_definitions(h1_map_viewer PRIVATE _DEBUG=0)
 endif()
 
 if(MSVC)
 	target_compile_options(h1_map_viewer PRIVATE 
 		"/permissive-" "/W4" "/wd4005" "/bigobj" "/WX"
 	)
+
+    if (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+        target_compile_options(h1_map_viewer PRIVATE 
+		    "/O2"
+	    )
+    endif()
 endif()
 
 if(GCC)

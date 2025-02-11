@@ -9,12 +9,12 @@ in vec3 lightmap_normal;
 in vec2 lightmap_tex_coords;
 
 uniform bool uWireframe;
+uniform sampler2D uTex;
 
 void main()
 {
 	if(uWireframe)
 		FragColor = vec4(0.3f, 1.0f, 0.3f, 1.0f);
 	else
-		FragColor = vec4(0.5f, 0.5f, 0.5f, 1.0f);
-		
-}
+		FragColor = vec4(texture(uTex, tex_coords).xyz, 1.0f);
+}	
