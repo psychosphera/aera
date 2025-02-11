@@ -91,17 +91,17 @@
 #define A_TARGET_OS_IS_WINDOWS 0
 #endif // _WIN32
 
-#ifdef _MSC_VER
-#define A_COMPILER_IS_MSVC 1
-#else
-#define A_COMPILER_IS_MSVC 0
-#endif // _MSC_VER
-       
 #ifdef __GNUC__
 #define A_COMPILER_IS_GCC_COMPATIBLE 1
 #else
 #define A_COMPILER_IS_GCC_COMPATIBLE 0
 #endif // __GNUC__
+
+#if defined _MSC_VER && !A_COMPILER_IS_GCC_COMPATIBLE
+#define A_COMPILER_IS_MSVC 1
+#else
+#define A_COMPILER_IS_MSVC 0
+#endif // _MSC_VER
        
 #if A_COMPILER_IS_MSVC
 #define A_IN _In_
@@ -234,7 +234,7 @@
 #endif
 
 #if A_COMPILER_IS_GCC_COMPATIBLE
-#define A_PACK(...) __attribute__((__packed__)) __VA_ARGS__ 
+#define A_PACK(...) __VA_ARGS__ __attribute__((__packed__))
 #elif A_COMPILER_IS_MSVC
 #define A_PACK(...) \
     A_PRAGMA(pack(push, 1)) \

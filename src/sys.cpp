@@ -22,7 +22,7 @@ dvar_t* vid_height;
 
 static uint64_t s_timeBase;
 
-static size_t Sys_InitCmdline(const char** argv);
+//static size_t Sys_InitCmdline(const char** argv);
 static void   Sys_InitThreads();
 /*
 static bool   Sys_CreateThread(
@@ -30,7 +30,7 @@ static bool   Sys_CreateThread(
 );
 */
 
-void Sys_Init(const char** argv) {
+void Sys_Init(const char**) {
     s_timeBase = (uint64_t)SDL_GetTicks();
 
     SDL_Init(SDL_INIT_VIDEO);
@@ -61,7 +61,7 @@ void Sys_Init(const char** argv) {
         Sys_NormalExit(-2);
     }
 
-    Sys_InitCmdline(argv);
+    //Sys_InitCmdline(argv);
     Sys_InitThreads();
     IN_Init();
     DevCon_Init();
@@ -159,37 +159,37 @@ void Sys_ShutdownThreads() {
 
 }
 
-str_t sys_argv[SYS_MAX_ARGV];
-size_t sys_argc = 0;
+// str_t sys_argv[SYS_MAX_ARGV];
+// size_t sys_argc = 0;
 
-size_t Sys_InitCmdline(const char** argv) {
-    if(argv == NULL)
-        return 0;
+// size_t Sys_InitCmdline(const char** argv) {
+//     if(argv == NULL)
+//         return 0;
 
-    if(argv[0] == NULL)
-        return 0;
+//     if(argv[0] == NULL)
+//         return 0;
     
-    size_t argc = 0;
-    for(; argv[argc] != NULL; argc++) {
-        str_t arg = A_str(argv[argc]);
-        sys_argv[argc] = arg;
-    }
+//     size_t argc = 0;
+//     for(; argv[argc] != NULL; argc++) {
+//         str_t arg = A_str(argv[argc]);
+//         sys_argv[argc] = arg;
+//     }
     
-    sys_argc = argc;
-    return argc;
-}
+//     sys_argc = argc;
+//     return argc;
+// }
 
-A_NO_DISCARD str_t Sys_Argv(size_t i) {
-    if(i >= sys_argc)
-        return A_str();
-    else
-        return sys_argv[i];
-}
+// A_NO_DISCARD str_t Sys_Argv(size_t i) {
+//     if(i >= sys_argc)
+//         return A_str();
+//     else
+//         return sys_argv[i];
+// }
 
-void Sys_ShutdownCmdline() {
-    sys_argc = 0;
-    A_memset(&sys_argv, 0, sizeof(sys_argv));
-}
+// void Sys_ShutdownCmdline() {
+//     sys_argc = 0;
+//     A_memset(&sys_argv, 0, sizeof(sys_argv));
+// }
 
 A_NO_RETURN Sys_Exit(int ec) {
     exit(ec);
@@ -198,7 +198,7 @@ A_NO_RETURN Sys_Exit(int ec) {
 void Sys_Shutdown() {
     DevCon_Shutdown();
     Sys_ShutdownThreads();
-    Sys_ShutdownCmdline();
+    //Sys_ShutdownCmdline();
     IN_Shutdown();
     SDL_DestroyWindow(g_sdlWindow);
     SDL_Quit();

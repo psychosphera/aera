@@ -320,8 +320,10 @@ static ImageFormat R_BSPGetImageFormat(BSPBitmapDataFormat format) {
         img_format = R_IMAGE_FORMAT_DXT5;
         break;
     default:
-        Com_Errorln("R_BSPGetImageFormat: Unimplemented BSPBitmapDataFormat {}.", 
-                    BSPBitmapDataFormat_to_string(format));
+        Com_Errorln(
+            "R_BSPGetImageFormat: Unimplemented BSPBitmapDataFormat {}.", 
+            (int)format
+        );
     };
 
     return img_format;
@@ -340,8 +342,10 @@ static ImageType R_BSPGetImageType(BSPBitmapDataType type) {
         img_type = R_IMAGE_TYPE_CUBE_MAP;
         break;
     default:
-        Com_Errorln("R_BSPGetImageType: Unimplemented BSPBitmapDataType {}.", 
-                    BSPBitmapDataType_to_string(type));
+        Com_Errorln(
+            "R_BSPGetImageType: Unimplemented BSPBitmapDataType {}.", 
+            (int)type
+        );
     }
 
     return img_type;
@@ -652,7 +656,7 @@ void R_LoadMap() {
                 const char* shader_path = (const char*)shader_tag->tag_path;
                 Com_DPrintln(
                     "R_LoadMap: Cannot create shader {}: shader type 0x{:08X} unsupported.",
-                    shader_path, shader_tag->primary_class
+                    shader_path, (uint32_t)shader_tag->primary_class
                 );
             }
 

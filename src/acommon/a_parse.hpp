@@ -49,14 +49,10 @@ inline bool A_Parse(std::string_view s, A_OUT bool& value) {
         value = i != 0;
         return true;
     } else if (r.ec == std::errc::invalid_argument) {
-        str_t n        = A_literal_internal(s.data(), s.length());
-        str_t ltrue    = A_literal("true");
-        str_t lfalse   = A_literal("false");
-        if (A_stricmp(&n, &ltrue))
+        if (A_cstricmp(s.data(), "true"))
             value = true;
-        else if (A_stricmp(&n, &lfalse))
+        else if (A_cstricmp(s.data(), "false"))
             value = false;
-
         return true;
     }
     return false;

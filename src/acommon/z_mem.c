@@ -8,6 +8,7 @@
 #ifdef _WIN32
 #include <Windows.h>
 #else
+#include <unistd.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -66,7 +67,7 @@ bool Z_FreeAt(const void* p, size_t n) {
 }
 #else
 bool Z_FreeAt(const void* p, size_t n) {
-    return munmap(p, n) == 0;
+    return munmap((void*)(intptr_t)p, n) == 0;
 }
 #endif // _WIN32
 
@@ -100,8 +101,8 @@ FileMapping Z_MapFile(const char* filename) {
 }
 #else
 FileMapping Z_MapFile(const char* filename) {
-    FileMapping f { .p = NULL, .n = 0 };
-    struct stat st = {};
+    FileMapping f = { .p = NULL, .n = 0 };
+    struct stat st = { 0 };
 
     int fd = open(filename, O_RDONLY);
     if(fd < 0)

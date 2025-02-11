@@ -308,14 +308,14 @@ static bool CL_LoadMap_Decompress(
 		void* decompressed = Z_Zalloc(decompressed_map_size - sizeof(header));
 
 		z_stream stream;
-		stream.zalloc = Z_NULL;
-		stream.zfree = Z_NULL;
-		stream.opaque = Z_NULL;
-		stream.avail_in = f.n - sizeof(header);
-		stream.next_in = (Bytef*)f.p + sizeof(header);
+		stream.zalloc    = Z_NULL;
+		stream.zfree     = Z_NULL;
+		stream.opaque    = Z_NULL;
+		stream.avail_in  = f.n - sizeof(header);
+		stream.next_in   = (Bytef*)f.p + sizeof(header);
 		stream.avail_out = decompressed_map_size - sizeof(header);
-		stream.next_out = (Bytef*)decompressed;
-		int ret = inflateInit(&stream);
+		stream.next_out  = (Bytef*)decompressed;
+		int ret = inflateInit2(&stream, -15);
 		assert(ret == Z_OK);
 		ret = inflate(&stream, Z_FINISH);
 		assert(ret == Z_STREAM_END);
@@ -364,7 +364,7 @@ bool CL_LoadMap_TagHeader(
 	);
 
 	long long pos = FS_SeekStream(g_load.f, FS_SEEK_BEGIN, tag_data_offset);
-	assert(pos == tag_data_offset);
+	assert(pos == (long long)tag_data_offset);
 	(void)pos;
 
 	if (is_xbox) {
@@ -398,22 +398,27 @@ bool CL_LoadMap_TagData(
 ) {
 	const void* tag_base = is_xbox ?
 		(const void*)TAGS_BASE_ADDR_XBOX : (const void*)TAGS_BASE_ADDR_GEARBOX;
-	size_t total_tag_space = is_xbox ? TAGS_MAX_SIZE_XBOX : TAGS_MAX_SIZE_GEARBOX;
-	uint32_t tag_array_offset = tag_header->common.tag_ptr - (uint32_t)tag_base;
+	size_t total_tag_space = is_xbox ? 
+		TAGS_MAX_SIZE_XBOX : TAGS_MAX_SIZE_GEARBOX;
+	uint32_t tag_array_offset = 
+		(uint32_t)((intptr_t)tag_header->common.tag_ptr - (intptr_t)tag_base);
 	Com_DPrintln("CL_LoadMap: tag_array_offset=0x{:08X}", tag_array_offset);
 	size_t tag_header_size = is_xbox ?
 		sizeof(tag_header->xbox) : sizeof(tag_header->pc);
 	uint32_t off = tag_array_offset - tag_header_size;
 	FS_SeekStream(g_load.f, FS_SEEK_CUR, off);
-	std::vector<std::byte> v = FS_ReadStream(g_load.f, header->tag_data_size.read());
+	std::vector<std::byte> v = 
+		FS_ReadStream(g_load.f, header->tag_data_size.read());
 	assert(v.size() > 0);
-	Com_DPrintln("CL_LoadMap: allocating {} bytes for tag data.", total_tag_space);
+	Com_DPrintln("CL_LoadMap: allocating {} bytes for tag data.", 
+		         total_tag_space);
 	g_load.n = total_tag_space;
 	g_load.p = Z_AllocAt(tag_base, g_load.n);
 	assert(g_load.p == tag_base);
 	A_memcpy(g_load.p, &tag_header, tag_header_size);
 	A_memcpy(
-		(void*)((intptr_t)g_load.p + (intptr_t)tag_header_size + (intptr_t)off),
+		(void*)((intptr_t)g_load.p + 
+			(intptr_t)tag_header_size + (intptr_t)off),
 		v.data(), v.size()
 	);
 
@@ -423,11 +428,14 @@ bool CL_LoadMap_TagData(
 }
 
 bool CL_LoadMap_Scenario(
-	const TagHeader* tag_header, A_OUT Invader::HEK::Scenario<Invader::HEK::NativeEndian>** scenario
+	const TagHeader* tag_header, 
+	A_OUT Invader::HEK::Scenario<Invader::HEK::NativeEndian>** scenario
 ) {
 	Tag* scenario_tag = NULL;
 	for (size_t i = 0; i < tag_header->common.tag_count; i++) {
-		if (g_load.tags[i].tag_id.id == tag_header->common.scenario_tag_id.id) {
+		if (g_load.tags[i].tag_id.id == 
+			tag_header->common.scenario_tag_id.id
+		) {
 			scenario_tag = &g_load.tags[i];
 			break;
 		}
@@ -441,7 +449,7 @@ bool CL_LoadMap_Scenario(
 	if (scenario_tag->primary_class != TAG_FOURCC_SCENARIO) {
 		Com_Errorln(
 			"CL_LoadMap: Invalid scenario tag fourcc ({}).",
-			scenario_tag->primary_class
+			(uint32_t)scenario_tag->primary_class
 		);
 		return false;
 	}
@@ -453,7 +461,7 @@ bool CL_LoadMap_Scenario(
 		return false;
 	}
 
-	Com_DPrintln("CL_LoadMap: Scenario at 0x{:08X}", (uint32_t)*scenario);
+	Com_DPrintln("CL_LoadMap: Scenario at {}", (void*)*scenario);
 
 	return true;
 }
@@ -473,8 +481,8 @@ bool CL_LoadMap_BSPHeader(
 
 	void* bsp_data = (void*)sbsp->bsp_address.read();
 	Com_DPrintln(
-		"CL_LoadMap: BSP at 0x{:08X} (offset=0x{:08X}, size={})",
-		(uint32_t)bsp_data, sbsp->bsp_start.read(), sbsp->bsp_size.read()
+		"CL_LoadMap: BSP at {} (offset=0x{:08X}, size={})",
+		bsp_data, sbsp->bsp_start.read(), sbsp->bsp_size.read()
 	);
 
 	if ((uint32_t)(*bsp_header)->magic != TAG_FOURCC_SBSP) {
@@ -816,10 +824,13 @@ bool CL_LoadMap(std::string_view map_name) {
 			for (uint32_t k = 0; k < material->lightmap_vertices_count.read(); k++)
 				CL_DecompressLightmapVertex(&lightmap_vertices[k], &compressed_lightmap_vertices[k]);
 
-			for (uint32_t k = material->surfaces.read(); k < material->surfaces.read() + material->surface_count.read(); k++) {
+			for (int32_t k = material->surfaces.read(); k < material->surfaces.read() + material->surface_count.read(); k++) {
 				for (int l = 0; l < 3; l++) {
 					if (g_load.surfs[k].verts[l] >= rendered_vertices_count)
-						Com_DPrintln("CL_LoadMap: Lightmap {} Material {}: out of bounds vertex index {} for surf {}, vert {}", i, j, g_load.surfs[k].verts[l], k, l);
+						Com_DPrintln(
+							"CL_LoadMap: Lightmap {} Material {}: out of bounds vertex index {} for surf {}, vert {}", 
+							i, j, (uint16_t)g_load.surfs[k].verts[l], k, l
+						);
 					assert(g_load.surfs[k].verts[l] < rendered_vertices_count);
 				}
 				//Com_DPrintln("CL_LoadMap: Lightmap {} Material {} Surf {}: ({}, {}, {})", i, j, k, g_load.surfs[k].verts[0], g_load.surfs[k].verts[1], g_load.surfs[k].verts[2]);
@@ -836,8 +847,8 @@ bool CL_LoadMap(std::string_view map_name) {
 
 				const char* base_map_path = (const char*)shader->base_map.path_pointer;
 				Com_DPrintln(
-					"{} ({}): base_map: {} (0x{:08X})", shader_path, shader->base_map.id.index,
-					base_map_path ? base_map_path : "<NULL>", shader->base_map.fourcc
+					"{} ({}): base_map: {} (0x{:08X})", shader_path, (uint16_t)shader->base_map.id.index,
+					base_map_path ? base_map_path : "<NULL>", (uint32_t)shader->base_map.fourcc
 				);
 				if(shader->base_map.id.index == 0xFFFF)
 					continue;

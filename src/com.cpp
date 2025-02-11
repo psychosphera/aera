@@ -39,7 +39,7 @@ bool Com_Init() {
 }
 
 bool Com_Frame() {
-    int wait_msec = 1000 / Dvar_GetInt(*com_maxfps);
+    uint64_t wait_msec = 1000 / (uint64_t)Dvar_GetInt(*com_maxfps);
     while (Sys_Milliseconds() - s_lastFrameTime < wait_msec);
 
     s_deltaTime = Sys_Milliseconds() - s_lastFrameTime;

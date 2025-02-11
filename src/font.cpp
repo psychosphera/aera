@@ -37,7 +37,7 @@ bool Font_Load(
 				c, font_name
 			);
 
-		GlyphDef glyph;
+		GlyphDef glyph = {};
 		glyph.c         = c;
 		glyph.width     = face->glyph->bitmap.width;
 		glyph.height    = face->glyph->bitmap.rows;

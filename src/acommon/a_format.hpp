@@ -7,6 +7,8 @@
 
 #include <glm/glm.hpp>
 
+#include "a_string.h"
+
 template<typename ...Args>
 inline std::string A_Format(std::string_view fmt, Args&&... args) {
     return std::vformat(fmt, std::make_format_args(args...));
@@ -50,4 +52,3 @@ struct std::formatter<glm::vec4> {
         return std::format_to(ctx.out(), "{} {} {} {}", v.x, v.y, v.z, v.w);
     }
 };
-

@@ -107,7 +107,7 @@ void PmoveSingle(A_INOUT pmove_t& pm, A_INOUT pml_t& pml) {
 }
 
 void Pmove(A_INOUT pmove_t& pm, A_INOUT pml_t& pml) {
-	int finalTime = pm.cmd.serverTime;
+	uint64_t finalTime = pm.cmd.serverTime;
 
 	if (finalTime < pm.ps->commandTime) {
 		return;	

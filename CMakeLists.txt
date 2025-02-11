@@ -19,7 +19,7 @@ endif()
 
 #set(VCPKG_TOOLCHAIN ) 
 #if(EXISTS VCPKG_TOOLCHAIN)
-    include("F:/vcpkg/scripts/buildsystems/vcpkg.cmake")
+#    include("F:/vcpkg/scripts/buildsystems/vcpkg.cmake")
 #endif()
 
 find_package(Freetype REQUIRED)
@@ -41,15 +41,15 @@ find_package(ZLIB     REQUIRED)
 #FetchContent_MakeAvailable(datatype99)
 
 add_executable(h1_map_viewer
-    src/acommon/a_string.c src/acommon/a_common.c src/acommon/a_type.c
-    src/acommon/z_mem.c src/acommon/a_math.c src/acommon/a_math.h
+    src/acommon/a_common.c src/acommon/a_math.h src/acommon/a_math.c
+    src/acommon/z_mem.c src/acommon/a_string.c src/acommon/a_type.c 
 
 	src/cg_cgame.cpp src/com.cpp src/font.cpp src/fs_files.cpp src/gfx.cpp 
 	src/gfx_backend.cpp  src/in_input.cpp src/main.cpp src/sys.cpp
  	src/db_files.cpp src/cmd_commands.cpp src/cl_client.cpp src/devgui.cpp 
-	src/gfx_text.cpp "src/gfx_shader.cpp" src/devcon.cpp src/dvar.cpp 
+	src/gfx_text.cpp src/gfx_shader.cpp src/devcon.cpp src/dvar.cpp 
 	src/con_console.cpp src/pm_pmove.cpp src/m_math.cpp
- "src/gfx_defs.cpp")
+ 	src/gfx_defs.cpp)
 
 
 # SDL3 and SDL3_image aren't available from vcpkg. SDL_image contains SDL as a
@@ -102,7 +102,9 @@ if(MSVC)
 		"/permissive-" "/W4" "/wd4005" "/bigobj" "/WX" "/O2"
 	)
 
-    if (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    if (CMAKE_BUILD_TYPE STREQUAL "Release" OR 
+	    CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo"
+	)
         target_compile_options(h1_map_viewer PRIVATE 
 		    
 	    )
@@ -111,7 +113,8 @@ endif()
 
 if(GCC)
     target_compile_options(h1_map_viewer PRIVATE
-        "-Wno-sign-compare" "-ftrack-macro-expansion=0"
+        "-ftrack-macro-expansion=0" 
+		"-Wno-address-of-packed-member"
     ) 
 endif()
 
@@ -120,13 +123,20 @@ if(CLANG)
         "-Wno-gnu-zero-variadic-macro-arguments"
         "-Wno-unreachable-code-generic-assoc"
 		"-Wno-sign-compare" "-Wno-macro-redefined"
-    	"-Wno-pointer-to-int-cast" "-fmacro-backtrace-limit=1"
+    	"-Wno-pointer-to-int-cast" 
+		"-Wno-c99-designator" 
+		"-Wno-gnu-anonymous-struct"
+		"-Wno-address-of-packed-member"
+		"-Wno-sign-compare"
+		"-Wno-embedded-directive"
+		"-pedantic" "-pedantic-errors" 
+		"-fmacro-backtrace-limit=1"
     ) 
 endif()
 
 if(CLANG OR GCC)
     target_compile_options(h1_map_viewer PRIVATE
-		"-Wno-int-to-pointer-cast" "-Wno-c99-designator"
+		"-Wno-int-to-pointer-cast" "-g"
     )
 endif()
 
@@ -144,7 +154,6 @@ endif()
 
 if((CLANG AND NOT MSVC) OR GCC)
     target_compile_options(h1_map_viewer PRIVATE 
-        "-Wall" "-Wextra" "-Werror" "-pedantic" "-pedantic-errors" 
-        "-Wno-type-limits" "-O3"
+        "-Wall" "-Wextra" "-Werror" "-Wno-type-limits" "-Og"
     ) 
 endif()
