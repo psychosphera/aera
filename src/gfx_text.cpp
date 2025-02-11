@@ -8,7 +8,8 @@
 #include "db_files.hpp"
 #include "dvar.hpp"
 #include "font.hpp"
-#include "gfx_shaders.hpp"
+#include "gfx_defs.hpp"
+#include "gfx_shader.hpp"
 #include "gfx_uniform.hpp"
 #include "sys.hpp" 
 
@@ -32,7 +33,7 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef& f) {
     if (!R_CreateShaderProgram(
         DB_LoadShader("text.vs.glsl"),
         DB_LoadShader("text.fs.glsl"),
-        NULL, f.prog)
+        NULL, &f.prog)
         ) {
         return false;
     }
@@ -44,17 +45,17 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef& f) {
 
     GL_CALL(glUseProgram, r_defaultFont.prog.program);
 
-    GL_CALL(glGenVertexArrays, 1, &f.vao);
-    GL_CALL(glBindVertexArray, f.vao);
-
-    GL_CALL(glGenBuffers, 1, &f.vbo);
-    GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, f.vbo);
-    GL_CALL(glBufferData,
-        GL_ARRAY_BUFFER,
-        s_subTexDefs.size() * sizeof(*s_subTexDefs.data()),
+    bool b = R_CreateVertexBuffer(
         s_subTexDefs.data(),
-        GL_STATIC_DRAW
+        s_subTexDefs.size() * sizeof(*s_subTexDefs.data()),
+        s_subTexDefs.size() * sizeof(*s_subTexDefs.data()),
+        0,
+        &f.vb
     );
+    assert(b);
+    if (!b)
+        return false;
+
     GL_CALL(glVertexAttribPointer,
         0, 2, GL_FLOAT, (GLboolean)GL_FALSE,
         (GLsizei)sizeof(GfxSubTexDef), (void*)offsetof(GfxSubTexDef, x)
@@ -143,8 +144,8 @@ void R_DrawText(
     GL_CALL(glUseProgram,      font->prog.program);
     GL_CALL(glEnable,          GL_BLEND);
     GL_CALL(glBlendFunc,       GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    GL_CALL(glBindVertexArray, font->vao);
-    GL_CALL(glBindBuffer,      GL_ARRAY_BUFFER, font->vbo);
+    GL_CALL(glBindVertexArray, font->vb.vao);
+    GL_CALL(glBindBuffer,      GL_ARRAY_BUFFER, font->vb.vbo);
     GL_CALL(glActiveTexture,   GL_TEXTURE0);
     GL_CALL(glBindTexture,     GL_TEXTURE_2D, font->tex);
 
@@ -371,4 +372,10 @@ void R_DrawTextDrawDefs(size_t localClientNum) {
             );
         }
     }
+}
+
+void R_DeleteTextureAtlas(A_INOUT FontDef* f) {
+    GL_CALL(glDeleteTextures,   1, &f->tex);
+    GL_CALL(R_DeleteVertexBuffer,  &f->vb);
+    GL_CALL(R_DeleteShaderProgram, &f->prog);
 }

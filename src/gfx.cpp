@@ -14,6 +14,7 @@
 #include "dvar.hpp"
 #include "font.hpp"
 #include "gfx_backend.hpp"
+#include "gfx_shader.hpp"
 #include "gfx_text.hpp"
 #include "gfx_uniform.hpp"
 #include "m_math.hpp"
@@ -46,8 +47,6 @@ void GLAPIENTRY R_GlDebugOutput(
 
 static void   R_RegisterDvars        ();
 static void   R_InitMap              ();
-static void   R_InitCubes            (A_INOUT GfxCubePrim& cubePrim);
-//static size_t R_GetBSPSurfTris       (const BSPCollSurf* surf, GfxBSPTri* tris, size_t max_tris);
 static void   R_DrawFrameInternal    (size_t localClientNum);
 static void   R_InitLocalClient      (size_t localClientNum);
 static void   R_UpdateLocalClientView(size_t localClientNum);
@@ -61,7 +60,6 @@ dvar_t* r_noBorder;
 dvar_t* r_renderDistance;
 dvar_t* r_wireframe;
 
-GfxCubePrim r_cubePrim;
 extern FontDef r_defaultFont;
 
 size_t r_testDrawId = 0;
@@ -109,7 +107,6 @@ void R_Init() {
         0, nullptr, rect, "This is a test.\nWhere the fuck i am?", 1.0f, 1.0f,
         glm::vec3(0.77, 0.77, 0.2), true, false, r_testDrawId
     );
-    R_InitCubes(r_cubePrim);
     R_InitMap();
 
     //glEnable(GL_POINT_SMOOTH);
@@ -157,60 +154,6 @@ static void R_RegisterDvars() {
     r_wireframe      = &Dvar_RegisterBool("r_wireframe", DVAR_FLAG_NONE, false);
 }
 
-static void R_InitCubes(A_INOUT GfxCubePrim& cubePrim) {
-    std::string vertSource = DB_LoadShader("vs.glsl");
-    std::string fragSource = DB_LoadShader("fs.glsl");
-
-    std::string errorLog;
-    if (!R_CreateShaderProgram(
-        vertSource, fragSource, &errorLog, r_cubePrim.prog
-    )) {
-        Com_Errorln(errorLog);
-    }
-
-    GL_CALL(glGenVertexArrays, 1, &cubePrim.vao);
-    GL_CALL(glBindVertexArray, cubePrim.vao);
-
-    GL_CALL(glGenBuffers, 1, &cubePrim.vbo);
-    GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, cubePrim.vbo);
-    GL_CALL(glBufferData,
-        GL_ARRAY_BUFFER, sizeof(GfxCubePrim::vertices), 
-        GfxCubePrim::vertices, GL_STATIC_DRAW
-    );
-
-    GL_CALL(glVertexAttribPointer,
-        0, 3, GL_FLOAT, (GLboolean)GL_FALSE, 
-        5 * (GLsizei)sizeof(*GfxCubePrim::vertices), (void*)0
-    );
-    GL_CALL(glEnableVertexAttribArray, 0);
-
-    GL_CALL(glVertexAttribPointer,
-        1, 2, GL_FLOAT, (GLboolean)GL_FALSE, 
-        5 * (GLsizei)sizeof(*GfxCubePrim::vertices),
-        (void*)(3 * sizeof(*GfxCubePrim::vertices))
-    );
-    GL_CALL(glEnableVertexAttribArray, 1);
-
-    bool b = R_CreateImage("container.jpg", NULL, NULL, cubePrim.tex);
-    assert(b);
-    (void)b;
-
-    GL_CALL(glUseProgram, cubePrim.prog.program);
-    R_SetUniform(cubePrim.prog.program, "uContainerTex", 0);
-    GL_CALL(glUseProgram, 0);
-    GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, 0);
-    GL_CALL(glBindVertexArray, 0);
-}
-
-static void R_ShutdownCubes(A_INOUT GfxCubePrim& cubePrim) {
-    R_DeleteShaderProgram(cubePrim.prog);
-    R_DeleteImage(cubePrim.tex);
-    GL_CALL(glDisableVertexAttribArray, 0);
-    GL_CALL(glDisableVertexAttribArray, 1);
-    GL_CALL(glDeleteBuffers, 1, &cubePrim.vbo);
-    GL_CALL(glDeleteVertexArrays, 1, &cubePrim.vao);
-}
-
 void R_DrawFrame(size_t localClientNum) {
     R_DrawFrameInternal(localClientNum);
 }
@@ -234,15 +177,20 @@ void R_WindowResized() {
     
 }
 
-A_NO_DISCARD bool R_CreateImage(
-    std::string_view image_name, A_OPTIONAL_OUT int* width, 
-    A_OPTIONAL_OUT int* height,  A_OUT texture_t& tex
+A_NO_DISCARD bool R_CreateImage(const char* image_name, 
+                                A_INOUT GfxImage* image
 ) {
-    if(width)
-        *width  = 0;
-    if(height)
-        *height = 0;
+    assert(image_name);
+    if (!image_name)
+        return false;
 
+    assert(image);
+    if (!image)
+        return false;
+
+    A_memset(image, 0, sizeof(*image));
+
+    texture_t tex;
     GL_CALL(glActiveTexture, GL_TEXTURE0);
     GL_CALL(glGenTextures,   1, &tex);
     GL_CALL(glBindTexture,   GL_TEXTURE_2D, tex);
@@ -252,26 +200,28 @@ A_NO_DISCARD bool R_CreateImage(
     GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    SdlSurface surf = SdlSurface(
-        IMG_Load(DB_ImagePath(image_name).string().c_str())
-    );
+    std::string image_path = DB_ImagePath(image_name).string();
+    SDL_Surface* surf = IMG_Load(image_path.c_str());
 
+    assert(surf);
     if (!surf)
         return false;
 
+    assert(surf->pixels);
     if (!surf->pixels)
         return false;
 
+    assert(surf->w > 0 && surf->h > 0);
     if (surf->w < 1 || surf->h < 1)
         return false;
 
-    image_format_t format = 0;
+    ImageFormat format;
     switch (surf->format->format) {
     case SDL_PIXELFORMAT_RGB24:
-        format = GL_RGB;
+        format = R_IMAGE_FORMAT_RGB888;
         break;
     case SDL_PIXELFORMAT_RGBA32:
-        format = GL_RGBA;
+        format = R_IMAGE_FORMAT_RGBA8888;
         break;
     default:
         assert(false);
@@ -284,40 +234,124 @@ A_NO_DISCARD bool R_CreateImage(
     );
     GL_CALL(glGenerateMipmap, GL_TEXTURE_2D);
 
-    if (width)
-        *width = surf->w;
-    if (height)
-        *height = surf->h;
+    SDL_DestroySurface(surf);
+
+    image->width           = surf->w;
+    image->height          = surf->h;
+    image->depth           = 1;
+    image->type            = R_IMAGE_TYPE_2D_TEXTURE;
+    image->format          = format;
+    image->internal_format = R_IMAGE_FORMAT_RGB888;
+    image->tex             = tex;
 
     return true;
 }
 
-static image_format_t R_BSPToGLImageFormat(BSPBitmapDataFormat format) {
-    image_format_t gl_format = 0;
+static GLenum R_ImageFormatToGL(ImageFormat format) {
+    GLenum gl_format = 0;
     switch(format) {
-    case BSP_BITMAP_DATA_FORMAT_A8: 
+    case R_IMAGE_FORMAT_A8: 
         gl_format = GL_ALPHA8;
         break;
-    case BSP_BITMAP_DATA_FORMAT_R5G6B5:
+    case R_IMAGE_FORMAT_RGB565:
         gl_format = GL_RGB565;
         break;
-    case BSP_BITMAP_DATA_FORMAT_DXT1:
+    case R_IMAGE_FORMAT_DXT1:
         gl_format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
         break;
-    case BSP_BITMAP_DATA_FORMAT_DXT3:
+    case R_IMAGE_FORMAT_DXT3:
         gl_format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
         break;
-    case BSP_BITMAP_DATA_FORMAT_DXT5:
+    case R_IMAGE_FORMAT_DXT5:
         gl_format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
         break;
     default:
-        Com_Errorln("R_BSPToGLImageFormat: Unimplemented BSPBitmapDataFormat {}.", BSPBitmapDataFormat_to_string(format));
+        Com_Errorln("R_ImageFormatToGL: Unimplemented ImageFormat {}.", (int)format);
     };
 
     return gl_format;
 }
 
-A_NO_DISCARD bool R_CreateBSPImage(const void* pixels, size_t pixels_size, int width, int height, int depth, BSPBitmapDataType type, BSPBitmapDataFormat format, A_OUT texture_t* tex) {
+static ImageFormat R_ImageFormatFromGL(GLenum format) {
+    ImageFormat img_format;
+    switch (format) {
+    case GL_ALPHA8:
+        img_format = R_IMAGE_FORMAT_A8;
+        break;
+    case GL_RGB565:
+        img_format = R_IMAGE_FORMAT_RGB565;
+        break;
+    case GL_RGB: 
+        img_format = R_IMAGE_FORMAT_RGB888;
+        break;
+    case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+        img_format = R_IMAGE_FORMAT_DXT1;
+        break;
+    case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+        img_format = R_IMAGE_FORMAT_DXT3;
+        break;
+    case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+        img_format = R_IMAGE_FORMAT_DXT5;
+        break;
+    default:
+        Com_Errorln("R_ImageFormatToGL: Unimplemented GL format {}.", format);
+    };
+
+    return img_format;
+}
+
+
+static ImageFormat R_BSPGetImageFormat(BSPBitmapDataFormat format) {
+    ImageFormat img_format;
+    switch (format) {
+    case BSP_BITMAP_DATA_FORMAT_A8:
+        img_format = R_IMAGE_FORMAT_A8;
+        break;
+    case BSP_BITMAP_DATA_FORMAT_R5G6B5:
+        img_format = R_IMAGE_FORMAT_RGB565;
+        break;
+    case BSP_BITMAP_DATA_FORMAT_DXT1:
+        img_format = R_IMAGE_FORMAT_DXT1;
+        break;
+    case BSP_BITMAP_DATA_FORMAT_DXT3:
+        img_format = R_IMAGE_FORMAT_DXT3;
+        break;
+    case BSP_BITMAP_DATA_FORMAT_DXT5:
+        img_format = R_IMAGE_FORMAT_DXT5;
+        break;
+    default:
+        Com_Errorln("R_BSPGetImageFormat: Unimplemented BSPBitmapDataFormat {}.", 
+                    BSPBitmapDataFormat_to_string(format));
+    };
+
+    return img_format;
+}
+
+static ImageType R_BSPGetImageType(BSPBitmapDataType type) {
+    ImageType img_type;
+    switch (type) {
+    case BSP_BITMAP_DATA_TYPE_2D_TEXTURE:
+        img_type = R_IMAGE_TYPE_2D_TEXTURE;
+        break;
+    case BSP_BITMAP_DATA_TYPE_3D_TEXTURE:
+        img_type = R_IMAGE_TYPE_3D_TEXTURE;
+        break;
+    case BSP_BITMAP_DATA_TYPE_CUBE_MAP:
+        img_type = R_IMAGE_TYPE_CUBE_MAP;
+        break;
+    default:
+        Com_Errorln("R_BSPGetImageType: Unimplemented BSPBitmapDataType {}.", 
+                    BSPBitmapDataType_to_string(type));
+    }
+
+    return img_type;
+}
+
+A_NO_DISCARD bool R_CreateBSPImage(
+    const void* pixels, size_t pixels_size, int width, int height, int depth, 
+    BSPBitmapDataType type, BSPBitmapDataFormat bsp_format, 
+    A_OUT GfxImage* image
+) {
     if (type == BSP_BITMAP_DATA_TYPE_2D_TEXTURE)
         assert(depth == 1);
 
@@ -334,67 +368,72 @@ A_NO_DISCARD bool R_CreateBSPImage(const void* pixels, size_t pixels_size, int w
         return false;
     }
 
+    texture_t tex;
     GL_CALL(glActiveTexture, GL_TEXTURE0);
-    GL_CALL(glGenTextures,   1, tex);
-    GL_CALL(glBindTexture,   target, *tex);
+    GL_CALL(glGenTextures,   1, &tex);
+    GL_CALL(glBindTexture,   target, tex);
     GL_CALL(glTexParameteri, target, GL_TEXTURE_WRAP_S,     GL_REPEAT);
     GL_CALL(glTexParameteri, target, GL_TEXTURE_WRAP_T,     GL_REPEAT);
     GL_CALL(glTexParameteri, target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     GL_CALL(glTexParameteri, target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    image_format_t gl_format = R_BSPToGLImageFormat(format);
-    
+    bool compressed = CL_BitmapDataFormatIsCompressed(bsp_format);
+    GLenum internal_format = 
+        R_ImageFormatToGL(R_BSPGetImageFormat(bsp_format));
+    GLenum gl_format = compressed ? internal_format : GL_RGB;
+    ImageFormat format = R_ImageFormatFromGL(gl_format);
+
     if (type == BSP_BITMAP_DATA_TYPE_2D_TEXTURE) {
-        if (CL_BitmapDataFormatIsCompressed(format)) {
-            GL_CALL(glCompressedTexImage2D, GL_TEXTURE_2D, 0, gl_format, width, height, 0, pixels_size, pixels);
+        if (compressed) {
+            GL_CALL(glCompressedTexImage2D, GL_TEXTURE_2D, 0, 
+                    internal_format, width, height, 0, pixels_size, pixels);
         } else {
-            GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, gl_format, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+            GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, internal_format, 
+                    width, height, 0, gl_format, GL_UNSIGNED_BYTE, pixels);
         }
     } else {
-        if (CL_BitmapDataFormatIsCompressed(format)) {
-            GL_CALL(glCompressedTexImage3D, GL_TEXTURE_3D, 0, gl_format, width, height, depth, 0, pixels_size, pixels);
+        if (compressed) {
+            GL_CALL(glCompressedTexImage3D, GL_TEXTURE_3D, 0, internal_format,
+                    width, height, depth, 0, pixels_size, pixels);
         } else {
-            GL_CALL(glTexImage3D, GL_TEXTURE_3D, 0, gl_format, width, height, depth, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+            GL_CALL(glTexImage3D, GL_TEXTURE_3D, 0, internal_format, width, 
+                   height, depth, 0, gl_format, GL_UNSIGNED_BYTE, pixels);
         }
     }
 
     GL_CALL(glGenerateMipmap, target);
-    
+
+    image->tex             = tex;
+    image->pixels          = pixels;
+    image->pixels_size     = pixels_size;
+    image->width           = width;
+    image->height          = height;
+    image->depth           = depth;
+    image->type            = R_BSPGetImageType(type);
+    image->internal_format = R_BSPGetImageFormat(bsp_format);
+    image->format          = format;
     return true;
 }
 
 bool R_DeleteImage(
-    A_IN texture_t& tex
+    A_INOUT GfxImage* image
 ) {
-    GL_CALL(glDeleteTextures, 1, &tex);
+    GL_CALL(glDeleteTextures, 1, &image->tex);
+    A_memset(image, 0, sizeof(*image));
     return true;
 }
 
-void R_DrawCube(const glm::vec3& pos, float angle, texture_t tex) {
-    glEnable(GL_DEPTH_TEST);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, tex);
-    glBindVertexArray(r_cubePrim.vao);
-    glBindBuffer(GL_ARRAY_BUFFER, r_cubePrim.vbo);
-    glUseProgram(r_cubePrim.prog.program);
-
-    glm::mat4 model = glm::translate(glm::mat4(1.0f), pos);
-    model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0, 0.3, 0.5));
-    R_SetUniform(r_cubePrim.prog.program, "uModel", model);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-
-    glUseProgram(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable(GL_DEPTH_TEST);
-}
-
 struct GfxMaterial {
-    vao_t     vao;
-    vbo_t     vbo;
-    GLsizei   vertices_count;
-    texture_t tex;
+    GfxVertexBuffer         vb;
+    GLsizei                 vertices_count;
+    GfxImage                base_map, primary_detail_map;
+    GfxImage                secondary_detail_map, micro_detail_map;
+    BSPShaderDetailFunction detail_map_function, micro_detail_map_function;
+    acolor_rgb_t            ambient_color;
+    avec3f_t                distant_light_0_dir;
+    avec3f_t                distant_light_1_dir;
+    acolor_rgb_t            distant_light_0_color;
+    acolor_rgb_t            distant_light_1_color;
 };
 
 struct GfxLightmap {
@@ -414,15 +453,10 @@ void R_InitMap() {
 
     std::string errorLog;
     if (!R_CreateShaderProgram(
-        vertSource, fragSource, &errorLog, r_mapGlob.prog
+        vertSource, fragSource, &errorLog, &r_mapGlob.prog
     )) {
         Com_Errorln(errorLog);
     }
-
-    GL_CALL(glUseProgram, r_mapGlob.prog.program);
-    R_SetUniform(r_mapGlob.prog.program, 
-                 "uWireframe", Dvar_GetBool(*r_wireframe));
-    GL_CALL(glUseProgram, 0);
 }
 
 static void R_SwapYZPoint3(A_INOUT apoint3f_t* p) {
@@ -448,14 +482,54 @@ static void R_SwapLightmapVertexYZ(A_INOUT BSPLightmapVertex* v) {
     R_SwapYZVec3(&v->normal);
 }
 
+bool R_LoadBitmap(TagId tag_id, A_OUT GfxImage* image) {
+    assert(image);
+    if (!image)
+        return false;
+    A_memset(image, 0, sizeof(*image));
+
+    Tag* tag = CL_Map_Tag(tag_id);
+    assert(tag);
+    if (!tag)
+        return false;
+    assert(tag->primary_class == TAG_FOURCC_BITMAP);
+    if (tag->primary_class != TAG_FOURCC_BITMAP)
+        return false;
+    BSPBitmap* bitmap = (BSPBitmap*)tag->tag_data;
+    assert(bitmap);
+    if (!bitmap)
+        return false;
+    BSPBitmapData* bitmap_data = (BSPBitmapData*)bitmap->bitmap_data.pointer;
+    if (!bitmap_data)
+        return false;
+    if (bitmap_data->pixels != (void*)0xFFFFFFFF && 
+        (bitmap_data->type == BSP_BITMAP_DATA_TYPE_2D_TEXTURE || 
+        bitmap_data->type == BSP_BITMAP_DATA_TYPE_3D_TEXTURE)
+    ) {
+        bool b = R_CreateBSPImage(
+            bitmap_data->pixels,
+            bitmap_data->actual_size,
+            bitmap_data->width,
+            bitmap_data->height,
+            bitmap_data->depth,
+            bitmap_data->type,
+            bitmap_data->format,
+            image
+        );
+        assert(b);
+        (void)b;
+    }
+    return true;
+}
+
 void R_LoadMap() {
     r_mapGlob.lightmap_count = CL_Map_LightmapCount();
-    r_mapGlob.lightmaps = (GfxLightmap*)Z_Alloc(
+    r_mapGlob.lightmaps = (GfxLightmap*)Z_Zalloc(
         r_mapGlob.lightmap_count * sizeof(*r_mapGlob.lightmaps)
     );
     for (uint32_t i = 0; i < r_mapGlob.lightmap_count; i++) {
         const BSPLightmap* lightmap = CL_Map_Lightmap(i);
-        r_mapGlob.lightmaps[i].materials = (GfxMaterial*)Z_Alloc(
+        r_mapGlob.lightmaps[i].materials = (GfxMaterial*)Z_Zalloc(
             lightmap->materials.count *
             sizeof(*r_mapGlob.lightmaps[i].materials)
         );
@@ -463,14 +537,14 @@ void R_LoadMap() {
         const BSPMaterial* materials = (const BSPMaterial*)lightmap->materials.pointer;
         for (uint32_t j = 0; j < lightmap->materials.count; j++) {
             GL_CALL(glGenVertexArrays,
-                1, &r_mapGlob.lightmaps[i].materials[j].vao);
+                1, &r_mapGlob.lightmaps[i].materials[j].vb.vao);
             GL_CALL(glGenBuffers,
-                1, &r_mapGlob.lightmaps[i].materials[j].vbo);
+                1, &r_mapGlob.lightmaps[i].materials[j].vb.vbo);
 
             GL_CALL(glBindVertexArray,
-                r_mapGlob.lightmaps[i].materials[j].vao);
+                r_mapGlob.lightmaps[i].materials[j].vb.vao);
             GL_CALL(glBindBuffer,
-                GL_ARRAY_BUFFER, r_mapGlob.lightmaps[i].materials[j].vbo);
+                GL_ARRAY_BUFFER, r_mapGlob.lightmaps[i].materials[j].vb.vbo);
 
             const BSPMaterial* material = &materials[j];
             uint32_t start_surf = material->surfaces;
@@ -515,36 +589,71 @@ void R_LoadMap() {
             GLsizei vertices_size =
                 rendered_vertices_size + lightmap_vertices_size;
 
+            r_mapGlob.lightmaps[i].materials[j].ambient_color = 
+                material->ambient_color;
+
+            r_mapGlob.lightmaps[i].materials[j].distant_light_0_dir =
+                material->distant_light_0_direction;
+            r_mapGlob.lightmaps[i].materials[j].distant_light_1_dir =
+                material->distant_light_1_direction;
+            r_mapGlob.lightmaps[i].materials[j].distant_light_0_color =
+                material->distant_light_0_color;
+            r_mapGlob.lightmaps[i].materials[j].distant_light_1_color =
+                material->distant_light_1_color;
+
+
+
             Tag* shader_tag = CL_Map_Tag(material->shader.id);
             assert(shader_tag);
             assert(shader_tag->secondary_class == TAG_FOURCC_SHADER);
             if (shader_tag->primary_class == TAG_FOURCC_SHADER_ENVIRONMENT) {
                 BSPShaderEnvironment* shader = (BSPShaderEnvironment*)shader_tag->tag_data;
                 assert(shader);
-                Tag* base_map_tag = CL_Map_Tag(shader->base_map.id);
-                assert(base_map_tag);
-                assert(base_map_tag->primary_class == TAG_FOURCC_BITMAP);
-                BSPBitmap* bitmap = (BSPBitmap*)base_map_tag->tag_data;
-                assert(bitmap);
-                BSPBitmapData* bitmap_data = (BSPBitmapData*)bitmap->bitmap_data.pointer;
-                if (bitmap_data->type == BSP_BITMAP_DATA_TYPE_2D_TEXTURE || bitmap_data->type == BSP_BITMAP_DATA_TYPE_3D_TEXTURE) {
-                    bool b = R_CreateBSPImage(
-                        bitmap_data->pixels,
-                        bitmap_data->actual_size,
-                        bitmap_data->width,
-                        bitmap_data->height,
-                        bitmap_data->depth,
-                        bitmap_data->type,
-                        bitmap_data->format,
-                        &r_mapGlob.lightmaps[i].materials[j].tex
+                assert(shader->base_map.fourcc == TAG_FOURCC_BITMAP);
+                bool b = true;
+                if (shader->base_map.id.index != 0xFFFF) {
+                    b = R_LoadBitmap(
+                        shader->base_map.id,
+                        &r_mapGlob.lightmaps[i].materials[j].base_map
                     );
-                    assert(b);
-                    (void)b;
                 }
+                assert(b);
+                assert(shader->primary_detail_map.fourcc == TAG_FOURCC_BITMAP);
+                if (shader->primary_detail_map.id.index != 0xFFFF) {
+                    b = R_LoadBitmap(
+                        shader->primary_detail_map.id, 
+                        &r_mapGlob.lightmaps[i].materials[j].primary_detail_map
+                    );
+                }
+                assert(b);
+                assert(shader->secondary_detail_map.fourcc == TAG_FOURCC_BITMAP);
+                if (shader->secondary_detail_map.id.index != 0xFFFF) {
+                    b = R_LoadBitmap(
+                        shader->secondary_detail_map.id, 
+                        &r_mapGlob.lightmaps[i].materials[j]
+                            .secondary_detail_map
+                    );
+                }
+                assert(b);
+                assert(shader->micro_detail_map.fourcc == TAG_FOURCC_BITMAP);
+                if (shader->micro_detail_map.id.index != 0xFFFF) {
+                    b = R_LoadBitmap(
+                        shader->micro_detail_map.id,
+                        &r_mapGlob.lightmaps[i].materials[j].micro_detail_map
+                    );
+                }
+                assert(b);
+                r_mapGlob.lightmaps[i].materials[j].detail_map_function =
+                    shader->detail_map_function;
+                r_mapGlob.lightmaps[i].materials[j].micro_detail_map_function =
+                    shader->micro_detail_map_function;
+                (void)b;
             } else {
                 const char* shader_path = (const char*)shader_tag->tag_path;
-                Com_DPrintln("R_LoadMap: Cannot create shader {}: shader type 0x{:08X} unsupported.", shader_path, shader_tag->primary_class);
-                r_mapGlob.lightmaps[i].materials[j].tex = 0;
+                Com_DPrintln(
+                    "R_LoadMap: Cannot create shader {}: shader type 0x{:08X} unsupported.",
+                    shader_path, shader_tag->primary_class
+                );
             }
 
             GL_CALL(glBufferData,
@@ -606,49 +715,111 @@ void R_LoadMap() {
     }
 }
 
-void R_UnloadMap() {
-    for (uint32_t i = 0; i < r_mapGlob.lightmap_count; i++) {
-        BSPLightmap* lightmap = CL_Map_Lightmap(i);
-        for (uint32_t j = 0; j < lightmap->materials.count; j++) {
-            glDeleteVertexArrays(1, &r_mapGlob.lightmaps[i].materials[j].vao);
-            glDeleteBuffers(1, &r_mapGlob.lightmaps[i].materials[j].vbo);
-            R_DeleteImage(r_mapGlob.lightmaps[i].materials[j].tex);
-        }
-        Z_Free((void*)r_mapGlob.lightmaps[i].materials);
-    }
-    Z_Free((void*)r_mapGlob.lightmaps);
-}
-
-void R_ShutdownMap() {
-    if (CL_IsMapLoaded())
-        R_UnloadMap();
-
-    R_DeleteShaderProgram(r_mapGlob.prog);
-}
-
 void R_RenderMapInternal() {
     GL_CALL(glEnable,     GL_DEPTH_TEST);
     GL_CALL(glUseProgram, r_mapGlob.prog.program);
-    R_SetUniform(r_mapGlob.prog.program, "uTex", 0);
+    R_SetUniform(r_mapGlob.prog.program, "uBaseMap",            0);
+    R_SetUniform(r_mapGlob.prog.program, "uPrimaryDetailMap",   1);
+    R_SetUniform(r_mapGlob.prog.program, "uSecondaryDetailMap", 2);
+    R_SetUniform(r_mapGlob.prog.program, "uMicroDetailMap",     3);
 
     glm::mat4 model(1.0f);
     R_SetUniform(r_mapGlob.prog.program, "uModel", model);    
     for (uint32_t i = 0; i < r_mapGlob.lightmap_count; i++) {
         for (uint32_t j = 0; j < r_mapGlob.lightmaps[i].material_count; j++) {
             GL_CALL(glBindVertexArray, 
-                r_mapGlob.lightmaps[i].materials[j].vao);
+                r_mapGlob.lightmaps[i].materials[j].vb.vao);
             GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, 
-                r_mapGlob.lightmaps[i].materials[j].vbo);
-            GLsizei vertices_count = 
-                r_mapGlob.lightmaps[i].materials[j].vertices_count;
+                r_mapGlob.lightmaps[i].materials[j].vb.vbo);
+
+            R_SetUniform(r_mapGlob.prog.program, "uDetailMapFunction",
+                (int)r_mapGlob.lightmaps[i].materials[j].detail_map_function);
+            R_SetUniform(r_mapGlob.prog.program, "uMicroDetailMapFunction",
+                (int)r_mapGlob.lightmaps[i].materials[j].micro_detail_map_function);
+
+            R_SetUniform(r_mapGlob.prog.program, "uAmbientColor",
+                glm::vec3(
+                    r_mapGlob.lightmaps[i].materials[j].ambient_color.r,
+                    r_mapGlob.lightmaps[i].materials[j].ambient_color.g,
+                    r_mapGlob.lightmaps[i].materials[j].ambient_color.b
+                )
+            );
+
+            R_SetUniform(r_mapGlob.prog.program, "uDistantLight0Dir",
+                glm::vec3(
+                    r_mapGlob.lightmaps[i].materials[j].distant_light_0_dir.x,
+                    r_mapGlob.lightmaps[i].materials[j].distant_light_0_dir.y,
+                    r_mapGlob.lightmaps[i].materials[j].distant_light_0_dir.z
+                )
+            );
+
+            R_SetUniform(r_mapGlob.prog.program, "uDistantLight1Dir",
+                glm::vec3(
+                    r_mapGlob.lightmaps[i].materials[j].distant_light_1_dir.x,
+                    r_mapGlob.lightmaps[i].materials[j].distant_light_1_dir.y,
+                    r_mapGlob.lightmaps[i].materials[j].distant_light_1_dir.z
+                )
+            );
+
+            R_SetUniform(r_mapGlob.prog.program, "uDistantLight0Color",
+                glm::vec3(
+                    r_mapGlob.lightmaps[i].materials[j].distant_light_0_color.r,
+                    r_mapGlob.lightmaps[i].materials[j].distant_light_0_color.g,
+                    r_mapGlob.lightmaps[i].materials[j].distant_light_0_color.b
+                )
+            );
+
+            R_SetUniform(r_mapGlob.prog.program, "uDistantLight1Color",
+                glm::vec3(
+                    r_mapGlob.lightmaps[i].materials[j].distant_light_1_color.r,
+                    r_mapGlob.lightmaps[i].materials[j].distant_light_1_color.g,
+                    r_mapGlob.lightmaps[i].materials[j].distant_light_1_color.b
+                )
+            );
 
             GL_CALL(glActiveTexture, GL_TEXTURE0);
-            GL_CALL(glBindTexture, GL_TEXTURE_2D, r_mapGlob.lightmaps[i].materials[j].tex);
+            GL_CALL(glBindTexture,   
+                GL_TEXTURE_2D, 
+                r_mapGlob.lightmaps[i].materials[j].base_map.tex
+            );
+            bool has_base_map = 
+                r_mapGlob.lightmaps[i].materials[j].base_map.tex != 0;
+            GL_CALL(glActiveTexture, GL_TEXTURE0 + 1);
+            GL_CALL(glBindTexture,   
+                GL_TEXTURE_2D, 
+                r_mapGlob.lightmaps[i].materials[j].primary_detail_map.tex
+            );
+            bool has_primary_detail_map = 
+                r_mapGlob.lightmaps[i].materials[j]
+                    .primary_detail_map.tex != 0;
+            GL_CALL(glActiveTexture, GL_TEXTURE0 + 2);
+            GL_CALL(glBindTexture,   
+                GL_TEXTURE_2D, 
+                r_mapGlob.lightmaps[i].materials[j].secondary_detail_map.tex
+            );
+            bool has_secondary_detail_map =
+                r_mapGlob.lightmaps[i].materials[j]
+                    .secondary_detail_map.tex != 0;
 
-            R_SetUniform(r_mapGlob.prog.program, "uWireframe", false);
+            GL_CALL(glActiveTexture, GL_TEXTURE0 + 3);
+            GL_CALL(glBindTexture,
+                GL_TEXTURE_2D,
+                r_mapGlob.lightmaps[i].materials[j].micro_detail_map.tex
+            );
+            bool has_micro_detail_map =
+                r_mapGlob.lightmaps[i].materials[j].micro_detail_map.tex != 0;
+            
+
+            bool wireframe = Dvar_GetBool(*r_wireframe);
+            int flags = wireframe | has_base_map << 1 |
+                has_primary_detail_map << 2 | has_secondary_detail_map << 3 |
+                has_micro_detail_map << 4;
+            R_SetUniform(r_mapGlob.prog.program, "uFlags", flags & 0x1E);
+            GLsizei vertices_count =
+                r_mapGlob.lightmaps[i].materials[j].vertices_count;
             GL_CALL(glDrawArrays, GL_TRIANGLES, 0, vertices_count);
             if (Dvar_GetBool(*r_wireframe)) {
-                R_SetUniform(r_mapGlob.prog.program, "uWireframe", true);
+                R_SetUniform(r_mapGlob.prog.program, "uFlags", flags & 0x1F);
                 GL_CALL(glPolygonMode, GL_FRONT_AND_BACK, GL_LINE);
                 GL_CALL(glDrawArrays,  GL_TRIANGLES,      0, vertices_count);
                 GL_CALL(glPolygonMode, GL_FRONT_AND_BACK, GL_FILL);
@@ -670,8 +841,8 @@ void R_RenderMap() {
 static void R_DrawFrameInternal(size_t localClientNum) {
     cg_t& cg = CG_GetLocalClientGlobals(localClientNum);
 
-    GLint x   = (GLint)  (cg.viewport.x * Dvar_GetInt(*vid_width));
-    GLint y   = (GLint)  (cg.viewport.y * Dvar_GetInt(*vid_height));
+    GLint   x = (GLint)  (cg.viewport.x * Dvar_GetInt(*vid_width));
+    GLint   y = (GLint)  (cg.viewport.y * Dvar_GetInt(*vid_height));
     GLsizei w = (GLsizei)(cg.viewport.w * Dvar_GetInt(*vid_width));
     GLsizei h = (GLsizei)(cg.viewport.h * Dvar_GetInt(*vid_height));
 
@@ -683,19 +854,6 @@ static void R_DrawFrameInternal(size_t localClientNum) {
     GL_CALL(glViewport, x, y, w, h);
     GL_CALL(glScissor,  x, y, w, h);
     GL_CALL(glClear, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    static const std::array<glm::vec3, 10> cubePositions = {
-        glm::vec3( 0.0f,  0.0f,  0.0f ),
-        glm::vec3( 2.0f,  5.0f, -15.0f),
-        glm::vec3(-1.5f, -2.2f, -2.5f ),
-        glm::vec3(-3.8f, -2.0f, -12.3f),
-        glm::vec3( 2.4f, -0.4f, -3.5f ),
-        glm::vec3(-1.7f,  3.0f, -7.5f ),
-        glm::vec3( 1.3f, -2.0f, -2.5f ),
-        glm::vec3( 1.5f,  2.0f, -2.5f ),
-        glm::vec3( 1.5f,  0.2f, -1.5f ),
-        glm::vec3(-1.3f,  1.0f, -1.5f )
-    };
 
     /*
     R_DrawText(
@@ -715,27 +873,38 @@ static void R_DrawFrameInternal(size_t localClientNum) {
     R_SetUniform(
         r_mapGlob.prog.program, "uPerspectiveProjection",
         cg.camera.perspectiveProjection
-    );
-
-    GL_CALL(glUseProgram, r_cubePrim.prog.program);
-    R_SetUniform(r_cubePrim.prog.program, "uView", view);
-    R_SetUniform(
-        r_cubePrim.prog.program, "uPerspectiveProjection", 
-        cg.camera.perspectiveProjection
-    );
-
-    GL_CALL(glActiveTexture, GL_TEXTURE0);
-    GL_CALL(glBindTexture, GL_TEXTURE_2D, r_cubePrim.tex);
-    for (int i = 0; i < (int)cubePositions.size(); i++) 
-        R_DrawCube(cubePositions[i], 20.0f * (float)i, r_cubePrim.tex);
+    );;
 
     GL_CALL(glUseProgram, 0);
 
     R_RenderMap();
     
-    
-
     R_DrawTextDrawDefs(localClientNum);
+}
+
+void R_UnloadMap() {
+    for (uint32_t i = 0; i < r_mapGlob.lightmap_count; i++) {
+        BSPLightmap* lightmap = CL_Map_Lightmap(i);
+        for (uint32_t j = 0; j < lightmap->materials.count; j++) {
+            R_DeleteVertexBuffer(&r_mapGlob.lightmaps[i].materials[j].vb);
+            R_DeleteImage(&r_mapGlob.lightmaps[i].materials[j].base_map);
+            R_DeleteImage(
+                &r_mapGlob.lightmaps[i].materials[j].primary_detail_map);
+            R_DeleteImage(
+                &r_mapGlob.lightmaps[i].materials[j].secondary_detail_map);
+            R_DeleteImage(
+                &r_mapGlob.lightmaps[i].materials[j].micro_detail_map);
+        }
+        Z_Free((void*)r_mapGlob.lightmaps[i].materials);
+    }
+    Z_Free((void*)r_mapGlob.lightmaps);
+}
+
+void R_ShutdownMap() {
+    if (CL_IsMapLoaded())
+        R_UnloadMap();
+
+    R_DeleteShaderProgram(&r_mapGlob.prog);
 }
 
 static void R_UnregisterDvars() {
@@ -756,7 +925,6 @@ void R_Shutdown() {
         R_ClearTextDrawDefs(i);
 
     R_ShutdownMap();
-    R_ShutdownCubes(r_cubePrim);
 
     R_UnregisterDvars();
     IMG_Quit();

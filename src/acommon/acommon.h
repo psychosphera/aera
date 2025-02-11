@@ -226,11 +226,11 @@
     A_GENERIC_MATCH_UNSIGNED_INTEGRAL(b)
 
 #if A_C23 || A_CXX17
-#   define A_STATIC_ASSERT(...) static_assert(__VA_ARGS__)
+#   define A_STATIC_ASSERT(expr) static_assert (expr, A_STRINGIFY(expr))
 #elif A_C11
-#   define A_STATIC_ASSERT(...) _Static_assert(__VA_ARGS__)
+#   define A_STATIC_ASSERT(expr) _Static_assert(expr, A_STRINGIFY(expr))
 #elif A_CXX11
-#   define A_STATIC_ASSERT(...) static_assert(__VA_ARGS__, "Static Assertion Failed.")
+#   define A_STATIC_ASSERT(expr) static_assert (expr, A_STRINGIFY(expr))
 #endif
 
 #if A_COMPILER_IS_GCC_COMPATIBLE

@@ -25,7 +25,6 @@ typedef unsigned int vertex_shader_t;
 typedef unsigned int fragment_shader_t;
 typedef unsigned int shader_program_t;
 typedef unsigned int texture_t;
-typedef GLenum       image_format_t;
 
 constexpr inline float VFOV_DEFAULT = 74.0f;
 
@@ -34,6 +33,46 @@ extern dvar_t* vid_height;
 
 struct GfxSubTexDef {
     float x, y, u, v;
+};
+
+struct GfxVertexBuffer {
+    vao_t  vao;
+    vbo_t  vbo;
+    size_t bytes, capacity;
+};
+
+bool R_CreateVertexBuffer(const void* data, size_t n, size_t capacity,
+                          size_t off, A_OUT GfxVertexBuffer* vb);
+bool R_UploadVertexData  (A_INOUT GfxVertexBuffer* vb,
+                          size_t off, const void* data, size_t n);
+bool R_AppendVertexData  (A_INOUT GfxVertexBuffer* vb,
+                          const void* data, size_t n);
+bool R_DeleteVertexBuffer(A_INOUT GfxVertexBuffer* vb);
+
+enum ImageFormat {
+    R_IMAGE_FORMAT_DXT1,
+    R_IMAGE_FORMAT_DXT3,
+    R_IMAGE_FORMAT_DXT5,
+    R_IMAGE_FORMAT_A8,
+    R_IMAGE_FORMAT_RGB565,
+    R_IMAGE_FORMAT_RGB888,
+    R_IMAGE_FORMAT_RGBA8888,
+    R_IMAGE_FORMAT_ARGB8888
+};
+
+enum ImageType {
+    R_IMAGE_TYPE_2D_TEXTURE,
+    R_IMAGE_TYPE_3D_TEXTURE,
+    R_IMAGE_TYPE_CUBE_MAP
+};
+
+struct GfxImage {
+    ImageType   type;
+    texture_t   tex;
+    ImageFormat format, internal_format;
+    const void* pixels;
+    size_t      pixels_size;
+    int         width, height, depth;
 };
 
 struct GfxCamera {
@@ -52,120 +91,19 @@ struct GfxShaderProgram {
 	shader_program_t  program;
 	vertex_shader_t   vertex_shader;
 	fragment_shader_t fragment_shader;
-    
-    GfxShaderProgram() {
-        program = 0;
-        vertex_shader = 0;
-        fragment_shader = 0;
-    }
-
-    GfxShaderProgram(const GfxShaderProgram&) = delete;
-    GfxShaderProgram(GfxShaderProgram&& other) noexcept {
-        program = other.program;
-        vertex_shader = other.vertex_shader;
-        fragment_shader = other.fragment_shader;
-        other.program = 0;
-        other.vertex_shader = 0;
-        other.fragment_shader = 0;
-    }
-
-    GfxShaderProgram& operator=(const GfxShaderProgram&) = delete;
-    GfxShaderProgram& operator=(GfxShaderProgram&& other) noexcept {
-        program = other.program;
-        vertex_shader = other.vertex_shader;
-        fragment_shader = other.fragment_shader;
-
-        other.program = 0;
-        other.vertex_shader = 0;
-        other.fragment_shader = 0;
-        return *this;
-    }
- 
-    ~GfxShaderProgram() {
-        glDeleteShader(fragment_shader);
-        glDeleteShader(vertex_shader);
-        glDeleteProgram(program);
-    }
 };
-
-struct GfxCubePrim {
-	inline static const float vertices[] = {
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-    };
-
-    GfxShaderProgram prog;
-    texture_t tex;
-    vbo_t vbo;
-    vao_t vao;
-};
-
-struct SdlSurfaceDeleter {
-	void inline operator()(SDL_Surface* p) {
-		SDL_DestroySurface(p);
-	}
-};
-
-using SdlSurface = std::unique_ptr<SDL_Surface, SdlSurfaceDeleter>;
 
 struct FontDef;
 
 struct GfxTextDraw {
-    bool free;
-    FontDef* font;
+    bool        free;
+    FontDef*    font;
     std::string text;
-    RectDef rect;
-    float xscale, yscale;
-    glm::vec3 color;
-    bool active;
-    bool right;
-};
-
-struct GfxBSPVertex {
-    float x, y, z;
-};
-
-struct GfxBSPTri {
-    GfxBSPVertex v[3];
+    RectDef     rect;
+    float       xscale, yscale;
+    glm::vec3   color;
+    bool        active;
+    bool        right;
 };
 
 A_NO_DISCARD constexpr inline std::string_view GL_ERROR_STR(GLenum err) {

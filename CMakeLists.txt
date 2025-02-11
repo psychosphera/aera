@@ -47,9 +47,9 @@ add_executable(h1_map_viewer
 	src/cg_cgame.cpp src/com.cpp src/font.cpp src/fs_files.cpp src/gfx.cpp 
 	src/gfx_backend.cpp  src/in_input.cpp src/main.cpp src/sys.cpp
  	src/db_files.cpp src/cmd_commands.cpp src/cl_client.cpp src/devgui.cpp 
-	src/gfx_text.cpp src/gfx_shaders.cpp src/devcon.cpp src/dvar.cpp 
+	src/gfx_text.cpp "src/gfx_shader.cpp" src/devcon.cpp src/dvar.cpp 
 	src/con_console.cpp src/pm_pmove.cpp src/m_math.cpp
-)
+ "src/gfx_defs.cpp")
 
 
 # SDL3 and SDL3_image aren't available from vcpkg. SDL_image contains SDL as a
@@ -99,12 +99,12 @@ endif()
 
 if(MSVC)
 	target_compile_options(h1_map_viewer PRIVATE 
-		"/permissive-" "/W4" "/wd4005" "/bigobj" "/WX"
+		"/permissive-" "/W4" "/wd4005" "/bigobj" "/WX" "/O2"
 	)
 
     if (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
         target_compile_options(h1_map_viewer PRIVATE 
-		    "/O2"
+		    
 	    )
     endif()
 endif()
@@ -145,6 +145,6 @@ endif()
 if((CLANG AND NOT MSVC) OR GCC)
     target_compile_options(h1_map_viewer PRIVATE 
         "-Wall" "-Wextra" "-Werror" "-pedantic" "-pedantic-errors" 
-        "-Wno-type-limits"
+        "-Wno-type-limits" "-O3"
     ) 
 endif()

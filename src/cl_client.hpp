@@ -296,6 +296,13 @@ enum BSPShaderEnvironmentType: uint16_t {
 	BSP_SHADER_ENVIRONMENT_TYPE_BLENDED_BASE_SPECULAR
 };
 
+enum BSPShaderDetailFunction: uint16_t {
+	BSP_SHADER_DETAIL_FUNCTION_DOUBLE_BIASED_MULTIPLY,
+	BSP_SHADER_DETAIL_FUNCTION_MULTIPLY,
+	BSP_SHADER_DETAIL_FUNCTION_DOUBLE_BIASED_ADD,
+	BSP_SHADER_DETAIL_FUNCTION_COUNT
+};
+
 #define DISCRIMINANT_TO_STRING(a) [a] = A_STRINGIFY(a)
 
 inline const char* BSPMaterialType_to_string(BSPMaterialType type) {
@@ -577,7 +584,20 @@ A_PACK(struct BSPShaderEnvironment {
 	uint16_t                 diffuse_flags;
 	char                     __pad2[26];
 	TagDependency            base_map;
-	char                     __pad3[684];
+	char                     __pad3[24];
+	BSPShaderDetailFunction  detail_map_function;
+	uint16_t                 __pad4;
+	float                    primary_detail_map_scale;
+	TagDependency            primary_detail_map;
+	float                    secondary_detail_map_scale;
+	TagDependency            secondary_detail_map;
+	char                     __pad5[24];
+	BSPShaderDetailFunction  micro_detail_map_function;
+	uint16_t                 __pad6;
+	float                    micro_detail_map_scale;
+	TagDependency            micro_detail_map;
+	acolor_rgb_t             material_color;
+	char                     __pad7[556];
 });
 A_STATIC_ASSERT(sizeof(BSPShaderEnvironment) == 836);
 

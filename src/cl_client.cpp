@@ -594,6 +594,76 @@ bool CL_LoadMap_CollisionMaterials(
 	return true;
 }
 
+size_t CL_BitmapDataSize(const BSPBitmapData* bitmap_data) {
+	assert(bitmap_data->type == BSP_BITMAP_DATA_TYPE_2D_TEXTURE ||
+		bitmap_data->type == BSP_BITMAP_DATA_TYPE_3D_TEXTURE);
+
+	if (bitmap_data->type == BSP_BITMAP_DATA_TYPE_2D_TEXTURE)
+		assert(bitmap_data->depth == 1);
+
+	size_t bpp = CL_BitmapDataFormatBPP(bitmap_data->format);
+	//bool   compressed   = CL_BitmapDataFormatIsCompressed(bitmap_data->format);
+
+	size_t size = (bitmap_data->width * bitmap_data->height * bitmap_data->depth * bpp) / 8;
+	assert(A_IS_MULTIPLE_OF(size, 8));
+	return size;
+}
+
+bool CL_LoadMap_Bitmap(TagId tag_id) {
+	Tag* bitmap_tag = CL_Map_Tag(tag_id);
+	assert(bitmap_tag);
+	assert(bitmap_tag->primary_class == TAG_FOURCC_BITMAP);
+
+	/*Com_DPrintln(
+		"base_map tag: primary_group=0x{:08X}, secondary_group=0x{:08X}, tertiary_group=0x{:08X}, data=0x{:08X}, external={}",
+		base_map_tag->primary_class, base_map_tag->secondary_class,
+		base_map_tag->tertiary_class, base_map_tag->tag_data, base_map_tag->external
+	);*/
+
+	BSPBitmap* bitmap = (BSPBitmap*)bitmap_tag->tag_data;
+	assert(bitmap);
+
+	/*Com_DPrintln(
+		"{} ({}): Found {} bitmap data.",
+		base_map_path, tag_id.index, base_map_bitmap->bitmap_data.count
+	);*/
+	BSPBitmapData* bitmap_data = (BSPBitmapData*)bitmap->bitmap_data.pointer;
+	for (uint32_t i = 0; i < bitmap->bitmap_data.count; i++) {
+		bitmap_data[i].pixels = NULL;
+
+		if (bitmap_data[i].type != BSP_BITMAP_DATA_TYPE_2D_TEXTURE &&
+			bitmap_data[i].type != BSP_BITMAP_DATA_TYPE_3D_TEXTURE
+			) {
+			continue;
+		}
+
+		bitmap_data->actual_size = CL_BitmapDataSize(&bitmap_data[i]);
+		assert(bitmap_data->actual_size < 4 * 1024 * 1024);
+		bitmap_data[i].pixels = Z_Alloc(bitmap_data->actual_size);
+		assert(bitmap_data[i].pixels);
+		long long pos = FS_SeekStream(g_load.f, FS_SEEK_BEGIN, bitmap_data[i].pixel_data_offset);
+		assert(pos == bitmap_data[i].pixel_data_offset);
+		(void)pos;
+
+		bool b = FS_ReadStream(g_load.f, bitmap_data[i].pixels, bitmap_data->actual_size);
+		assert(b);
+		(void)b;
+		/*Com_DPrintln(
+			"Lightmap {} Material {} Bitmap Data {} ({}): class=0x{:08X}, type={}, width={}, height={}, depth={}, format={}, pixel_data: size={}, offset=0x{:08X}, pointer={}",
+			i, j, k,
+			bitmap_data[k].pixels,
+			bitmap_data[k].klass,
+			BSPBitmapDataType_to_string(bitmap_data[k].type),
+			bitmap_data[k].width, bitmap_data[k].height, bitmap_data[k].depth,
+			BSPBitmapDataFormat_to_string(bitmap_data[k].format),
+			bitmap_data->actual_size,
+			bitmap_data[k].pixel_data_offset,
+			bitmap_data[k].pixels
+		);*/
+	}
+	return true;
+}
+
 size_t CL_BitmapDataFormatBPP(BSPBitmapDataFormat format) {
 	switch (format) {
 	case BSP_BITMAP_DATA_FORMAT_A8R8G8B8:
@@ -618,21 +688,6 @@ size_t CL_BitmapDataFormatBPP(BSPBitmapDataFormat format) {
 		assert(false);
 		return 0;
 	}
-}
-
-size_t CL_BitmapDataSize(const BSPBitmapData* bitmap_data) {
-	assert(bitmap_data->type  == BSP_BITMAP_DATA_TYPE_2D_TEXTURE || 
-		   bitmap_data->type == BSP_BITMAP_DATA_TYPE_3D_TEXTURE);
-
-	if (bitmap_data->type == BSP_BITMAP_DATA_TYPE_2D_TEXTURE)
-		assert(bitmap_data->depth == 1);
-
-	size_t bpp          = CL_BitmapDataFormatBPP(bitmap_data->format);
-	//bool   compressed   = CL_BitmapDataFormatIsCompressed(bitmap_data->format);
-
-	size_t size = (bitmap_data->width * bitmap_data->height * bitmap_data->depth * bpp) / 8;
-	assert(A_IS_MULTIPLE_OF(size, 8));
-	return size;
 }
 
 bool CL_LoadMap(std::string_view map_name) {
@@ -777,66 +832,27 @@ bool CL_LoadMap(std::string_view map_name) {
 			assert(shader_tag->secondary_class == TAG_FOURCC_SHADER);
 			if (shader_tag->primary_class == TAG_FOURCC_SHADER_ENVIRONMENT) {
 				BSPShaderEnvironment* shader = (BSPShaderEnvironment*)shader_tag->tag_data;
-				TagId tag_id = TagId { .id = shader_tag->tag_id.id };
+				assert(shader->detail_map_function < BSP_SHADER_DETAIL_FUNCTION_COUNT);
 
 				const char* base_map_path = (const char*)shader->base_map.path_pointer;
 				Com_DPrintln(
-					"{} ({}): base_map: {} (0x{:08X})", shader_path, tag_id.index,
+					"{} ({}): base_map: {} (0x{:08X})", shader_path, shader->base_map.id.index,
 					base_map_path ? base_map_path : "<NULL>", shader->base_map.fourcc
 				);
-				tag_id = shader->base_map.id;
-				if(tag_id.index == 0xFFFF)
+				if(shader->base_map.id.index == 0xFFFF)
 					continue;
-				Tag* base_map_tag = CL_Map_Tag(tag_id);
-				assert(base_map_tag->primary_class == TAG_FOURCC_BITMAP);
-
-				Com_DPrintln(
-					"{}: base_map tag: primary_group=0x{:08X}, secondary_group=0x{:08X}, tertiary_group=0x{:08X}, data=0x{:08X}, external={}",
-					shader_path, base_map_tag->primary_class, base_map_tag->secondary_class,
-					base_map_tag->tertiary_class, base_map_tag->tag_data, base_map_tag->external
-				);
-
-				BSPBitmap* base_map_bitmap = (BSPBitmap*)base_map_tag->tag_data;
-
-				tag_id = base_map_tag->tag_id;
-				Com_DPrintln(
-					"{} ({}): Found {} bitmap data.", 
-					base_map_path, tag_id.index, base_map_bitmap->bitmap_data.count
-				);
-				BSPBitmapData* bitmap_data = (BSPBitmapData*)base_map_bitmap->bitmap_data.pointer;
-				for (uint32_t k = 0; k < base_map_bitmap->bitmap_data.count; k++) {
-					bitmap_data[k].pixels = NULL;
-
-					if (bitmap_data[k].type != BSP_BITMAP_DATA_TYPE_2D_TEXTURE &&
-						bitmap_data[k].type != BSP_BITMAP_DATA_TYPE_3D_TEXTURE
-					) {
-						continue;
-					}
-
-					bitmap_data->actual_size = CL_BitmapDataSize(&bitmap_data[k]);
-					assert(bitmap_data->actual_size < 4 * 1024 * 1024);
-					bitmap_data[k].pixels = Z_Alloc(bitmap_data->actual_size);
-					assert(bitmap_data[k].pixels);
-					long long pos = FS_SeekStream(g_load.f, FS_SEEK_BEGIN, bitmap_data[k].pixel_data_offset);
-					assert(pos == bitmap_data[k].pixel_data_offset);
-					(void)pos;
-
-					bool b = FS_ReadStream(g_load.f, bitmap_data[k].pixels, bitmap_data->actual_size);
-					assert(b);
-					(void)b;
-					Com_DPrintln(
-						"Lightmap {} Material {} Bitmap Data {} ({}): class=0x{:08X}, type={}, width={}, height={}, depth={}, format={}, pixel_data: size={}, offset=0x{:08X}, pointer={}",
-						i, j, k,
-						bitmap_data[k].pixels,
-						bitmap_data[k].klass,
-						BSPBitmapDataType_to_string(bitmap_data[k].type),
-						bitmap_data[k].width, bitmap_data[k].height, bitmap_data[k].depth, 
-						BSPBitmapDataFormat_to_string(bitmap_data[k].format),
-						bitmap_data->actual_size,
-						bitmap_data[k].pixel_data_offset,
-						bitmap_data[k].pixels
-					);
-				}
+				
+				bool b = true;
+				if (shader->base_map.id.index != 0xFFFF) 
+					b = CL_LoadMap_Bitmap(shader->base_map.id);
+				assert(b);
+				if (shader->primary_detail_map.id.index != 0xFFFF)
+					b = CL_LoadMap_Bitmap(shader->primary_detail_map.id);
+				assert(b);
+				if (shader->secondary_detail_map.id.index != 0xFFFF)
+					b = CL_LoadMap_Bitmap(shader->secondary_detail_map.id);
+				assert(b);
+				(void)b;
 			}
 		}
 	}

@@ -1,4 +1,4 @@
-#include "gfx_shaders.hpp"
+#include "gfx_shader.hpp"
 
 A_NO_DISCARD bool R_CompileShader(
     const std::string& shaderSource, int type,
@@ -52,9 +52,9 @@ A_NO_DISCARD bool R_LinkShaders(
 
 A_NO_DISCARD bool R_CreateShaderProgram(
     const std::string& vertexSource, const std::string& fragmentSource,
-    A_OPTIONAL_OUT std::string* log, A_OUT GfxShaderProgram& prog
+    A_OPTIONAL_OUT std::string* log, A_OUT GfxShaderProgram* prog
 ) {
-    prog = GfxShaderProgram{};
+    A_memset(prog, 0, sizeof(*prog));
 
     vertex_shader_t v = 0;
     if (!R_CompileShader(vertexSource, GL_VERTEX_SHADER, log, v))
@@ -68,18 +68,18 @@ A_NO_DISCARD bool R_CreateShaderProgram(
     if (!R_LinkShaders(v, f, log, p))
         return false;
 
-    prog.vertex_shader = v;
-    prog.fragment_shader = f;
-    prog.program = p;
+    prog->vertex_shader   = v;
+    prog->fragment_shader = f;
+    prog->program         = p;
     return true;
 }
 
 bool R_DeleteShaderProgram(
-    A_IN GfxShaderProgram& prog
+    A_INOUT GfxShaderProgram* prog
 ) {
-    GL_CALL(glDeleteProgram, prog.program);
-    prog.vertex_shader = 0;
-    prog.fragment_shader = 0;
-    prog.program = 0;
+    GL_CALL(glDeleteProgram, prog->program);
+    prog->vertex_shader   = 0;
+    prog->fragment_shader = 0;
+    prog->program         = 0;
     return true;
 }

@@ -24,9 +24,8 @@ struct GlyphDef {
 struct FontDef {
     int atlas_width, atlas_height;
     GfxShaderProgram prog;
-    vao_t     vao;
-    vbo_t     vbo;
-    texture_t tex;
+    GfxVertexBuffer  vb;
+    texture_t        tex;
 
 	inline bool AddGlyph(char c, const GlyphDef& g) {
 		if (c < 32 || c > 127)
@@ -65,26 +64,25 @@ struct FontDef {
 	}
 
     void Take(FontDef&& other) {
-        glyphs = other.glyphs;
-        atlas_width = other.atlas_width;
+        glyphs       = other.glyphs;
+        atlas_width  = other.atlas_width;
         atlas_height = other.atlas_height;
-        prog = std::move(other.prog);
-        vao = other.vao;
-        vbo = other.vbo;
-        tex = other.tex;
+        prog         = std::move(other.prog);
+        vb           = other.vb;
+        tex          = other.tex;
 
         other.atlas_height = 0;
         other.atlas_width = 0;
-        other.vao = 0;
-        other.vbo = 0;
+        other.vb.vao = 0;
+        other.vb.vbo = 0;
         other.tex = 0;
     }
 
     FontDef() {
         atlas_width = 0;
         atlas_height = 0;
-        vao = 0;
-        vbo = 0;
+        vb.vao = 0;
+        vb.vbo = 0;
         tex = 0;
     }
 
@@ -101,8 +99,8 @@ struct FontDef {
 
     inline ~FontDef() {
         glDeleteTextures(1, &tex);
-        glDeleteBuffers(1, &vbo);
-        glDeleteBuffers(1, &vao);
+        glDeleteBuffers(1, &vb.vbo);
+        glDeleteVertexArrays(1, &vb.vao);
     }
 
 private:
