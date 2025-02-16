@@ -44,6 +44,12 @@ void A_memset(void* A_RESTRICT p, char c, size_t n) {
         ((char* A_RESTRICT)p)[i] = c;
 }
 
+bool A_cstrcmp(const char* A_RESTRICT a,
+               const char* A_RESTRICT b
+) {
+    return strcmp(a, b) == 0;
+}
+
 bool A_cstricmp(const char* A_RESTRICT a, 
                 const char* A_RESTRICT b
 ) {
@@ -63,6 +69,35 @@ bool A_cstricmp(const char* A_RESTRICT a,
 
 size_t A_cstrlen(const char* A_RESTRICT s) {
     return strlen(s);
+}
+
+char* A_cstrdup(const char* A_RESTRICT s) {
+    size_t len = A_cstrlen(s);
+    char* t = Z_Alloc(len);
+    A_memcpy(t, s, len);
+    return t;
+}
+
+void A_cstrfree(char* A_RESTRICT s) {
+    Z_Free(s);
+}
+
+void A_cstrncpyz(char* A_RESTRICT dest, const char* A_RESTRICT src, size_t n) {
+    size_t i = 0;
+    for (; i < n; i++) {
+        dest[i] = src[i];
+        if (dest[i] == '\0')
+            break;
+    }
+    if (i < n - 1)
+        dest[i] = '\0';
+    else
+        dest[n - 1] = '\0';
+}
+
+A_EXTERN_C size_t A_cstrchr(const char* A_RESTRICT s, char c) {
+    const char* A_RESTRICT p = memchr(s, c, A_cstrlen(s));
+    return p == NULL ? A_NPOS : p - s;
 }
 
 // str_t A_literal_internal(const char* A_RESTRICT s, size_t c) {

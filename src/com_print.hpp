@@ -12,8 +12,8 @@
 #include "acommon/a_type.h"
 #include "acommon/a_format.hpp"
 
-#include "devcon.hpp"
-#include "sys.hpp"
+#include "devcon.h"
+#include "sys.h"
 
 enum print_msg_dest_t {
     CON_DEST_DEVCON,
@@ -33,7 +33,7 @@ void inline Com_PrintMessage(
     if (dest == CON_DEST_ERR || dest == CON_DEST_ERR)
         fprintf(stderr, fmt, msg.size(), msg.data());
     else if (dest == CON_DEST_DEVCON)
-        DevCon_PrintMessage(msg);
+        DevCon_PrintMessage(msg.data());
 }
 
 template<typename ...Args>

@@ -48,6 +48,10 @@ A_EXTERN_C void*  A_memrchr(const void* A_RESTRICT p, char c, size_t n);
 A_EXTERN_C void   A_memset (      void* A_RESTRICT p, char c, size_t n);
 // ============================================================================
 
+// Analogous to std::string::npos.
+#define A_NPOS (~(size_t)0)
+
+A_EXTERN_C bool A_cstrcmp (const char* A_RESTRICT a, const char* A_RESTRICT b);
 A_EXTERN_C bool A_cstricmp(const char* A_RESTRICT a, const char* A_RESTRICT b);
 
 // This is its own function, rather than being an overload of `A_strlen` 
@@ -55,6 +59,11 @@ A_EXTERN_C bool A_cstricmp(const char* A_RESTRICT a, const char* A_RESTRICT b);
 // create a `str_t` from a C-style string.
 A_EXTERN_C size_t A_cstrlen(const char* A_RESTRICT p);
 
+A_EXTERN_C char* A_cstrdup(const char* A_RESTRICT s);
+A_EXTERN_C void  A_cstrfree(      char* A_RESTRICT s);
+
+A_EXTERN_C void   A_cstrncpyz(char* A_RESTRICT dest, const char* A_RESTRICT src, size_t n);
+A_EXTERN_C size_t A_cstrchr(const char* A_RESTRICT s, char c);
 // // ============================================================================
 // // These are two primary types that the rest of the string library uses.
 // //
@@ -96,8 +105,7 @@ A_EXTERN_C size_t A_cstrlen(const char* A_RESTRICT p);
 // } string_t;
 // // ============================================================================
 
-// // Analogous to std::string::npos.
-// #define A_NPOS SIZE_MAX
+// 
 
 // // Creates a `str_t` from a pointer and size.
 // // 

@@ -1,16 +1,19 @@
 #include <cstdint>
 
-#include "cg_cgame.hpp"
-#include "cmd_commands.hpp"
+#include "acommon/a_string.h"
+
+#include "cg_cgame.h"
+#include "cl_client.hpp"
+#include "cmd_commands.h"
 #include "con_console.hpp"
-#include "devcon.hpp"
-#include "devgui.hpp"
+#include "devcon.h"
+#include "devgui.h"
 #include "dvar.hpp"
-#include "font.hpp"
-#include "gfx.hpp"
-#include "in_input.hpp"
-#include "pm_pmove.hpp"
-#include "sys.hpp"
+#include "font.h"
+#include "gfx.h"
+#include "in_input.h"
+#include "pm_pmove.h"
+#include "sys.h"
 
 static uint64_t s_lastFrameTime;
 static uint64_t s_deltaTime;
@@ -59,11 +62,17 @@ bool Com_Frame() {
         if(!CG_LocalClientIsActive(i))
             continue;
 
-        if (DevGui_HasText(i))
-            Con_ProcessInput(DevGui_TakeText(i), i);
+        if (DevGui_HasText(i)) {
+            char* t = DevGui_TakeText(i);
+            Con_ProcessInput(t, i);
+            A_cstrfree(t);
+        }
     }
-    if (DevCon_HasText())
+    if (DevCon_HasText()) {
+        char* t = DevCon_TakeText();
         Con_ProcessInput(DevCon_TakeText());
+        A_cstrfree(t);
+    }
     
     R_Frame();
 

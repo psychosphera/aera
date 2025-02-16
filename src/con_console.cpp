@@ -2,15 +2,15 @@
 
 #include <functional>
 
-#include "cmd_commands.hpp"
+#include "cmd_commands.h"
 #include "dvar.hpp"
 
 bool Con_ProcessInput(std::string_view input) {
-    if (!Cmd_TakeInput(input))
+    if (!Cmd_TakeInput(input.data()))
         return false;
 
-    std::function<void(void)> fn;
-    if (Cmd_FindCommand(Cmd_Argv(0), fn)) {
+    void(*fn)(void);
+    if (Cmd_FindCommand(Cmd_Argv(0), &fn)) {
         fn();
         return true;
     }
@@ -43,11 +43,11 @@ bool Con_ProcessInput(std::string_view input) {
 }
 
 bool Con_ProcessInput(std::string_view input, size_t localClientNum) {
-    if (!Cmd_TakeInput(input))
+    if (!Cmd_TakeInput(input.data()))
         return false;
 
-    std::function<void(void)> fn;
-    if (Cmd_FindCommand(Cmd_Argv(0), fn)) {
+    void(*fn)(void);
+    if (Cmd_FindCommand(Cmd_Argv(0), &fn)) {
         fn();
         return true;
     } else {

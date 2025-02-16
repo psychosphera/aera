@@ -1,4 +1,4 @@
-#include "gfx_backend.hpp"
+#include "gfx_backend.h"
 
 #include <cstdio>
 
@@ -6,8 +6,8 @@
 #include <SDL3/SDL.h>
 
 #include "dvar.hpp"
-#include "gfx.hpp"
-#include "sys.hpp"
+#include "gfx.h"
+#include "sys.h"
 
 extern SDL_Window* g_sdlWindow;
 extern dvar_t* r_vsync;
@@ -16,7 +16,7 @@ extern dvar_t* r_noBorder;
 
 static SDL_GLContext s_glContext;
 
-void RB_Init() {
+A_EXTERN_C void RB_Init(void) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, 
@@ -45,11 +45,11 @@ extern dvar_t* vid_height;
 extern dvar_t* vid_xpos;
 extern dvar_t* vid_ypos;
 
-bool RB_EnableVsync(bool enable) {
+A_EXTERN_C bool RB_EnableVsync(bool enable) {
     return SDL_GL_SetSwapInterval((int)enable) == 0;
 }
 
-void RB_BeginFrame() {
+A_EXTERN_C void RB_BeginFrame(void) {
     if (Dvar_WasModified(*r_vsync)) {
         bool enable = Dvar_GetBool(*r_vsync);
         if (!RB_EnableVsync(enable)) {
@@ -101,10 +101,10 @@ void RB_BeginFrame() {
     }
 }
 
-void RB_EndFrame() {
+A_EXTERN_C void RB_EndFrame(void) {
     SDL_GL_SwapWindow(g_sdlWindow);
 }
 
-void RB_Shutdown() {
+A_EXTERN_C void RB_Shutdown(void) {
     SDL_GL_DeleteContext(s_glContext);
 }

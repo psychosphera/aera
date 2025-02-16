@@ -1,4 +1,4 @@
-#include "gfx.hpp"
+#include "gfx.h"
 
 #include <cassert>
 #include <cstdio>
@@ -9,35 +9,119 @@
 #include <SDL3_image/SDL_image.h>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "cg_cgame.hpp"
+#include "cg_cgame.h"
+#include "cl_client.hpp"
 #include "db_files.hpp"
 #include "dvar.hpp"
-#include "font.hpp"
-#include "gfx_backend.hpp"
-#include "gfx_shader.hpp"
-#include "gfx_text.hpp"
-#include "gfx_uniform.hpp"
-#include "m_math.hpp"
-#include "sys.hpp"
+#include "font.h"
+#include "gfx_backend.h"
+#include "gfx_shader.h"
+#include "gfx_text.h"
+#include "gfx_uniform.h"
+#include "m_math.h"
+#include "sys.h"
 
 extern dvar_t* vid_width;
 extern dvar_t* vid_height;
-extern void R_DrawTextDrawDefs (size_t localClientNum);
-extern void R_ClearTextDrawDefs(size_t localClientNum);
+A_EXTERN_C void R_DrawTextDrawDefs (size_t localClientNum);
+A_EXTERN_C void R_ClearTextDrawDefs(size_t localClientNum);
+
+A_NO_DISCARD const char* R_GlDebugErrorString(GLenum err) {
+    switch (err) {
+    case GL_NO_ERROR:
+        return "GL_NO_ERROR";
+    case GL_INVALID_ENUM:
+        return "GL_INVALID_ENUM";
+    case GL_INVALID_VALUE:
+        return "GL_INVALID_VALUE";
+    case GL_INVALID_OPERATION:
+        return "GL_INVALID_OPERATION";
+    case GL_STACK_OVERFLOW:
+        return "GL_STACK_OVERFLOW";
+    case GL_STACK_UNDERFLOW:
+        return "GL_STACK_UNDERFLOW";
+    case GL_OUT_OF_MEMORY:
+        return "GL_OUT_OF_MEMORY";
+    case GL_INVALID_FRAMEBUFFER_OPERATION:
+        return "GL_INVALID_FRAMEBUFFER_OPERATION";
+    default:
+        Com_DPrintln("R_GlErrorStr called with unknown value (err={}}", err);
+        return "";
+    }
+}
+
+A_NO_DISCARD static const char* R_GlDebugSourceString(GLenum source) {
+    switch (source) {
+    case GL_DEBUG_SOURCE_API:
+        return "API";
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+        return "WindowSystem";
+    case GL_DEBUG_SOURCE_SHADER_COMPILER:
+        return "ShaderCompiler";
+    case GL_DEBUG_SOURCE_THIRD_PARTY:
+        return "ThirdParty";
+    case GL_DEBUG_SOURCE_APPLICATION:
+        return "Application";
+    case GL_DEBUG_SOURCE_OTHER:
+        return "Other";
+    default:
+        return "<unknown>";
+    };
+}
+
+A_NO_DISCARD static const char* R_GlDebugTypeString(GLenum type) {
+    switch (type) {
+    case GL_DEBUG_TYPE_ERROR:
+        return "Error";
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+        return "DeprecatedBehaviour";
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+        return "UndefinedBehaviour";
+    case GL_DEBUG_TYPE_PORTABILITY:
+        return "Portability";
+    case GL_DEBUG_TYPE_PERFORMANCE:
+        return "Performance";
+    case GL_DEBUG_TYPE_MARKER:
+        return "Marker";
+    case GL_DEBUG_TYPE_PUSH_GROUP:
+        return "PushGroup";
+    case GL_DEBUG_TYPE_POP_GROUP:
+        return "PopGroup";
+    case GL_DEBUG_TYPE_OTHER:
+        return "Other";
+    default:
+        return "<unknown>";
+    };
+}
+
+A_NO_DISCARD static const char* R_GlDebugSeverityString(GLenum severity) {
+    switch (severity) {
+    case GL_DEBUG_SEVERITY_HIGH:
+        return "High";
+    case GL_DEBUG_SEVERITY_MEDIUM:
+        return "Medium";
+    case GL_DEBUG_SEVERITY_LOW:
+        return "Low";
+    case GL_DEBUG_SEVERITY_NOTIFICATION:
+        return "Notification";
+    default:
+        return "<unknown>";
+    };
+}
 
 void GLAPIENTRY R_GlDebugOutput(
     GLenum source, GLenum type, unsigned int id, GLenum severity,
     GLsizei /*unused*/, const char* message, const void* /*unused*/
 ) {
-    if (/*id == 131169 ||*/ id == 131185/* ||
-        id == 131218 || id == 131204 || id == 131139*/
+    if (/*id == 131169 ||*/ id == 131185 || /*
+        id == 131218 ||*/ id == 131204/* || id == 131139 */
     ) {
         return;
     }
 
-    std::string_view src = GL_DEBUG_SOURCE_STR(source);
-    std::string_view t   = GL_DEBUG_TYPE_STR(type);
-    std::string_view sev = GL_DEBUG_SEVERITY_STR(severity);
+    std::string_view src = R_GlDebugErrorString(source);
+    std::string_view t   = R_GlDebugTypeString(type);
+    std::string_view sev = R_GlDebugSeverityString(severity);
     
     Com_DPrintln(
         "OpenGL debug message (id={}, source={}, type={}, severity={}): {}", 
@@ -64,7 +148,7 @@ extern FontDef r_defaultFont;
 
 size_t r_testDrawId = 0;
 
-void R_Init() {
+A_EXTERN_C void R_Init(void) {
     RB_Init();
 
     int imgInitFlags = IMG_INIT_JPG | IMG_INIT_PNG;
@@ -98,14 +182,15 @@ void R_Init() {
 
     R_RegisterDvars();
 
-    bool b = Font_Load("consola.ttf", 0, 48, r_defaultFont);
+    bool b = Font_Load("consola.ttf", 0, 48, &r_defaultFont);
     assert(b);
     (void)b;
 
     RectDef rect = { .x = 0.1f, .y = 0.1f, .w = 0.8f, .h = 0.2f };
+    acolor_rgb_t color = A_color_rgb(0.77, 0.77, 0.2);
     R_AddTextDrawDef(
-        0, nullptr, rect, "This is a test.\nWhere the fuck i am?", 1.0f, 1.0f,
-        glm::vec3(0.77, 0.77, 0.2), true, false, r_testDrawId
+        0, nullptr, &rect, "This is a test.\nWhere the fuck i am?", 1.0f, 1.0f,
+        color, true, false, &r_testDrawId
     );
     R_InitMap();
 
@@ -115,29 +200,29 @@ void R_Init() {
 }
 
 static void R_InitLocalClient(size_t localClientNum) {
-    cg_t& cg     = CG_GetLocalClientGlobals(localClientNum);
-    cg.nearPlane = R_NEAR_PLANE_DEFAULT;
-    cg.farPlane  = R_FAR_PLANE_DEFAULT;
+    cg_t* cg      = CG_GetLocalClientGlobals(localClientNum);
+    cg->nearPlane = R_NEAR_PLANE_DEFAULT;
+    cg->farPlane  = R_FAR_PLANE_DEFAULT;
     R_UpdateLocalClientView(localClientNum);
 }
 
 static void R_UpdateOrtho(size_t localClientNum) {
-    cg_t& cg = CG_GetLocalClientGlobals(localClientNum);
+    cg_t* cg = CG_GetLocalClientGlobals(localClientNum);
 
-    float left   = cg.viewport.x * Dvar_GetInt(*vid_width);
-    float right  = cg.viewport.w * Dvar_GetInt(*vid_width)  + left;
-    float bottom = cg.viewport.y * Dvar_GetInt(*vid_height);
-    float top    = cg.viewport.h * Dvar_GetInt(*vid_height) + bottom;
-    cg.camera.orthoProjection = glm::ortho(left, right, bottom, top);
+    float left   = cg->viewport.x * Dvar_GetInt(*vid_width);
+    float right  = cg->viewport.w * Dvar_GetInt(*vid_width)  + left;
+    float bottom = cg->viewport.y * Dvar_GetInt(*vid_height);
+    float top    = cg->viewport.h * Dvar_GetInt(*vid_height) + bottom;
+    cg->camera.orthoProjection = glm::ortho(left, right, bottom, top);
 }
 
 void R_UpdateProjection(size_t localClientNum) {
-    cg_t& cg = CG_GetLocalClientGlobals(localClientNum);
+    cg_t* cg = CG_GetLocalClientGlobals(localClientNum);
 
-    float w = cg.viewport.w * Dvar_GetInt(*vid_width);
-    float h = cg.viewport.h * Dvar_GetInt(*vid_height);
-    cg.camera.perspectiveProjection = glm::perspective(
-        glm::radians(cg.fovy), w / h, cg.nearPlane, cg.farPlane
+    float w = cg->viewport.w * Dvar_GetInt(*vid_width);
+    float h = cg->viewport.h * Dvar_GetInt(*vid_height);
+    cg->camera.perspectiveProjection = glm::perspective(
+        A_radians(cg->fovy), w / h, cg->nearPlane, cg->farPlane
     );
 }
 
@@ -146,7 +231,7 @@ static void R_UpdateLocalClientView(size_t localClientNum) {
     R_UpdateProjection(localClientNum);
 }
 
-static void R_RegisterDvars() {
+static void R_RegisterDvars(void) {
     r_vsync          = &Dvar_RegisterBool("r_vsync", DVAR_FLAG_NONE, true);
     r_fullscreen     = &Dvar_RegisterBool("r_fullscreen", DVAR_FLAG_NONE, false);
     r_noBorder       = &Dvar_RegisterBool("r_noBorder", DVAR_FLAG_NONE, false);
@@ -154,11 +239,11 @@ static void R_RegisterDvars() {
     r_wireframe      = &Dvar_RegisterBool("r_wireframe", DVAR_FLAG_NONE, false);
 }
 
-void R_DrawFrame(size_t localClientNum) {
+A_EXTERN_C void R_DrawFrame(size_t localClientNum) {
     R_DrawFrameInternal(localClientNum);
 }
 
-void R_Frame() {
+A_EXTERN_C void R_Frame(void) {
     RB_BeginFrame();
     GL_CALL(glEnable, GL_SCISSOR_TEST);
     for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
@@ -171,13 +256,13 @@ void R_Frame() {
     RB_EndFrame();
 }
 
-void R_WindowResized() {
+A_EXTERN_C void R_WindowResized(void) {
     for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++)
         R_UpdateLocalClientView(i);
     
 }
 
-A_NO_DISCARD bool R_CreateImage(const char* image_name, 
+A_NO_DISCARD bool R_CreateSdlImage(const char* image_name, 
                                 A_INOUT GfxImage* image
 ) {
     assert(image_name);
@@ -247,60 +332,6 @@ A_NO_DISCARD bool R_CreateImage(const char* image_name,
     return true;
 }
 
-static GLenum R_ImageFormatToGL(ImageFormat format) {
-    GLenum gl_format = 0;
-    switch(format) {
-    case R_IMAGE_FORMAT_A8: 
-        gl_format = GL_ALPHA8;
-        break;
-    case R_IMAGE_FORMAT_RGB565:
-        gl_format = GL_RGB565;
-        break;
-    case R_IMAGE_FORMAT_DXT1:
-        gl_format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-        break;
-    case R_IMAGE_FORMAT_DXT3:
-        gl_format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-        break;
-    case R_IMAGE_FORMAT_DXT5:
-        gl_format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-        break;
-    default:
-        Com_Errorln("R_ImageFormatToGL: Unimplemented ImageFormat {}.", (int)format);
-    };
-
-    return gl_format;
-}
-
-static ImageFormat R_ImageFormatFromGL(GLenum format) {
-    ImageFormat img_format;
-    switch (format) {
-    case GL_ALPHA8:
-        img_format = R_IMAGE_FORMAT_A8;
-        break;
-    case GL_RGB565:
-        img_format = R_IMAGE_FORMAT_RGB565;
-        break;
-    case GL_RGB: 
-        img_format = R_IMAGE_FORMAT_RGB888;
-        break;
-    case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
-        img_format = R_IMAGE_FORMAT_DXT1;
-        break;
-    case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-        img_format = R_IMAGE_FORMAT_DXT3;
-        break;
-    case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-        img_format = R_IMAGE_FORMAT_DXT5;
-        break;
-    default:
-        Com_Errorln("R_ImageFormatToGL: Unimplemented GL format {}.", format);
-    };
-
-    return img_format;
-}
-
-
 static ImageFormat R_BSPGetImageFormat(BSPBitmapDataFormat format) {
     ImageFormat img_format;
     switch (format) {
@@ -321,7 +352,7 @@ static ImageFormat R_BSPGetImageFormat(BSPBitmapDataFormat format) {
         break;
     default:
         Com_Errorln(
-            "R_BSPGetImageFormat: Unimplemented BSPBitmapDataFormat {}.", 
+            "R_BSPGetImageFormat: Unimplemented BSPBitmapDataFormat {}.",
             (int)format
         );
     };
@@ -383,9 +414,9 @@ A_NO_DISCARD bool R_CreateBSPImage(
 
     bool compressed = CL_BitmapDataFormatIsCompressed(bsp_format);
     GLenum internal_format = 
-        R_ImageFormatToGL(R_BSPGetImageFormat(bsp_format));
+        R_ImageFormatToGl(R_BSPGetImageFormat(bsp_format));
     GLenum gl_format = compressed ? internal_format : GL_RGB;
-    ImageFormat format = R_ImageFormatFromGL(gl_format);
+    ImageFormat format = R_ImageFormatFromGl(gl_format);
 
     if (type == BSP_BITMAP_DATA_TYPE_2D_TEXTURE) {
         if (compressed) {
@@ -419,20 +450,14 @@ A_NO_DISCARD bool R_CreateBSPImage(
     return true;
 }
 
-bool R_DeleteImage(
-    A_INOUT GfxImage* image
-) {
-    GL_CALL(glDeleteTextures, 1, &image->tex);
-    A_memset(image, 0, sizeof(*image));
-    return true;
-}
-
 struct GfxMaterial {
     GfxVertexBuffer         vb;
     GLsizei                 vertices_count;
-    GfxImage                base_map, primary_detail_map;
-    GfxImage                secondary_detail_map, micro_detail_map;
+    bool                    alpha_tested;
+    GfxImage                map, base_map, primary_detail_map;
+    GfxImage                secondary_detail_map, micro_detail_map, bump_map;
     BSPShaderDetailFunction detail_map_function, micro_detail_map_function;
+    acolor_rgb_t            color;
     acolor_rgb_t            ambient_color;
     avec3f_t                distant_light_0_dir;
     avec3f_t                distant_light_1_dir;
@@ -451,13 +476,13 @@ struct MapRenderGlob {
     GfxShaderProgram prog;
 } r_mapGlob;
 
-void R_InitMap() {
+A_EXTERN_C void R_InitMap(void) {
     std::string vertSource = DB_LoadShader("bsp.vs.glsl");
     std::string fragSource = DB_LoadShader("bsp.fs.glsl");
 
-    std::string errorLog;
+    char* errorLog;
     if (!R_CreateShaderProgram(
-        vertSource, fragSource, &errorLog, &r_mapGlob.prog
+        vertSource.c_str(), fragSource.c_str(), &errorLog, &r_mapGlob.prog
     )) {
         Com_Errorln(errorLog);
     }
@@ -486,7 +511,7 @@ static void R_SwapLightmapVertexYZ(A_INOUT BSPLightmapVertex* v) {
     R_SwapYZVec3(&v->normal);
 }
 
-bool R_LoadBitmap(TagId tag_id, A_OUT GfxImage* image) {
+A_EXTERN_C bool R_LoadBitmap(TagId tag_id, A_OUT GfxImage* image) {
     assert(image);
     if (!image)
         return false;
@@ -526,7 +551,7 @@ bool R_LoadBitmap(TagId tag_id, A_OUT GfxImage* image) {
     return true;
 }
 
-void R_LoadMap() {
+A_EXTERN_C void R_LoadMap(void) {
     r_mapGlob.lightmap_count = CL_Map_LightmapCount();
     r_mapGlob.lightmaps = (GfxLightmap*)Z_Zalloc(
         r_mapGlob.lightmap_count * sizeof(*r_mapGlob.lightmaps)
@@ -575,7 +600,7 @@ void R_LoadMap() {
             }
             for (uint32_t k = 0; k < surf_count; k++) {
                 for (int l = 0; l < 3; l++) {
-                    lightmap_vertices[k * 3 + l] =
+                     lightmap_vertices[k * 3 + l] =
                         bsp_lightmap_vertices[surfs[k].verts[l]];
                     R_SwapLightmapVertexYZ(&lightmap_vertices[k * 3 + l]);
                 }
@@ -592,6 +617,9 @@ void R_LoadMap() {
                 sizeof(BSPLightmapVertex);
             GLsizei vertices_size =
                 rendered_vertices_size + lightmap_vertices_size;
+
+            r_mapGlob.lightmaps[i].materials[j].color =
+                material->ambient_color;
 
             r_mapGlob.lightmaps[i].materials[j].ambient_color = 
                 material->ambient_color;
@@ -613,8 +641,19 @@ void R_LoadMap() {
             if (shader_tag->primary_class == TAG_FOURCC_SHADER_ENVIRONMENT) {
                 BSPShaderEnvironment* shader = (BSPShaderEnvironment*)shader_tag->tag_data;
                 assert(shader);
-                assert(shader->base_map.fourcc == TAG_FOURCC_BITMAP);
+                r_mapGlob.lightmaps[i].materials[j].alpha_tested = 
+                    shader->flags & 0x01;
+
                 bool b = true;
+                assert(shader->map.fourcc == TAG_FOURCC_BITMAP);
+                if (shader->map.id.index != 0xFFFF) {
+                    b = R_LoadBitmap(
+                        shader->map.id,
+                        &r_mapGlob.lightmaps[i].materials[j].map
+                    );
+                }
+                assert(b);
+                assert(shader->base_map.fourcc == TAG_FOURCC_BITMAP);
                 if (shader->base_map.id.index != 0xFFFF) {
                     b = R_LoadBitmap(
                         shader->base_map.id,
@@ -644,6 +683,14 @@ void R_LoadMap() {
                     b = R_LoadBitmap(
                         shader->micro_detail_map.id,
                         &r_mapGlob.lightmaps[i].materials[j].micro_detail_map
+                    );
+                }
+                assert(b);
+                assert(shader->bump_map.fourcc == TAG_FOURCC_BITMAP);
+                if (shader->bump_map.id.index != 0xFFFF) {
+                    b = R_LoadBitmap(
+                        shader->bump_map.id,
+                        &r_mapGlob.lightmaps[i].materials[j].bump_map
                     );
                 }
                 assert(b);
@@ -719,16 +766,19 @@ void R_LoadMap() {
     }
 }
 
-void R_RenderMapInternal() {
+A_EXTERN_C void R_RenderMapInternal(void) {
     GL_CALL(glEnable,     GL_DEPTH_TEST);
+    GL_CALL(glEnable,     GL_CULL_FACE);
     GL_CALL(glUseProgram, r_mapGlob.prog.program);
-    R_SetUniform(r_mapGlob.prog.program, "uBaseMap",            0);
-    R_SetUniform(r_mapGlob.prog.program, "uPrimaryDetailMap",   1);
-    R_SetUniform(r_mapGlob.prog.program, "uSecondaryDetailMap", 2);
-    R_SetUniform(r_mapGlob.prog.program, "uMicroDetailMap",     3);
+    R_SetUniformInt(r_mapGlob.prog.program, "uMap",                0);
+    R_SetUniformInt(r_mapGlob.prog.program, "uBaseMap",            1);
+    R_SetUniformInt(r_mapGlob.prog.program, "uPrimaryDetailMap",   2);
+    R_SetUniformInt(r_mapGlob.prog.program, "uSecondaryDetailMap", 3);
+    R_SetUniformInt(r_mapGlob.prog.program, "uMicroDetailMap",     4);
+    R_SetUniformInt(r_mapGlob.prog.program, "uBumpMap",            5);
 
     glm::mat4 model(1.0f);
-    R_SetUniform(r_mapGlob.prog.program, "uModel", model);    
+    R_SetUniformMat4f(r_mapGlob.prog.program, "uModel", model);    
     for (uint32_t i = 0; i < r_mapGlob.lightmap_count; i++) {
         for (uint32_t j = 0; j < r_mapGlob.lightmaps[i].material_count; j++) {
             GL_CALL(glBindVertexArray, 
@@ -736,59 +786,54 @@ void R_RenderMapInternal() {
             GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, 
                 r_mapGlob.lightmaps[i].materials[j].vb.vbo);
 
-            R_SetUniform(r_mapGlob.prog.program, "uDetailMapFunction",
+            R_SetUniformBool(r_mapGlob.prog.program, "uAlphaTested",
+                r_mapGlob.lightmaps[i].materials[j].alpha_tested);
+
+            R_SetUniformInt(r_mapGlob.prog.program, "uDetailMapFunction",
                 (int)r_mapGlob.lightmaps[i].materials[j].detail_map_function);
-            R_SetUniform(r_mapGlob.prog.program, "uMicroDetailMapFunction",
+            R_SetUniformInt(r_mapGlob.prog.program, "uMicroDetailMapFunction",
                 (int)r_mapGlob.lightmaps[i].materials[j].micro_detail_map_function);
 
-            R_SetUniform(r_mapGlob.prog.program, "uAmbientColor",
-                glm::vec3(
-                    r_mapGlob.lightmaps[i].materials[j].ambient_color.r,
-                    r_mapGlob.lightmaps[i].materials[j].ambient_color.g,
-                    r_mapGlob.lightmaps[i].materials[j].ambient_color.b
-                )
+            avec3f_t color = A_vec3(
+                r_mapGlob.lightmaps[i].materials[j].color.r,
+                r_mapGlob.lightmaps[i].materials[j].color.g,
+                r_mapGlob.lightmaps[i].materials[j].color.b
             );
+            R_SetUniformVec3f(r_mapGlob.prog.program, "uMaterialColor", color);
 
-            R_SetUniform(r_mapGlob.prog.program, "uDistantLight0Dir",
-                glm::vec3(
-                    r_mapGlob.lightmaps[i].materials[j].distant_light_0_dir.x,
-                    r_mapGlob.lightmaps[i].materials[j].distant_light_0_dir.y,
-                    r_mapGlob.lightmaps[i].materials[j].distant_light_0_dir.z
-                )
-            );
+            color.x = r_mapGlob.lightmaps[i].materials[j].ambient_color.r;
+            color.y = r_mapGlob.lightmaps[i].materials[j].ambient_color.g;
+            color.z = r_mapGlob.lightmaps[i].materials[j].ambient_color.b;
+            R_SetUniformVec3f(r_mapGlob.prog.program, "uAmbientColor", color);
 
-            R_SetUniform(r_mapGlob.prog.program, "uDistantLight1Dir",
-                glm::vec3(
-                    r_mapGlob.lightmaps[i].materials[j].distant_light_1_dir.x,
-                    r_mapGlob.lightmaps[i].materials[j].distant_light_1_dir.y,
-                    r_mapGlob.lightmaps[i].materials[j].distant_light_1_dir.z
-                )
-            );
+            R_SetUniformVec3f(r_mapGlob.prog.program, "uDistantLight0Dir", r_mapGlob.lightmaps[i].materials[j].distant_light_0_dir);
+            R_SetUniformVec3f(r_mapGlob.prog.program, "uDistantLight1Dir", r_mapGlob.lightmaps[i].materials[j].distant_light_1_dir);
 
-            R_SetUniform(r_mapGlob.prog.program, "uDistantLight0Color",
-                glm::vec3(
-                    r_mapGlob.lightmaps[i].materials[j].distant_light_0_color.r,
-                    r_mapGlob.lightmaps[i].materials[j].distant_light_0_color.g,
-                    r_mapGlob.lightmaps[i].materials[j].distant_light_0_color.b
-                )
-            );
+            color.x = r_mapGlob.lightmaps[i].materials[j].distant_light_0_color.r;
+            color.y = r_mapGlob.lightmaps[i].materials[j].distant_light_0_color.g;
+            color.z = r_mapGlob.lightmaps[i].materials[j].distant_light_0_color.b;
+            R_SetUniformVec3f(r_mapGlob.prog.program, "uDistantLight0Color", color);
 
-            R_SetUniform(r_mapGlob.prog.program, "uDistantLight1Color",
-                glm::vec3(
-                    r_mapGlob.lightmaps[i].materials[j].distant_light_1_color.r,
-                    r_mapGlob.lightmaps[i].materials[j].distant_light_1_color.g,
-                    r_mapGlob.lightmaps[i].materials[j].distant_light_1_color.b
-                )
-            );
+            color.x = r_mapGlob.lightmaps[i].materials[j].distant_light_1_color.r;
+            color.y = r_mapGlob.lightmaps[i].materials[j].distant_light_1_color.g;
+            color.z = r_mapGlob.lightmaps[i].materials[j].distant_light_1_color.b;
+            R_SetUniformVec3f(r_mapGlob.prog.program, "uDistantLight1Color", color);
 
             GL_CALL(glActiveTexture, GL_TEXTURE0);
+            GL_CALL(glBindTexture,
+                GL_TEXTURE_2D,
+                r_mapGlob.lightmaps[i].materials[j].map.tex
+            );
+            bool has_map = 
+                r_mapGlob.lightmaps[i].materials[j].map.tex != 0;
+            GL_CALL(glActiveTexture, GL_TEXTURE0 + 1);
             GL_CALL(glBindTexture,   
                 GL_TEXTURE_2D, 
                 r_mapGlob.lightmaps[i].materials[j].base_map.tex
             );
             bool has_base_map = 
                 r_mapGlob.lightmaps[i].materials[j].base_map.tex != 0;
-            GL_CALL(glActiveTexture, GL_TEXTURE0 + 1);
+            GL_CALL(glActiveTexture, GL_TEXTURE0 + 2);
             GL_CALL(glBindTexture,   
                 GL_TEXTURE_2D, 
                 r_mapGlob.lightmaps[i].materials[j].primary_detail_map.tex
@@ -796,7 +841,7 @@ void R_RenderMapInternal() {
             bool has_primary_detail_map = 
                 r_mapGlob.lightmaps[i].materials[j]
                     .primary_detail_map.tex != 0;
-            GL_CALL(glActiveTexture, GL_TEXTURE0 + 2);
+            GL_CALL(glActiveTexture, GL_TEXTURE0 + 3);
             GL_CALL(glBindTexture,   
                 GL_TEXTURE_2D, 
                 r_mapGlob.lightmaps[i].materials[j].secondary_detail_map.tex
@@ -805,25 +850,32 @@ void R_RenderMapInternal() {
                 r_mapGlob.lightmaps[i].materials[j]
                     .secondary_detail_map.tex != 0;
 
-            GL_CALL(glActiveTexture, GL_TEXTURE0 + 3);
+            GL_CALL(glActiveTexture, GL_TEXTURE0 + 4);
             GL_CALL(glBindTexture,
                 GL_TEXTURE_2D,
                 r_mapGlob.lightmaps[i].materials[j].micro_detail_map.tex
             );
+
+            bool has_bump_map =
+                r_mapGlob.lightmaps[i].materials[j].bump_map.tex != 0;
+            GL_CALL(glActiveTexture, GL_TEXTURE0 + 5);
+            GL_CALL(glBindTexture,
+                GL_TEXTURE_2D,
+                r_mapGlob.lightmaps[i].materials[j].bump_map.tex
+            );
             bool has_micro_detail_map =
                 r_mapGlob.lightmaps[i].materials[j].micro_detail_map.tex != 0;
             
-
             bool wireframe = Dvar_GetBool(*r_wireframe);
-            int flags = wireframe | has_base_map << 1 |
-                has_primary_detail_map << 2 | has_secondary_detail_map << 3 |
-                has_micro_detail_map << 4;
-            R_SetUniform(r_mapGlob.prog.program, "uFlags", flags & 0x1E);
+            int flags = wireframe | has_map << 1 | has_base_map << 2 |
+                has_primary_detail_map << 3 | has_secondary_detail_map << 4 |
+                has_micro_detail_map << 5 | has_bump_map << 6;
+            R_SetUniformInt(r_mapGlob.prog.program, "uFlags", flags & 0x7E);
             GLsizei vertices_count =
                 r_mapGlob.lightmaps[i].materials[j].vertices_count;
             GL_CALL(glDrawArrays, GL_TRIANGLES, 0, vertices_count);
             if (Dvar_GetBool(*r_wireframe)) {
-                R_SetUniform(r_mapGlob.prog.program, "uFlags", flags & 0x1F);
+                R_SetUniformInt(r_mapGlob.prog.program, "uFlags", flags & 0x7F);
                 GL_CALL(glPolygonMode, GL_FRONT_AND_BACK, GL_LINE);
                 GL_CALL(glDrawArrays,  GL_TRIANGLES,      0, vertices_count);
                 GL_CALL(glPolygonMode, GL_FRONT_AND_BACK, GL_FILL);
@@ -832,27 +884,28 @@ void R_RenderMapInternal() {
     }
 
     GL_CALL(glUseProgram, 0);
+    GL_CALL(glDisable, GL_CULL_FACE);
     GL_CALL(glDisable, GL_DEPTH_TEST);
 }
 
-void R_RenderMap() {
+A_EXTERN_C void R_RenderMap(void) {
     if (!CL_IsMapLoaded())
         return;
 
     R_RenderMapInternal();
 }
 
-static void R_DrawFrameInternal(size_t localClientNum) {
-    cg_t& cg = CG_GetLocalClientGlobals(localClientNum);
+A_EXTERN_C static void R_DrawFrameInternal(size_t localClientNum) {
+    cg_t* cg = CG_GetLocalClientGlobals(localClientNum);
 
-    GLint   x = (GLint)  (cg.viewport.x * Dvar_GetInt(*vid_width));
-    GLint   y = (GLint)  (cg.viewport.y * Dvar_GetInt(*vid_height));
-    GLsizei w = (GLsizei)(cg.viewport.w * Dvar_GetInt(*vid_width));
-    GLsizei h = (GLsizei)(cg.viewport.h * Dvar_GetInt(*vid_height));
+    GLint   x = (GLint)  (cg->viewport.x * Dvar_GetInt(*vid_width));
+    GLint   y = (GLint)  (cg->viewport.y * Dvar_GetInt(*vid_height));
+    GLsizei w = (GLsizei)(cg->viewport.w * Dvar_GetInt(*vid_width));
+    GLsizei h = (GLsizei)(cg->viewport.h * Dvar_GetInt(*vid_height));
 
-    if (Dvar_WasModified(*cg.fov)) {
+    if (Dvar_WasModified(*cg->fov)) {
         R_UpdateProjection(localClientNum);
-        Dvar_ClearModified(*cg.fov);
+        Dvar_ClearModified(*cg->fov);
     }
 
     GL_CALL(glViewport, x, y, w, h);
@@ -867,16 +920,17 @@ static void R_DrawFrameInternal(size_t localClientNum) {
     );
     */
 
-    glm::vec3 pos    = cg.camera.pos;
-    glm::vec3 center = pos + cg.camera.front;
-    glm::vec3 up     = cg.camera.up;
+    glm::vec3 pos    = glm::vec3(cg->camera.pos.x, cg->camera.pos.y, cg->camera.pos.z);
+    glm::vec3 front  = glm::vec3(cg->camera.front.x, cg->camera.front.y, cg->camera.front.z);
+    glm::vec3 center = pos + front;
+    glm::vec3 up     = glm::vec3(cg->camera.up.x, cg->camera.up.y, cg->camera.up.z);
     glm::mat4 view   = glm::lookAt(pos, center, up);
 
     GL_CALL(glUseProgram, r_mapGlob.prog.program);
-    R_SetUniform(r_mapGlob.prog.program, "uView", view);
-    R_SetUniform(
+    R_SetUniformMat4f(r_mapGlob.prog.program, "uView", view);
+    R_SetUniformMat4f(
         r_mapGlob.prog.program, "uPerspectiveProjection",
-        cg.camera.perspectiveProjection
+        cg->camera.perspectiveProjection
     );;
 
     GL_CALL(glUseProgram, 0);
@@ -886,11 +940,12 @@ static void R_DrawFrameInternal(size_t localClientNum) {
     R_DrawTextDrawDefs(localClientNum);
 }
 
-void R_UnloadMap() {
+A_EXTERN_C void R_UnloadMap(void) {
     for (uint32_t i = 0; i < r_mapGlob.lightmap_count; i++) {
         BSPLightmap* lightmap = CL_Map_Lightmap(i);
         for (uint32_t j = 0; j < lightmap->materials.count; j++) {
             R_DeleteVertexBuffer(&r_mapGlob.lightmaps[i].materials[j].vb);
+            R_DeleteImage(&r_mapGlob.lightmaps[i].materials[j].map);
             R_DeleteImage(&r_mapGlob.lightmaps[i].materials[j].base_map);
             R_DeleteImage(
                 &r_mapGlob.lightmaps[i].materials[j].primary_detail_map);
@@ -904,14 +959,14 @@ void R_UnloadMap() {
     Z_Free((void*)r_mapGlob.lightmaps);
 }
 
-void R_ShutdownMap() {
+A_EXTERN_C void R_ShutdownMap(void) {
     if (CL_IsMapLoaded())
         R_UnloadMap();
 
     R_DeleteShaderProgram(&r_mapGlob.prog);
 }
 
-static void R_UnregisterDvars() {
+static void R_UnregisterDvars(void) {
     Dvar_Unregister("r_wireframe");
     Dvar_Unregister("r_renderDistance");
     Dvar_Unregister("r_noBorder");
@@ -924,7 +979,7 @@ static void R_UnregisterDvars() {
     r_vsync          = NULL;
 }
 
-void R_Shutdown() {
+A_EXTERN_C void R_Shutdown(void) {
     for(size_t i = 0; i < MAX_LOCAL_CLIENTS; i++)
         R_ClearTextDrawDefs(i);
 

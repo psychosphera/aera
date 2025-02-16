@@ -1,8 +1,11 @@
 #pragma once
 
+#include <stdbool.h>
+
 #include "acommon.h"
 
 char A_tolower(char c);
+bool A_isspace(char c);
 // void A_cstrlwr(char* A_RESTRICT s);
 
 // A_STRING_DECLARE_CHAR(A_EXTERN_C char, A_tolower, c);

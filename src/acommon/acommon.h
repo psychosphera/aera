@@ -186,7 +186,7 @@
 #define A_RESTRICT restrict
 #endif // __cplusplus
 
-#define A_UNUSED(a) 
+#define A_UNUSED(a) (void)(a)
 
 #define A_EXPAND(a) a
 
@@ -231,7 +231,15 @@
 #   define A_STATIC_ASSERT(expr) _Static_assert(expr, A_STRINGIFY(expr))
 #elif A_CXX11
 #   define A_STATIC_ASSERT(expr) static_assert (expr, A_STRINGIFY(expr))
-#endif
+#endif // A_C23 || A_CXX17
+
+#if A_C23 || A_COMPILER_IS_GCC_COMPATIBLE
+#define A_typeof(a) typeof(a)
+#elif A_COMPILER_IS_MSVC
+#define A_typeof(a) __typeof__(a)
+#else
+#error "no typeof"
+#endif // A_C23 || A_COMPILER_IS_GCC_COMPATIBLE
 
 #if A_COMPILER_IS_GCC_COMPATIBLE
 #define A_PACK(...) __VA_ARGS__ __attribute__((__packed__))

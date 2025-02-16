@@ -4,7 +4,7 @@
 
 #include "acommon/a_parse.hpp"
 
-#include "cmd_commands.hpp"
+#include "cmd_commands.h"
 
 enum DvarType {
 	DVAR_TYPE_NONE,

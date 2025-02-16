@@ -19,8 +19,8 @@
 
 #include "acommon/z_mem.h"
 
-#include "com_defs.hpp"
-#include "fs_files.hpp"
+#include "com_defs.h"
+#include "fs_files.h"
 
 A_NO_DISCARD std::filesystem::path  DB_ImagePath     (std::string_view image_name );
 A_NO_DISCARD std::string            DB_LoadShader    (std::string_view shader_name);

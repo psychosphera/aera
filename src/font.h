@@ -1,0 +1,38 @@
+#pragma once
+
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
+#include "com_defs.h"
+#include "gfx_defs.h"
+
+struct GlyphDef {
+	char  c;
+	int   width, height;
+	int   left;
+	int   top;
+	int   advance_x, advance_y;
+    float atlas_x, atlas_y;
+	void* pixels;
+};
+
+struct FontDef {
+    int atlas_width, atlas_height;
+    GfxShaderProgram prog;
+    GfxVertexBuffer  vb;
+    GfxImage         image;
+    GlyphDef         glyphs[95];
+}; 
+
+A_EXTERN_C void Font_Init();
+A_EXTERN_C A_NO_DISCARD bool Font_Load(
+	const char* font_name, int width, int height, A_OUT FontDef* fd
+);
+A_EXTERN_C bool            Font_AddGlyph     (A_INOUT FontDef* fd, char c, const GlyphDef* g);
+A_EXTERN_C       GlyphDef* Font_GetGlyph     (        FontDef* fd, char c);
+A_EXTERN_C const GlyphDef* Font_GetGlyphConst(const   FontDef* fd, char c);
+A_EXTERN_C bool            Font_RemoveGlyph  (A_INOUT FontDef* fd, char c);
+A_EXTERN_C const GlyphDef* Font_Glyphs       (const   FontDef* fd);
+A_EXTERN_C size_t          Font_GlyphCount   (const   FontDef* fd);
+A_EXTERN_C void            Font_Unload       (A_INOUT FontDef* fd);
+A_EXTERN_C void            Font_Shutdown     ();

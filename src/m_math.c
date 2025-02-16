@@ -1,22 +1,18 @@
-#include "m_math.hpp"
-
-#include <glm/glm.hpp>
+#include "m_math.h"
 
 #include "acommon/a_math.h"
 
-#include "com_defs.hpp"
-
 void M_AngleVectors(
-	float yaw, float pitch, float roll, A_OPTIONAL_OUT glm::vec3* forward, 
-	A_OPTIONAL_OUT glm::vec3* right, A_OPTIONAL_OUT glm::vec3* up
+	float yaw, float pitch, float roll, A_OPTIONAL_OUT avec3f_t* forward,
+	A_OPTIONAL_OUT avec3f_t* right, A_OPTIONAL_OUT avec3f_t* up
 ) {
-	float ay = glm::radians(yaw);
+	float ay = A_radians(yaw);
 	float sy = A_sinf(ay);
 	float cy = A_cosf(ay);
-	float ap = glm::radians(pitch);
+	float ap = A_radians(pitch);
 	float sp = A_sinf(ap);
 	float cp = A_cosf(ap);
-	float ar = glm::radians(roll);
+	float ar = A_radians(roll);
 	float sr = A_sinf(ar);
 	float cr = A_cosf(ar);
 

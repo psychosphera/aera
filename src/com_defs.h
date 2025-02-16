@@ -1,7 +1,8 @@
 #pragma once
 
-#include <cstddef>
-#include <cstdint>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 #include "acommon/acommon.h"
 
@@ -9,11 +10,11 @@
 A_NO_RETURN Sys_NormalExit(int ec);
 uint64_t Sys_Milliseconds();
 
-constexpr size_t MAX_LOCAL_CLIENTS = 4;
+#define MAX_LOCAL_CLIENTS 4
 
-struct RectDef {
+typedef struct RectDef {
 	float x, y, w, h;
-};
+} RectDef;
 
 bool     Com_Init();
 bool     Com_Frame();

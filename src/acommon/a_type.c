@@ -8,6 +8,10 @@ char A_tolower(char c) {
     return tolower(c);
 }
 
+bool A_isspace(char c) {
+    return isspace(c) != 0;
+}
+
 // void A_cstrlwr(char* A_RESTRICT s) {
 //     for (size_t i = 0; i < A_cstrlen(s); c++)
 //         s[i] = A_tolower(c);

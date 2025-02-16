@@ -1,5 +1,5 @@
 #include "com_print.hpp"
-#include "sys.hpp"
+#include "sys.h"
 
 int main(int /* argc */, const char** argv) {
     Com_Println(CON_DEST_CLIENT, "Running.");  

@@ -19,7 +19,9 @@ endif()
 
 #set(VCPKG_TOOLCHAIN ) 
 #if(EXISTS VCPKG_TOOLCHAIN)
-#    include("F:/vcpkg/scripts/buildsystems/vcpkg.cmake")
+if (MSVC)
+    include("F:/vcpkg/scripts/buildsystems/vcpkg.cmake")
+endif()
 #endif()
 
 find_package(Freetype REQUIRED)
@@ -46,10 +48,10 @@ add_executable(h1_map_viewer
 
 	src/cg_cgame.cpp src/com.cpp src/font.cpp src/fs_files.cpp src/gfx.cpp 
 	src/gfx_backend.cpp  src/in_input.cpp src/main.cpp src/sys.cpp
- 	src/db_files.cpp src/cmd_commands.cpp src/cl_client.cpp src/devgui.cpp 
-	src/gfx_text.cpp src/gfx_shader.cpp src/devcon.cpp src/dvar.cpp 
-	src/con_console.cpp src/pm_pmove.cpp src/m_math.cpp
- 	src/gfx_defs.cpp)
+ 	src/db_files.cpp "src/cmd_commands.c" src/cl_client.cpp "src/devgui.c" 
+	src/gfx_text.cpp "src/gfx_shader.c" "src/devcon.c" src/dvar.cpp 
+	src/con_console.cpp "src/pm_pmove.c" "src/m_math.c"
+ 	src/gfx_defs.cpp "src/gfx_uniform.c")
 
 
 # SDL3 and SDL3_image aren't available from vcpkg. SDL_image contains SDL as a
@@ -99,7 +101,7 @@ endif()
 
 if(MSVC)
 	target_compile_options(h1_map_viewer PRIVATE 
-		"/permissive-" "/W4" "/wd4005" "/bigobj" "/WX" "/O2"
+		"/permissive-" "/W4" "/wd4005" "/bigobj" "/WX" "/Og"
 	)
 
     if (CMAKE_BUILD_TYPE STREQUAL "Release" OR 
@@ -115,6 +117,7 @@ if(GCC)
     target_compile_options(h1_map_viewer PRIVATE
         "-ftrack-macro-expansion=0" 
 		"-Wno-address-of-packed-member"
+		"-Wno-comment"
     ) 
 endif()
 
@@ -129,9 +132,14 @@ if(CLANG)
 		"-Wno-address-of-packed-member"
 		"-Wno-sign-compare"
 		"-Wno-embedded-directive"
-		"-pedantic" "-pedantic-errors" 
 		"-fmacro-backtrace-limit=1"
     ) 
+endif()
+
+if(CLANG AND NOT MSVC)
+	target_compile_options(h1_map_viewer PRIVATE
+		"-pedantic" "-pedantic-errors" 
+	)
 endif()
 
 if(CLANG OR GCC)

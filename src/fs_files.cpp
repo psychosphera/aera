@@ -1,82 +1,67 @@
-#include "fs_files.hpp"
+#include "fs_files.h"
 
-#include <filesystem>
-#include <string>
-#include <vector>
+#include "acommon/z_mem.h"
 
-#include "com_defs.hpp"
+#include "com_defs.h"
 #include "com_print.hpp"
 
-A_NO_DISCARD std::vector<std::byte> FS_ReadFile(std::filesystem::path path) {
-	SDL_RWops* ops = SDL_RWFromFile(path.string().c_str(), "rb");
+A_EXTERN_C A_NO_DISCARD void* FS_ReadFile(const char* path) {
+	SDL_RWops* ops = SDL_RWFromFile(path, "r");
 	if (ops == NULL) {
 		Com_Println(
-			CON_DEST_CLIENT, 
+			CON_DEST_CLIENT,
 			"Failed to open file '{}' for reading: {}",
-			path.string(), SDL_GetError()
+			path, SDL_GetError()
 		);
-		return std::vector<std::byte>();
+		return NULL;
 	}
 
 	Sint64 len = SDL_RWsize(ops);
 
-	std::vector<std::byte> v;
-	v.resize(len);
+	void* p = (char*)Z_Alloc(len + 1);
 
-	size_t c = SDL_RWread(ops, v.data(), len);
+	size_t c = SDL_RWread(ops, p, len);
 	if ((Sint64)c < len)
 		Com_Println(
-			CON_DEST_ERR, 
+			CON_DEST_ERR,
 			"Truncated read of file '{}' (expected {} bytes, got {}).",
-			path.string(), len, c
+			path, len, c
 		);
 
-	return v;
+	return p;
 }
 
-A_NO_DISCARD std::string FS_ReadFileText(std::filesystem::path path) {
-	SDL_RWops* ops = SDL_RWFromFile(path.string().c_str(), "r");
+A_EXTERN_C A_NO_DISCARD char* FS_ReadFileText(const char* path) {
+	SDL_RWops* ops = SDL_RWFromFile(path, "r");
 	if (ops == NULL) {
 		Com_Println(
 			CON_DEST_CLIENT, 
 			"Failed to open file '{}' for reading: {}", 
-			path.string(), SDL_GetError()
+			path, SDL_GetError()
 		);
-		return std::string();
+		return NULL;
 	}
 
 	Sint64 len = SDL_RWsize(ops);
 
-	std::string s;
-	s.resize(len);
+	char* p = (char*)Z_Alloc(len + 1);
 
-	size_t c = SDL_RWread(ops, s.data(), len);
+	size_t c = SDL_RWread(ops, p, len);
 	if ((Sint64)c < len)
 		Com_Println(
 			CON_DEST_ERR, 
 			"Truncated read of file '{}' (expected {} bytes, got {}).",
-			path.string(), len, c
+			path, len, c
 		);
 
-	if (s.at(len - 1) != '\0')
-		s.push_back('\0');
+	if (p[len] != '\0')
+		p[len]  = '\0';
 
-	return s;
+	return p;
 }
 
-A_NO_DISCARD bool FS_ReadInto(std::filesystem::path path, void* p, size_t n) {
-	SDL_RWops* f = SDL_RWFromFile(path.string().c_str(), "rb");
-	size_t max = SDL_RWsize(f);
-	if (n > max)
-		n = max;
-
-	bool b = SDL_RWread(f, p, n) == n;
-	SDL_RWclose(f);
-	return b;
-}
-
-A_NO_DISCARD StreamFile FS_StreamFile(
-	std::filesystem::path path, SeekFrom from, StreamMode mode, size_t off
+A_EXTERN_C A_NO_DISCARD StreamFile FS_StreamFile(
+	const char* path, SeekFrom from, StreamMode mode, size_t off
 ) {
 	const char* mode_str = NULL;
 	switch(mode) {
@@ -96,34 +81,34 @@ A_NO_DISCARD StreamFile FS_StreamFile(
 		mode_str = "a";
 	};
 
-	SDL_RWops* f = SDL_RWFromFile(path.string().c_str(), mode_str);
+	SDL_RWops* f = SDL_RWFromFile(path, mode_str);
 	size_t size  = SDL_RWsize(f);
 	SDL_RWseek(f, 0, SDL_RW_SEEK_SET);
 	StreamFile s = { .f = f, .size = size };
 	if(from == FS_SEEK_END || off != 0)
-		FS_SeekStream(s, from, off);
+		FS_SeekStream(&s, from, off);
 	return s;
 }
 
-A_NO_DISCARD size_t FS_StreamPos(const StreamFile& file) {
-	return SDL_RWtell(file.f);
+A_EXTERN_C A_NO_DISCARD size_t FS_StreamPos(A_INOUT StreamFile* file) {
+	return SDL_RWtell(file->f);
 }
 
-long long FS_SeekStream(A_INOUT StreamFile& file, SeekFrom from, size_t off) {
-	if (off > file.size) 
-		Com_DPrintln("FS_SeekStream: attempted to seek beyond bounds of file (off={}, expected <{})", off, file.size);
-	assert(off <= file.size);
+A_EXTERN_C long long FS_SeekStream(A_INOUT StreamFile* file, SeekFrom from, size_t off) {
+	if (off > file->size) 
+		Com_DPrintln("FS_SeekStream: attempted to seek beyond bounds of file (off={}, expected <{})", off, file->size);
+	assert(off <= file->size);
 
 	Sint64 res       = -1;
 	switch (from) {
 	case FS_SEEK_BEGIN:
-		res = SDL_RWseek(file.f, off, SDL_RW_SEEK_SET);
+		res = SDL_RWseek(file->f, off, SDL_RW_SEEK_SET);
 		break;
 	case FS_SEEK_END:
-		res = SDL_RWseek(file.f, off, SDL_RW_SEEK_END);
+		res = SDL_RWseek(file->f, off, SDL_RW_SEEK_END);
 		break;
 	case FS_SEEK_CUR:
-		res = SDL_RWseek(file.f, (long long)off, SDL_RW_SEEK_CUR);
+		res = SDL_RWseek(file->f, (long long)off, SDL_RW_SEEK_CUR);
 		break;
 	default:
 		assert(false);
@@ -136,42 +121,42 @@ long long FS_SeekStream(A_INOUT StreamFile& file, SeekFrom from, size_t off) {
 	return res;
 }
 
-A_NO_DISCARD bool FS_ReadStream(StreamFile& file, void* p, size_t count) {
-	size_t sz = SDL_RWread(file.f, p, count);
+A_EXTERN_C A_NO_DISCARD size_t FS_FileSize(A_INOUT StreamFile* file) {
+	size_t pos = FS_StreamPos(file);
+	long long seek = FS_SeekStream(file, FS_SEEK_END, 0);
+	assert(seek >= 0);
+	size_t size = FS_StreamPos(file);
+	seek = FS_SeekStream(file, FS_SEEK_BEGIN, pos);
+	assert(seek >= 0);
+	return size;
+}
+
+A_EXTERN_C A_NO_DISCARD bool FS_ReadStream(A_INOUT StreamFile* file, void* dst, size_t count) {
+	size_t sz = SDL_RWread(file->f, dst, count);
 	if(sz <= 0) 
 		Com_DPrintln("FS_ReadStream: failed to write {} bytes (wrote {}): {}", count, sz, SDL_GetError());
 	return sz > 0;
 }
 
-A_NO_DISCARD std::vector<std::byte> FS_ReadStream(StreamFile& file, size_t count) {
-	std::vector<std::byte> v;
-	v.resize(count);
-	bool b = FS_ReadStream(file, (void*)v.data(), count);
-	if(b)
-		return v;
-	else
-		return std::vector<std::byte>();
-}
-
-A_NO_DISCARD bool FS_WriteStream(StreamFile& file, const void* src, size_t count) {
-	size_t sz = SDL_RWwrite(file.f, src, count);
+A_EXTERN_C A_NO_DISCARD bool FS_WriteStream(A_INOUT StreamFile* file, const void* src, size_t count) {
+	size_t sz = SDL_RWwrite(file->f, src, count);
 	if(sz > 0)
-		file.size += sz;
+		file->size += sz;
 	if(sz != count) 
 		Com_DPrintln("FS_WriteStream: failed to write {} bytes (wrote {}): {}", count, sz, SDL_GetError());
 	return sz == count;
 }
 
-void FS_CloseStream(StreamFile& f) {
-	SDL_RWclose(f.f);
-	f.f = NULL;
-	f.size = 0;
+A_EXTERN_C void FS_CloseStream(A_INOUT StreamFile* file) {
+	SDL_RWclose(file->f);
+	file->f    = NULL;
+	file->size = 0;
 }
 
-bool FS_DeleteFile(const char* filename) {
+A_EXTERN_C bool FS_DeleteFile(const char* filename) {
 	return remove(filename) == 0;
 }
 
-bool FS_FileExists(const char* filename) {
+A_EXTERN_C bool FS_FileExists(const char* filename) {
 	return SDL_RWFromFile(filename, "r") != NULL;
 }

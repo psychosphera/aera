@@ -7,7 +7,7 @@
 #include "acommon/acommon.h"
 #include "acommon/a_math.h"
 
-#include "fs_files.hpp"
+#include "fs_files.h"
 
 enum KeyFocus {
 	KF_DEVGUI,
@@ -31,7 +31,14 @@ enum MapEngine: uint32_t {
 	MAP_ENGINE_GEARBOX = 7
 };
 
-enum TagFourCC : uint32_t {
+enum ScenarioType: uint16_t {
+	SCENARIO_TYPE_SINGELPLAYER,
+	SCENARIO_TYPE_MULTILPLAYER,
+	SCENARIO_TYPE_UI,
+	SCENARIO_TYPE_COUNT
+};
+
+enum TagFourCC: uint32_t {
 	TAG_FOURCC_SCENARIO           = A_MAKE_FOURCC('s', 'c', 'n', 'r'),
 	TAG_FOURCC_SBSP               = A_MAKE_FOURCC('s', 'b', 's', 'p'),
 	TAG_FOURCC_BITMAP             = A_MAKE_FOURCC('b', 'i', 't', 'm'),
@@ -39,10 +46,20 @@ enum TagFourCC : uint32_t {
 	TAG_FOURCC_SHADER_ENVIRONMENT = A_MAKE_FOURCC('s', 'e', 'n', 'v')
 };
 
-// enum MapEngine {
-// 	MAP_ENGINE_XBOX = 5,
-// 	MAP_ENGINE_PC = 7
-// };
+A_PACK(struct MapHeader {
+	uint32_t     head_magic;
+	MapEngine    engine;
+	uint32_t     decompressed_file_size, compressed_padding;
+	uint32_t     tag_data_offset, tag_data_size;
+	uint64_t     __pad1;
+	char         name[32], build[32];
+	ScenarioType type;
+	uint16_t     __pad2;
+	uint32_t     crc32;
+	char         __pad3[1940];
+	uint32_t     foot_magic;
+});
+A_STATIC_ASSERT(sizeof(MapHeader) == 2048);
 
 union TagId {
 	uint32_t id;
@@ -68,13 +85,23 @@ A_STATIC_ASSERT(sizeof(TagDependency) == 16);
 
 A_PACK(struct TagDataOffset {
 	uint32_t size, external, file_offset;
-	uint64_t pointer;
+	void* pointer;
+#if A_POINTER_SIZE == 32
+	uint32_t            __pad;
+#elif A_POINTER_SIZE != 64
+#error "pointer size???"
+#endif
 });
 A_STATIC_ASSERT(sizeof(TagDataOffset) == 20);
 
 A_PACK(struct TagReflexive {
 	uint32_t count;
-	uint64_t pointer;
+	void* pointer;
+#if A_POINTER_SIZE == 32
+	uint32_t            __pad;
+#elif A_POINTER_SIZE != 64
+#error "pointer size???"
+#endif
 });
 A_STATIC_ASSERT(sizeof(TagReflexive) == 12);
 
@@ -102,6 +129,27 @@ A_PACK(struct TagHeaderCommon {
 	uint32_t checksum, tag_count, model_part_count;
 });
 A_STATIC_ASSERT(sizeof(TagHeaderCommon) == 20);
+
+A_PACK(struct ScenarioBSP {
+	uint32_t bsp_start, bsp_size, bsp_address, __pad;
+	TagDependency structure_bsp;
+});
+A_STATIC_ASSERT(sizeof(ScenarioBSP) == 32);
+
+enum ScenarioPlayerSpawnType: uint16_t {
+	SCENARIO_PLAYER_SPAWN_TYPE_NONE,
+	// ...
+};
+
+A_PACK(struct ScenarioPlayerSpawn {
+	apoint3f_t              pos;
+	float                   facing;
+	uint16_t                team_index;
+	uint16_t                bsp_index;
+	ScenarioPlayerSpawnType type0, type1, type2, type3;
+	char                    __pad[24];
+});
+A_STATIC_ASSERT(sizeof(ScenarioPlayerSpawn) == 52);
 
 A_PACK(struct BSPHeader {
 	uint32_t pointer;
@@ -573,60 +621,96 @@ A_PACK(struct BSPShader {
 });
 A_STATIC_ASSERT(sizeof(BSPShader) == 40);
 
+enum ShaderWaveFunction: uint16_t {
+	SHADER_WAVE_FUNCTION_ONE
+	// ...
+};
+
 A_PACK(struct BSPShaderEnvironment {
-	BSPShader                base;
-	uint16_t                 flags;
-	BSPShaderEnvironmentType type;
-	float                    lens_flare_spacing;
-	TagDependency            lens_flare;
-	char                     __pad1[44];
-	uint16_t                 diffuse_flags;
-	char                     __pad2[26];
-	TagDependency            base_map;
-	char                     __pad3[24];
-	BSPShaderDetailFunction  detail_map_function;
-	uint16_t                 __pad4;
-	float                    primary_detail_map_scale;
-	TagDependency            primary_detail_map;
-	float                    secondary_detail_map_scale;
-	TagDependency            secondary_detail_map;
-	char                     __pad5[24];
-	BSPShaderDetailFunction  micro_detail_map_function;
-	uint16_t                 __pad6;
-	float                    micro_detail_map_scale;
-	TagDependency            micro_detail_map;
-	acolor_rgb_t             material_color;
-	char                     __pad7[556];
+	BSPShader                   base;
+	uint16_t                    flags;
+	BSPShaderEnvironmentType    type;
+	float                       lens_flare_spacing;
+	TagDependency               lens_flare;
+	char                        __pad1[44];
+	uint16_t                    diffuse_flags;
+	char                        __pad2[26];
+	TagDependency               base_map;
+	char                        __pad3[24];
+	BSPShaderDetailFunction     detail_map_function;
+	uint16_t                    __pad4;
+	float                       primary_detail_map_scale;
+	TagDependency               primary_detail_map;
+	float                       secondary_detail_map_scale;
+	TagDependency               secondary_detail_map;
+	char                        __pad5[24];
+	BSPShaderDetailFunction     micro_detail_map_function;
+	uint16_t                    __pad6;
+	float                       micro_detail_map_scale;
+	TagDependency               micro_detail_map;
+	acolor_rgb_t                material_color;
+	char                        __pad7[12];
+	float                       bump_map_scale;
+	TagDependency               bump_map;
+	apoint2f_t                  bump_map_scale_xy;
+	char                        __pad8[16];
+	ShaderWaveFunction          u_anim_fn;
+	uint16_t                    __pad9;
+	float                       u_anim_period, u_anim_scale;
+	ShaderWaveFunction          v_anim_function;
+	uint16_t                    __pad10;
+	float                       v_anim_period, v_anim_scale;
+	char                        __pad11[24];
+	uint16_t                    self_illumination_flags;
+	char                        __pad12[26];
+	acolor_rgb_t                primary_on_color, primary_off_color;
+	ShaderWaveFunction          primary_anim_function;
+	uint16_t                    __pad13;
+	float                       primary_anim_period, primary_anim_phase;
+	char                        __pad14[24];
+	acolor_rgb_t                secondary_on_color, secondary_off_color;
+	ShaderWaveFunction          secondary_anim_function;
+	uint16_t                    __pad15;
+	float                       secondary_anim_period, secondary_anim_phase;
+	char                        __pad16[24];
+	acolor_rgb_t                plasma_on_color, plasma_off_color;
+	ShaderWaveFunction          plasma_anim_function;
+	uint16_t                    __pad17;
+	float                       plasma_anim_period, plasma_anim_phase;
+	char                        __pad18[24];
+	float                       map_scale;
+	TagDependency               map;
+	char                        __pad19[224];
 });
 A_STATIC_ASSERT(sizeof(BSPShaderEnvironment) == 836);
 
-Tag*               CL_Map_Tag(TagId id);
-BSPSurf*       	   CL_Map_Surfs();
-uint32_t       	   CL_Map_SurfCount();
-BSPRenderedVertex* CL_Map_RenderedVertices();
-BSPLightmapVertex* CL_Map_LightmapVertices();
-BSPCollSurf*   	   CL_Map_CollSurfs();
-uint32_t       	   CL_Map_CollSurfCount();
-BSPCollEdge*   	   CL_Map_CollEdges();
-uint32_t       	   CL_Map_CollEdgeCount();
-BSPCollVertex* 	   CL_Map_CollVertices();
-uint32_t       	   CL_Map_CollVertexCount();
-BSPLightmap*       CL_Map_Lightmap(uint16_t i);
-uint32_t           CL_Map_LightmapCount();
+A_EXTERN_C Tag*               CL_Map_Tag(TagId id);
+A_EXTERN_C BSPSurf*       	  CL_Map_Surfs(void);
+A_EXTERN_C uint32_t       	  CL_Map_SurfCount(void);
+A_EXTERN_C BSPRenderedVertex* CL_Map_RenderedVertices(void);
+A_EXTERN_C BSPLightmapVertex* CL_Map_LightmapVertices(void);
+A_EXTERN_C BSPCollSurf*   	  CL_Map_CollSurfs(void);
+A_EXTERN_C uint32_t       	  CL_Map_CollSurfCount(void);
+A_EXTERN_C BSPCollEdge*   	  CL_Map_CollEdges(void);
+A_EXTERN_C uint32_t       	  CL_Map_CollEdgeCount(void);
+A_EXTERN_C BSPCollVertex* 	  CL_Map_CollVertices(void);
+A_EXTERN_C uint32_t       	  CL_Map_CollVertexCount(void);
+A_EXTERN_C BSPLightmap*       CL_Map_Lightmap(uint16_t i);
+A_EXTERN_C uint32_t           CL_Map_LightmapCount(void);
 
-void       CL_Init              ();
-void       CL_EnableFpsCounter  (size_t localClientNum, bool enable);
-void       CL_Frame             ();
-void       CL_EnterSplitscreen  (size_t activeLocalClient);
-void       CL_LeaveSplitscreen  (size_t activeLocalClient);
-void	   CL_GiveKbmFocus	    (size_t localClientNum);
-bool	   CL_HasKbmFocus		(size_t localClientNum);
-size_t     CL_ClientWithKbmFocus();
-KeyFocus   CL_KeyFocus		    (size_t localClientNum);
-void       CL_SetKeyFocus		(size_t localClientNum, KeyFocus f);
-bool       CL_BitmapDataFormatIsCompressed(BSPBitmapDataFormat format);
-size_t     CL_BitmapDataFormatBPP(BSPBitmapDataFormat format);
-bool       CL_LoadMap			(std::string_view map_name);
-bool       CL_UnloadMap         ();
-bool       CL_IsMapLoaded       ();
-void       CL_Shutdown          ();
+A_EXTERN_C void     CL_Init              (void);
+A_EXTERN_C void     CL_EnableFpsCounter  (size_t localClientNum, bool enable);
+A_EXTERN_C void     CL_Frame             (void);
+A_EXTERN_C void     CL_EnterSplitscreen  (size_t activeLocalClient);
+A_EXTERN_C void     CL_LeaveSplitscreen  (size_t activeLocalClient);
+A_EXTERN_C void	    CL_GiveKbmFocus	     (size_t localClientNum);
+A_EXTERN_C bool	    CL_HasKbmFocus		 (size_t localClientNum);
+A_EXTERN_C size_t   CL_ClientWithKbmFocus(void);
+A_EXTERN_C KeyFocus CL_KeyFocus		     (size_t localClientNum);
+A_EXTERN_C void     CL_SetKeyFocus		 (size_t localClientNum, KeyFocus f);
+A_EXTERN_C bool     CL_BitmapDataFormatIsCompressed(BSPBitmapDataFormat format);
+A_EXTERN_C size_t   CL_BitmapDataFormatBPP(BSPBitmapDataFormat format);
+A_EXTERN_C bool     CL_LoadMap			 (std::string_view map_name);
+A_EXTERN_C bool     CL_UnloadMap         (void);
+A_EXTERN_C bool     CL_IsMapLoaded       (void);
+A_EXTERN_C void     CL_Shutdown          (void);

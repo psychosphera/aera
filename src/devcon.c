@@ -1,11 +1,7 @@
-#include "devcon.hpp"
+#include "devcon.h"
 
-#include <iostream>
-#include <string>
-#include <deque>
-
-#include <cstdio>
-#include <cerrno>
+#include <stdio.h>
+//#include <errno.h>
 
 // for select() - select(stdin) doesn't work on Windows
 // so don't include the headers there
@@ -17,13 +13,13 @@
 
 #include <SDL3/SDL.h>
 
-#include "com_print.hpp"
+#define DEVCON_MAX_IN 4096
 
 bool       devcon_hasText = false;
 SDL_Mutex* devcon_ioMutex = NULL;
 
 #if !A_TARGET_OS_IS_WINDOWS
-std::string devcon_in;
+char        devcon_in[DEVCON_MAX_IN];
 SDL_Mutex*  devcon_inMutex     = NULL;
 SDL_Mutex*  devcon_selectMutex = NULL;
 fd_set      devcon_fds;
@@ -46,11 +42,12 @@ static bool DevCon_StdinHasLine() {
     FD_CLR(STDIN_FILENO, &devcon_fds);
     FD_SET(STDIN_FILENO, &devcon_fds);
 
-    if (select(1, &devcon_fds, NULL, NULL, &devcon_timeval) < 0) {
+    assert(select(1, &devcon_fds, NULL, NULL, &devcon_timeval) > 0);
+    /*if ( < 0) {
         SDL_UnlockMutex(devcon_selectMutex);
         Com_Errorln("DevCon: select() failed with errno={}", errno);
         return false;
-    }
+    }*/
 
     bool hasLine = FD_ISSET(STDIN_FILENO, &devcon_fds);
     SDL_UnlockMutex(devcon_selectMutex);
@@ -59,7 +56,7 @@ static bool DevCon_StdinHasLine() {
 #endif
 
 #if A_TARGET_OS_IS_WINDOWS
-void DevCon_Frame() {
+A_EXTERN_C void DevCon_Frame() {
     return;
 }
 #else
@@ -75,7 +72,7 @@ void DevCon_Frame() {
         // access, so make sure that doesn't happen
         SDL_LockMutex(devcon_ioMutex);
         SDL_LockMutex(devcon_inMutex);
-        std::getline(std::cin, devcon_in);
+        fgets(devcon_in, sizeof(devcon_in), stdin);
         SDL_UnlockMutex(devcon_inMutex);
         SDL_UnlockMutex(devcon_ioMutex);
         devcon_hasText = true;
@@ -84,15 +81,15 @@ void DevCon_Frame() {
 #endif // A_TARGET_OS_IS_WINDOWS
 
 #if A_TARGET_OS_IS_WINDOWS
-void DevCon_Init() {
+A_EXTERN_C void DevCon_Init() {
     devcon_ioMutex = SDL_CreateMutex();
     DevCon_PrintMessage("DevCon doesn't work correctly on Windows.\n");
     DevCon_PrintMessage("Output works just fine but input doesn't.\n");
     DevCon_PrintMessage("Use DevGui for input instead.\n");
 }
 #else
-void DevCon_Init() {
-	devcon_in.resize(4 * 1024);
+A_EXTERN_C void DevCon_Init() {
+    A_memset(devcon_in, 0, sizeof(devcon_in));
 	devcon_inMutex     = SDL_CreateMutex();
     devcon_ioMutex     = SDL_CreateMutex();
     devcon_selectMutex = SDL_CreateMutex();
@@ -100,44 +97,44 @@ void DevCon_Init() {
 }
 #endif // A_TARGET_OS_IS_WINDOWS
 
-A_NO_DISCARD bool DevCon_HasText() {
+A_EXTERN_C A_NO_DISCARD bool DevCon_HasText() {
 	return devcon_hasText;
 }
 
 #if A_TARGET_OS_IS_WINDOWS
-A_NO_DISCARD std::string DevCon_TakeText() {
+A_EXTERN_C A_NO_DISCARD char* DevCon_TakeText() {
     return "";
 }
 #else
-A_NO_DISCARD std::string DevCon_TakeText() {
+A_EXTERN_C A_NO_DISCARD char* DevCon_TakeText() {
     SDL_LockMutex(devcon_inMutex);
     devcon_hasText = false;
-    std::string s = std::move(devcon_in);
-    devcon_in.clear();
+    char* s = A_cstrdup(devcon_in);
+    A_memset(devcon_in, 0, sizeof(devcon_in));
     SDL_UnlockMutex(devcon_inMutex);
     return s;
 }
 #endif
 
-void DevCon_PrintMessage(std::string_view s) {
+A_EXTERN_C void DevCon_PrintMessage(const char* s) {
     SDL_LockMutex(devcon_ioMutex);
-    printf("%*s", (int)s.length(), s.data());
+    printf("%s", s);
     SDL_UnlockMutex(devcon_ioMutex);
 }
 
 #if A_TARGET_OS_IS_WINDOWS
-void DevCon_Shutdown() {
+A_EXTERN_C void DevCon_Shutdown() {
     SDL_DestroyMutex(devcon_ioMutex);
 }
 #else
-void DevCon_Shutdown() {
+A_EXTERN_C void DevCon_Shutdown() {
     SDL_DestroyMutex(devcon_inMutex);
     SDL_DestroyMutex(devcon_ioMutex);
     SDL_DestroyMutex(devcon_selectMutex);
     devcon_inMutex     = NULL;
     devcon_ioMutex     = NULL;
     devcon_selectMutex = NULL;
-    devcon_in.clear();
+    A_memset(devcon_in, 0, sizeof(devcon_in));
     devcon_hasText     = false;
 }
 #endif

@@ -1,4 +1,4 @@
-#include "sys.hpp"
+#include "sys.h"
 
 #include <cstdio>
 
@@ -8,10 +8,10 @@
 #include "acommon/a_string.h"
 
 #include "cl_client.hpp"
-#include "devcon.hpp"
+#include "devcon.h"
 #include "dvar.hpp"
-#include "gfx.hpp"
-#include "in_input.hpp"
+#include "gfx.h"
+#include "in_input.h"
 
 SDL_Window* g_sdlWindow;
 
@@ -23,7 +23,7 @@ dvar_t* vid_height;
 static uint64_t s_timeBase;
 
 //static size_t Sys_InitCmdline(const char** argv);
-static void   Sys_InitThreads();
+static void   Sys_InitThreads(void);
 /*
 static bool   Sys_CreateThread(
     thread_t thread, const std::string& name, int(*f)(void*)
@@ -69,7 +69,7 @@ void Sys_Init(const char**) {
 
 // Returns true if an event was handled, false if not 
 // (most likely, if event queue was empty).
-bool Sys_HandleEvent() {
+bool Sys_HandleEvent(void) {
     SDL_Event ev;
     if (SDL_PollEvent(&ev)) {
         switch (ev.type) {
@@ -77,16 +77,16 @@ bool Sys_HandleEvent() {
             if (ev.key.keysym.sym == SDLK_ESCAPE)
                 Sys_NormalExit(1);
             else
-                IN_Key_Down(CL_ClientWithKbmFocus(), ev.key.keysym.sym);
+                IN_Key_Down(CL_ClientWithKbmFocus(), IN_Key_SDLKToKeycode(ev.key.keysym.sym));
             break;
         case SDL_EVENT_KEY_UP:
-            IN_Key_Up(CL_ClientWithKbmFocus(), ev.key.keysym.sym);
+            IN_Key_Up(CL_ClientWithKbmFocus(), IN_Key_SDLKToKeycode(ev.key.keysym.sym));
             break;
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
-            IN_Mouse_Down(CL_ClientWithKbmFocus(), ev.button.button);
+            IN_Mouse_Down(CL_ClientWithKbmFocus(), IN_Key_SDLKToKeycode(ev.button.button));
             break;
         case SDL_EVENT_MOUSE_BUTTON_UP:
-            IN_Mouse_Up(CL_ClientWithKbmFocus(), ev.button.button);
+            IN_Mouse_Up(CL_ClientWithKbmFocus(), IN_Key_SDLKToKeycode(ev.button.button));
             break;
         case SDL_EVENT_MOUSE_MOTION:
             IN_Mouse_Move(
@@ -115,7 +115,7 @@ bool Sys_HandleEvent() {
     return false;
 }
 
-uint64_t Sys_Milliseconds() {
+uint64_t Sys_Milliseconds(void) {
     return (uint64_t)SDL_GetTicks() - s_timeBase;
 }
 
@@ -127,7 +127,7 @@ int Sys_ThreadMain(void* data) {
     return sys_threadFuncs.at((size_t)data)(data);
 }
 
-void Sys_InitThreads() {
+void Sys_InitThreads(void) {
 
 }
 
@@ -155,7 +155,7 @@ void Sys_WaitThread(thread_t thread) {
     SDL_WaitThread(sys_hThreads.at(thread), NULL);
 }
 
-void Sys_ShutdownThreads() {
+void Sys_ShutdownThreads(void) {
 
 }
 
@@ -195,7 +195,7 @@ A_NO_RETURN Sys_Exit(int ec) {
     exit(ec);
 }
 
-void Sys_Shutdown() {
+void Sys_Shutdown(void) {
     DevCon_Shutdown();
     Sys_ShutdownThreads();
     //Sys_ShutdownCmdline();
