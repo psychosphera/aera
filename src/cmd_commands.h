@@ -1,10 +1,6 @@
 #pragma once
 
-#ifdef __cplusplus
-#include <cstdbool>
-#else
 #include <stdbool.h>
-#endif // __cplusplus
 
 #include "com_defs.h"
 

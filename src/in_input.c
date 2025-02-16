@@ -4,8 +4,8 @@
 
 #include "acommon/a_string.h"
 
-#include "cl_client.hpp"
-#include "dvar.hpp"
+#include "cl_client.h"
+#include "dvar.h"
 
 #define IN_KEYCODE_COUNT_ON_CURRENT_FRAME 8
 
@@ -214,7 +214,7 @@ static char IN_Key_SDLKToChar(SDL_Keycode k, bool shift) {
 	}
 }
 
-static constexpr int IN_Mouse_SDLButtonToIndex(Uint8 button) {
+static int IN_Mouse_SDLButtonToIndex(Uint8 button) {
 	switch (button) {
 	case SDL_BUTTON_LEFT:
 		return 0;
@@ -380,8 +380,8 @@ void IN_Key_Shutdown(void) {
 void IN_Mouse_Init(void) {
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		inl_t* inl = IN_GetLocalClientLocals(i);
-		inl->mouse.x = (float)Dvar_GetInt(*vid_width)  / 2.0f;
-		inl->mouse.y = (float)Dvar_GetInt(*vid_height) / 2.0f;
+		inl->mouse.x = (float)Dvar_GetInt(vid_width)  / 2.0f;
+		inl->mouse.y = (float)Dvar_GetInt(vid_height) / 2.0f;
 	}
 }
 
@@ -432,8 +432,8 @@ void IN_Mouse_Shutdown(void) {
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		inl_t* inl = IN_GetLocalClientLocals(i);
 		A_memset(&inl->mouse, 0, sizeof(inl->mouse));
-		inl->mouse.x = (float)Dvar_GetInt(*vid_width)  / 2.0f;
-		inl->mouse.y = (float)Dvar_GetInt(*vid_height) / 2.0f;
+		inl->mouse.x = (float)Dvar_GetInt(vid_width)  / 2.0f;
+		inl->mouse.y = (float)Dvar_GetInt(vid_height) / 2.0f;
 	}
 }
 

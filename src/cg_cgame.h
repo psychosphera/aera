@@ -1,30 +1,14 @@
 #pragma once
 
-#ifdef __cplusplus
-#include <cstdbool>
-#else
 #include <stdbool.h>
-#endif // __cplusplus
 
 #include "acommon/a_math.h"
 
 #include "com_defs.h"
-//#include "dvar.hpp"
-struct dvar_t;
-typedef struct dvar_t dvar_t;
+#include "dvar.h"
 #include "gfx_defs.h"
-//#include "cl_client.hpp"
-enum KeyFocus {
-	KF_DEVGUI,
-	KF_GAME,
-};
-typedef enum KeyFocus KeyFocus;
-A_EXTERN_C size_t CL_ClientWithKbmFocus();
-A_EXTERN_C bool CL_HasKbmFocus(size_t);
-A_EXTERN_C KeyFocus CL_KeyFocus(size_t);
-A_EXTERN_C void	CL_GiveKbmFocus(size_t);
-A_EXTERN_C void CL_EnterSplitscreen(size_t);
-A_EXTERN_C void CL_LeaveSplitscreen(size_t);
+#include "cl_client.h"
+
 
 
 typedef struct SpawnPoint {

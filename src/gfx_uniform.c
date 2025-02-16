@@ -33,7 +33,7 @@ void R_SetUniformVec3f(
     glUniform3f(location, value.x, value.y, value.z);
 }
 
-void R_SetUniform4f(
+void R_SetUniformVec4f(
     shader_program_t program, const char* name, avec4f_t value
 ) {
     int location = glGetUniformLocation(program, name);

@@ -1,4 +1,5 @@
 #include "cl_client.hpp"
+#include "cl_client.h"
 
 #include <cassert>
 
@@ -8,16 +9,17 @@
 #include "acommon/z_mem.h"
 
 #include "cg_cgame.h"
+#include "com_print.hpp"
 #include "db_files.hpp"
-#include "dvar.hpp"
+#include "dvar.h"
 #include "gfx.h"
 #include "gfx_text.h"
 #include "in_input.h"
 
 #define BSP_MAX_COLLISION_MATERIALS 512
 
-extern dvar_t* vid_width;
-extern dvar_t* vid_height;
+A_EXTERN_C dvar_t* vid_width;
+A_EXTERN_C dvar_t* vid_height;
 
 A_EXTERN_C Tag* CL_Map_Tag(TagId id);
 
@@ -83,7 +85,7 @@ A_EXTERN_C void CL_Init(void) {
 		(size_t)g_load.bitmaps_map.p, g_load.bitmaps_map.n
 	);
 
-	cl_splitscreen = &Dvar_RegisterBool("cl_splitscreen", DVAR_FLAG_NONE, false);
+	cl_splitscreen = Dvar_RegisterBool("cl_splitscreen", DVAR_FLAG_NONE, false);
 
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		cl_t* cl = CL_GetLocalClientGlobals(i);
@@ -96,7 +98,7 @@ A_EXTERN_C void CL_Init(void) {
 			i, NULL, &rect,
 			A_Format("FPS: {:.0f}", 1000.0f / s_lastFpsDrawDelta).c_str(),
 			0.5f, 0.5f,
-			color, Dvar_GetBool(*cl->drawfps), true,
+			color, Dvar_GetBool(cl->drawfps), true,
 			&CL_GetLocalClientLocals(i)->fpsTextDrawId
 		);
 		assert(b);
@@ -111,7 +113,7 @@ A_EXTERN_C void CL_Init(void) {
 }
 
 A_EXTERN_C void CL_EnableFpsCounter(size_t localClientNum, bool enable) {
-	Dvar_SetBool(*CL_GetLocalClientGlobals(localClientNum)->drawfps, enable);
+	Dvar_SetBool(CL_GetLocalClientGlobals(localClientNum)->drawfps, enable);
 }
 
 A_EXTERN_C void CL_DrawFps(size_t localClientNum) {
@@ -125,7 +127,7 @@ A_EXTERN_C void CL_Frame(void) {
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		cl_t*  cl  = CL_GetLocalClientGlobals(i);
 		cll_t* cll = CL_GetLocalClientLocals(i);
-		R_ActivateTextDrawDef(i, cll->fpsTextDrawId, Dvar_GetBool(*cl->drawfps));
+		R_ActivateTextDrawDef(i, cll->fpsTextDrawId, Dvar_GetBool(cl->drawfps));
 
 		// Updating the FPS counter too often makes it flicker
 		if (Sys_Milliseconds() - s_lastFpsDrawTime > 40) {
@@ -133,7 +135,7 @@ A_EXTERN_C void CL_Frame(void) {
 			s_lastFpsDrawDelta = Com_LastFrameTimeDelta();
 		}
 
-		if (Dvar_GetBool(*cl->drawfps))
+		if (Dvar_GetBool(cl->drawfps))
 			CL_DrawFps(i);
 
 		cll->drawDevGui = IN_Key_IsToggled(i, IN_KEYCODE_TILDE);
@@ -152,9 +154,9 @@ A_EXTERN_C void CL_EnterSplitscreen(size_t activeLocalClient) {
 	cg0->viewport.w = 1.0f;
 	cg0->viewport.h = 0.5f;
 
-	float w0 = cg0->viewport.w * Dvar_GetInt(*vid_width);
-	float h0 = cg0->viewport.h * Dvar_GetInt(*vid_height);
-	cg0->fovy = R_FovHorzToVertical(Dvar_GetFloat(*cg0->fov), h0 / w0);
+	float w0 = cg0->viewport.w * Dvar_GetInt(vid_width);
+	float h0 = cg0->viewport.h * Dvar_GetInt(vid_height);
+	cg0->fovy = R_FovHorzToVertical(Dvar_GetFloat(cg0->fov), h0 / w0);
 
 	cg_t* cg1 = CG_GetLocalClientGlobals(1);
 
@@ -163,9 +165,9 @@ A_EXTERN_C void CL_EnterSplitscreen(size_t activeLocalClient) {
 	cg1->viewport.w = 1.0f;
 	cg1->viewport.h = 0.5f;
 
-	float w1 = cg1->viewport.w * Dvar_GetInt(*vid_width);
-	float h1 = cg1->viewport.h * Dvar_GetInt(*vid_height);
-	cg1->fovy = R_FovHorzToVertical(Dvar_GetFloat(*cg1->fov), h1 / w1);
+	float w1 = cg1->viewport.w * Dvar_GetInt(vid_width);
+	float h1 = cg1->viewport.h * Dvar_GetInt(vid_height);
+	cg1->fovy = R_FovHorzToVertical(Dvar_GetFloat(cg1->fov), h1 / w1);
 
 	if (activeLocalClient != 0)
 		CG_ActivateLocalClient(0);
@@ -181,9 +183,9 @@ A_EXTERN_C void CL_LeaveSplitscreen(size_t activeLocalClient) {
 		cg->viewport.w = 1.0f;
 		cg->viewport.h = 1.0f;
 
-		float w = cg->viewport.w * Dvar_GetInt(*vid_width);
-		float h = cg->viewport.h * Dvar_GetInt(*vid_height);
-		cg->fovy = R_FovHorzToVertical(Dvar_GetFloat(*cg->fov), h / w);
+		float w = cg->viewport.w * Dvar_GetInt(vid_width);
+		float h = cg->viewport.h * Dvar_GetInt(vid_height);
+		cg->fovy = R_FovHorzToVertical(Dvar_GetFloat(cg->fov), h / w);
 
 		if (i != activeLocalClient)
 			CG_DectivateLocalClient(i);
@@ -1075,13 +1077,13 @@ A_EXTERN_C void CL_Shutdown(void) {
 	CL_UnloadMap();
 	A_memset((void*)&g_load, 0, sizeof(g_load));
 
-	Dvar_SetBool(*cl_splitscreen, false);
+	Dvar_SetBool(cl_splitscreen, false);
 	Dvar_Unregister("cl_splitscreen");
 	cl_splitscreen = NULL;
 
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		cl_t* cl = CL_GetLocalClientGlobals(i);
-		Dvar_SetBool(*cl->drawfps, false);
+		Dvar_SetBool(cl->drawfps, false);
 		Dvar_UnregisterLocal(i, "cl_drawfps");
 		cl->drawfps = NULL;
 

@@ -46,12 +46,12 @@ add_executable(h1_map_viewer
     src/acommon/a_common.c src/acommon/a_math.h src/acommon/a_math.c
     src/acommon/z_mem.c src/acommon/a_string.c src/acommon/a_type.c 
 
-	src/cg_cgame.cpp src/com.cpp src/font.cpp src/fs_files.cpp src/gfx.cpp 
-	src/gfx_backend.cpp  src/in_input.cpp src/main.cpp src/sys.cpp
- 	src/db_files.cpp "src/cmd_commands.c" src/cl_client.cpp "src/devgui.c" 
-	src/gfx_text.cpp "src/gfx_shader.c" "src/devcon.c" src/dvar.cpp 
-	src/con_console.cpp "src/pm_pmove.c" "src/m_math.c"
- 	src/gfx_defs.cpp "src/gfx_uniform.c")
+	src/cg_cgame.cpp src/com.c src/font.cpp src/fs_files.c src/gfx.cpp 
+	src/gfx_backend.c  src/in_input.c src/main.cpp src/sys.c
+ 	src/db_files.cpp src/cmd_commands.c src/cl_client.cpp src/devgui.c
+	src/gfx_text.cpp src/gfx_shader.c src/devcon.c src/dvar.c
+	src/con_console.c src/pm_pmove.c src/m_math.c
+ 	src/gfx_defs.c src/gfx_uniform.c src/cl_client.h)
 
 
 # SDL3 and SDL3_image aren't available from vcpkg. SDL_image contains SDL as a
@@ -132,6 +132,7 @@ if(CLANG)
 		"-Wno-address-of-packed-member"
 		"-Wno-sign-compare"
 		"-Wno-embedded-directive"
+		"-Wno-c23-extensions"
 		"-fmacro-backtrace-limit=1"
     ) 
 endif()

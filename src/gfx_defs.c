@@ -1,37 +1,40 @@
 #include "gfx_defs.h"
 
-#include "acommon/a_math.h"
+#include <assert.h>
 
-#include "dvar.hpp"
+#include "acommon/a_math.h"
+#include "acommon/a_string.h"
+
+#include "dvar.h"
 
 extern dvar_t* vid_width;
 extern dvar_t* vid_height;
 
-A_EXTERN_C float R_FovHorzToVertical(float fovx, float aspect_inv) {
+float R_FovHorzToVertical(float fovx, float aspect_inv) {
     return 2.0f * A_degrees(A_atanf(A_tanf(A_radians(fovx) / 2) * aspect_inv));
 }
 
-A_EXTERN_C A_NO_DISCARD float R_VidAspect(void) {
-    return (float)Dvar_GetInt(*vid_width) / (float)Dvar_GetInt(*vid_width);
+A_NO_DISCARD float R_VidAspect(void) {
+    return (float)Dvar_GetInt(vid_width) / (float)Dvar_GetInt(vid_width);
 }
 
-A_EXTERN_C A_NO_DISCARD float R_VidAspectInv(void) {
-    return (float)Dvar_GetInt(*vid_width) / (float)Dvar_GetInt(*vid_width);
+A_NO_DISCARD float R_VidAspectInv(void) {
+    return (float)Dvar_GetInt(vid_width) / (float)Dvar_GetInt(vid_width);
 }
 
-A_EXTERN_C GLenum R_GlCheckError(int line, const char* file) {
+GLenum R_GlCheckError(int /*line*/, const char* /*file*/) {
     GLenum err = glGetError();
-    if (err != GL_NO_ERROR) {
+    /*if (err != GL_NO_ERROR) {
         const char* s = R_GlDebugErrorString(err);
         Com_Println(
             CON_DEST_ERR,
             "GL call at line {} in {} failed with {}.", line, file, s
         );
-    }
+    }*/
     return err;
 }
 
-A_EXTERN_C bool R_CreateVertexBuffer(const void* data, size_t n, size_t capacity,
+bool R_CreateVertexBuffer(const void* data, size_t n, size_t capacity,
                           size_t off, A_OUT GfxVertexBuffer* vb
 ) {
     assert(vb);
@@ -58,7 +61,7 @@ A_EXTERN_C bool R_CreateVertexBuffer(const void* data, size_t n, size_t capacity
         glBufferData(GL_ARRAY_BUFFER, n, data, GL_STATIC_DRAW);
     } else if (n > 0) {
         GL_CALL(glBufferData, 
-            GL_ARRAY_BUFFER, capacity, nullptr, GL_STATIC_DRAW);
+            GL_ARRAY_BUFFER, capacity, NULL, GL_STATIC_DRAW);
         if (data)
             GL_CALL(glBufferSubData, GL_ARRAY_BUFFER, off, n, data);
     }
@@ -69,7 +72,7 @@ A_EXTERN_C bool R_CreateVertexBuffer(const void* data, size_t n, size_t capacity
     return true;
 }
 
-A_EXTERN_C bool R_UploadVertexData(A_INOUT GfxVertexBuffer* vb,
+bool R_UploadVertexData(A_INOUT GfxVertexBuffer* vb,
                         size_t off, const void* data, size_t n
 ) {
     assert(vb);
@@ -86,7 +89,7 @@ A_EXTERN_C bool R_UploadVertexData(A_INOUT GfxVertexBuffer* vb,
     return true;
 }
 
-A_EXTERN_C bool R_AppendVertexData(A_INOUT GfxVertexBuffer* vb,
+bool R_AppendVertexData(A_INOUT GfxVertexBuffer* vb,
                         const void* data, size_t n
 ) {
     assert(vb);
@@ -112,7 +115,7 @@ A_EXTERN_C bool R_AppendVertexData(A_INOUT GfxVertexBuffer* vb,
     return true;
 }
 
-A_EXTERN_C bool R_DeleteVertexBuffer(A_INOUT GfxVertexBuffer* vb) {
+bool R_DeleteVertexBuffer(A_INOUT GfxVertexBuffer* vb) {
     assert(vb);
     if (!vb)
         return false;
@@ -120,7 +123,7 @@ A_EXTERN_C bool R_DeleteVertexBuffer(A_INOUT GfxVertexBuffer* vb) {
     GL_CALL(glBindVertexArray, vb->vao);
     GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, vb->vbo);
 
-    GL_CALL(glBufferData, GL_ARRAY_BUFFER, 0, nullptr, GL_STATIC_DRAW);
+    GL_CALL(glBufferData, GL_ARRAY_BUFFER, 0, NULL, GL_STATIC_DRAW);
 
     GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, 0);
     GL_CALL(glBindVertexArray, 0);
@@ -133,7 +136,7 @@ A_EXTERN_C bool R_DeleteVertexBuffer(A_INOUT GfxVertexBuffer* vb) {
     return true;
 }
 
-A_EXTERN_C A_NO_DISCARD GLenum R_ImageFormatToGl(ImageFormat format) {
+A_NO_DISCARD GLenum R_ImageFormatToGl(ImageFormat format) {
     GLenum gl_format = 0;
     switch (format) {
     case R_IMAGE_FORMAT_A8:
@@ -152,14 +155,14 @@ A_EXTERN_C A_NO_DISCARD GLenum R_ImageFormatToGl(ImageFormat format) {
         gl_format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
         break;
     default:
-        Com_Errorln("R_ImageFormatToGL: Unimplemented ImageFormat {}.", (int)format);
+        //Com_Errorln("R_ImageFormatToGL: Unimplemented ImageFormat {}.", (int)format);
     };
 
     return gl_format;
 }
 
-A_EXTERN_C A_NO_DISCARD ImageFormat R_ImageFormatFromGl(GLenum format) {
-    ImageFormat img_format;
+A_NO_DISCARD ImageFormat R_ImageFormatFromGl(GLenum format) {
+    ImageFormat img_format = R_IMAGE_FORMAT_UNKNOWN;
     switch (format) {
     case GL_ALPHA8:
         img_format = R_IMAGE_FORMAT_A8;
@@ -183,13 +186,14 @@ A_EXTERN_C A_NO_DISCARD ImageFormat R_ImageFormatFromGl(GLenum format) {
         img_format = R_IMAGE_FORMAT_DXT5;
         break;
     default:
-        Com_Errorln("R_ImageFormatToGL: Unimplemented GL format {}.", format);
+        assert(false && "Unimplemented GL format");
+        //Com_Errorln("R_ImageFormatToGL: Unimplemented GL format {}.", format);
     };
 
     return img_format;
 }
 
-A_EXTERN_C A_NO_DISCARD bool R_ImageFormatIsCompressed(ImageFormat format) {
+A_NO_DISCARD bool R_ImageFormatIsCompressed(ImageFormat format) {
     assert(format < R_IMAGE_FORMAT_COUNT);
     if (format >= R_IMAGE_FORMAT_COUNT)
         return false;
@@ -204,7 +208,7 @@ A_EXTERN_C A_NO_DISCARD bool R_ImageFormatIsCompressed(ImageFormat format) {
     };
 }
 
-A_EXTERN_C A_NO_DISCARD bool R_CreateImage2D(int width, int height,
+A_NO_DISCARD bool R_CreateImage2D(int width, int height,
                                              ImageFormat format,
                                              ImageFormat internal_format,
                                              const void* pixels,
@@ -274,6 +278,6 @@ A_EXTERN_C A_NO_DISCARD bool R_CreateImage2D(int width, int height,
     return true;
 }
 
-A_EXTERN_C void R_DeleteImage(A_INOUT GfxImage* image) {
+void R_DeleteImage(A_INOUT GfxImage* image) {
     GL_CALL(glDeleteTextures, 1, &image->tex);
 }

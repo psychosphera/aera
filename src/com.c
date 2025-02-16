@@ -1,14 +1,14 @@
-#include <cstdint>
+#include <stdint.h>
 
 #include "acommon/a_string.h"
 
 #include "cg_cgame.h"
-#include "cl_client.hpp"
+#include "cl_client.h"
 #include "cmd_commands.h"
-#include "con_console.hpp"
+#include "con_console.h"
 #include "devcon.h"
 #include "devgui.h"
-#include "dvar.hpp"
+#include "dvar.h"
 #include "font.h"
 #include "gfx.h"
 #include "in_input.h"
@@ -25,7 +25,7 @@ void Com_Quit_f() {
 }
 
 bool Com_Init() {
-    com_maxfps = &Dvar_RegisterInt("com_maxfps", DVAR_FLAG_NONE, 165, 1, 1000);
+    com_maxfps = Dvar_RegisterInt("com_maxfps", DVAR_FLAG_NONE, 165, 1, 1000);
 
     Cmd_Init();
     Cmd_AddCommand("quit", Com_Quit_f);
@@ -42,7 +42,7 @@ bool Com_Init() {
 }
 
 bool Com_Frame() {
-    uint64_t wait_msec = 1000 / (uint64_t)Dvar_GetInt(*com_maxfps);
+    uint64_t wait_msec = 1000 / (uint64_t)Dvar_GetInt(com_maxfps);
     while (Sys_Milliseconds() - s_lastFrameTime < wait_msec);
 
     s_deltaTime = Sys_Milliseconds() - s_lastFrameTime;
@@ -64,7 +64,7 @@ bool Com_Frame() {
 
         if (DevGui_HasText(i)) {
             char* t = DevGui_TakeText(i);
-            Con_ProcessInput(t, i);
+            Con_ProcessLocalInput(t, i);
             A_cstrfree(t);
         }
     }

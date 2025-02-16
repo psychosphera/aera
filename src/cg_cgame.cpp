@@ -3,7 +3,8 @@
 #include "acommon/a_parse.hpp"
 
 #include "cmd_commands.h"
-#include "dvar.hpp"
+#include "com_print.hpp"
+#include "dvar.h"
 #include "gfx_defs.h"
 #include "in_input.h"
 #include "pm_pmove.h"
@@ -13,8 +14,8 @@ static bool  s_firstMouse;
 
 static cg_t s_cg[MAX_LOCAL_CLIENTS];
 
-extern dvar_t* vid_width;
-extern dvar_t* vid_height;
+A_EXTERN_C dvar_t* vid_width;
+A_EXTERN_C dvar_t* vid_height;
 
 A_EXTERN_C void CG_Teleport_f();
 
@@ -58,9 +59,9 @@ A_EXTERN_C void CG_Init() {
 
 		cg->fov = Dvar_RegisterLocalFloat(i, "cg_fov", DVAR_FLAG_NONE, 
 									     90.0f, 1.0f, 179.0f);
-		float w = cg->viewport.w * Dvar_GetInt(*vid_width);
-		float h = cg->viewport.h * Dvar_GetInt(*vid_height);
-		cg->fovy = R_FovHorzToVertical(Dvar_GetFloat(*cg->fov), h / w);
+		float w = cg->viewport.w * Dvar_GetInt(vid_width);
+		float h = cg->viewport.h * Dvar_GetInt(vid_height);
+		cg->fovy = R_FovHorzToVertical(Dvar_GetFloat(cg->fov), h / w);
 
 		cg->sensitivity = 0.1f;
 		cg->active      = false;
@@ -119,10 +120,10 @@ A_EXTERN_C void CG_Frame(uint64_t) {
 		 localClientNum++
 	) {
 		cg_t* cg = CG_GetLocalClientGlobals(localClientNum);
-		float w = cg->viewport.w * (float)Dvar_GetInt(*vid_width);
-		float h = cg->viewport.h * (float)Dvar_GetInt(*vid_height);
+		float w = cg->viewport.w * (float)Dvar_GetInt(vid_width);
+		float h = cg->viewport.h * (float)Dvar_GetInt(vid_height);
 		float aspect_inv = h / w;
-		cg->fovy = R_FovHorzToVertical(Dvar_GetFloat(*cg->fov), aspect_inv);
+		cg->fovy = R_FovHorzToVertical(Dvar_GetFloat(cg->fov), aspect_inv);
 		
 		pm_t* pm = PM_GetLocalClientGlobals(localClientNum);
 		if (CL_HasKbmFocus(localClientNum) && 
@@ -131,7 +132,7 @@ A_EXTERN_C void CG_Frame(uint64_t) {
 			if (IN_Key_WasPressedOnCurrentFrame(localClientNum, IN_KEYCODE_N)) {
 				CL_GiveKbmFocus(1);
 				IN_Key_Clear(0);
-				if (!Dvar_GetBool(*cl_splitscreen)) {
+				if (!Dvar_GetBool(cl_splitscreen)) {
 					CG_ActivateLocalClient(1);
 					CG_DectivateLocalClient(0);
 				}
@@ -139,31 +140,31 @@ A_EXTERN_C void CG_Frame(uint64_t) {
 			else if (IN_Key_WasPressedOnCurrentFrame(localClientNum, IN_KEYCODE_M)) {
 				CL_GiveKbmFocus(0);
 				IN_Key_Clear(1);
-				if (!Dvar_GetBool(*cl_splitscreen)) {
+				if (!Dvar_GetBool(cl_splitscreen)) {
 					CG_ActivateLocalClient(0);
 					CG_DectivateLocalClient(1);
 				}
 			}
 
 			if (IN_Key_WasPressedOnCurrentFrame(localClientNum, IN_KEYCODE_J)) {
-				Dvar_SetBool(*cl_splitscreen, !Dvar_GetBool(*cl_splitscreen));
+				Dvar_SetBool(cl_splitscreen, !Dvar_GetBool(cl_splitscreen));
 			}
 
-			if (Dvar_WasModified(*cl_splitscreen)) {
-				if (Dvar_GetBool(*cl_splitscreen)) {
+			if (Dvar_WasModified(cl_splitscreen)) {
+				if (Dvar_GetBool(cl_splitscreen)) {
 					CL_EnterSplitscreen(localClientNum);
 				}
 				else {
 					CL_LeaveSplitscreen(localClientNum);
 				}
-				Dvar_ClearModified(*cl_splitscreen);
+				Dvar_ClearModified(cl_splitscreen);
 			}
 
 			if (IN_Key_WasPressedOnCurrentFrame(localClientNum, IN_KEYCODE_F10))
-				Dvar_SetBool(*r_noBorder, !Dvar_GetBool(*r_noBorder));
+				Dvar_SetBool(r_noBorder, !Dvar_GetBool(r_noBorder));
 
 			if (IN_Key_WasPressedOnCurrentFrame(localClientNum, IN_KEYCODE_F11))
-				Dvar_SetBool(*r_fullscreen, !Dvar_GetBool(*r_fullscreen));
+				Dvar_SetBool(r_fullscreen, !Dvar_GetBool(r_fullscreen));
 
 			float vel = 100.0f;
 			if (IN_Key_IsDown(localClientNum, IN_KEYCODE_LEFT_SHIFT))

@@ -10,7 +10,7 @@ A_EXTERN_C void R_SetUniformVec2f(
     shader_program_t program, const char* name, avec2f_t value);
 A_EXTERN_C void R_SetUniformVec3f(
     shader_program_t program, const char* name, avec3f_t value);
-A_EXTERN_C void R_SetUniform4f(
+A_EXTERN_C void R_SetUniformVec4f(
     shader_program_t program, const char* name, avec4f_t value);
 A_EXTERN_C void R_SetUniformInt(
     shader_program_t program, const char* name, int value);

@@ -6,7 +6,7 @@
 #include "com_defs.h"
 #include "gfx_defs.h"
 
-struct GlyphDef {
+typedef struct GlyphDef {
 	char  c;
 	int   width, height;
 	int   left;
@@ -14,15 +14,15 @@ struct GlyphDef {
 	int   advance_x, advance_y;
     float atlas_x, atlas_y;
 	void* pixels;
-};
+} GlyphDef;
 
-struct FontDef {
+typedef struct FontDef {
     int atlas_width, atlas_height;
     GfxShaderProgram prog;
     GfxVertexBuffer  vb;
     GfxImage         image;
     GlyphDef         glyphs[95];
-}; 
+} FontDef;
 
 A_EXTERN_C void Font_Init();
 A_EXTERN_C A_NO_DISCARD bool Font_Load(

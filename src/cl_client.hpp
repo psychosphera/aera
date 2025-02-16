@@ -2,49 +2,42 @@
 
 #include <string_view>
 
-#include <glm/glm.hpp>
-
 #include "acommon/acommon.h"
 #include "acommon/a_math.h"
 
 #include "fs_files.h"
 
-enum KeyFocus {
-	KF_DEVGUI,
-	KF_GAME,
-};
-
 enum : uint32_t {
 	MAP_HEADER_HEAD = A_MAKE_FOURCC('h', 'e', 'a', 'd'),
 	MAP_HEADER_FOOT = A_MAKE_FOURCC('f', 'o', 'o', 't'),
-	TAGS_FOOT       = A_MAKE_FOURCC('t', 'a', 'g', 's'),
+	TAGS_FOOT = A_MAKE_FOURCC('t', 'a', 'g', 's'),
 
-	TAGS_MAX_SIZE_XBOX    = 22 * 1024 * 1024,
+	TAGS_MAX_SIZE_XBOX = 22 * 1024 * 1024,
 	TAGS_MAX_SIZE_GEARBOX = 23 * 1024 * 1024,
 
-	TAGS_BASE_ADDR_XBOX    = 0x803A6000,
+	TAGS_BASE_ADDR_XBOX = 0x803A6000,
 	TAGS_BASE_ADDR_GEARBOX = 0x40440000
 };
 
-enum MapEngine: uint32_t {
-	MAP_ENGINE_XBOX    = 5,
+typedef enum MapEngine : uint32_t {
+	MAP_ENGINE_XBOX = 5,
 	MAP_ENGINE_GEARBOX = 7
-};
+} MapEngine;
 
-enum ScenarioType: uint16_t {
+typedef enum ScenarioType : uint16_t {
 	SCENARIO_TYPE_SINGELPLAYER,
 	SCENARIO_TYPE_MULTILPLAYER,
 	SCENARIO_TYPE_UI,
 	SCENARIO_TYPE_COUNT
-};
+} ScenarioType;
 
-enum TagFourCC: uint32_t {
-	TAG_FOURCC_SCENARIO           = A_MAKE_FOURCC('s', 'c', 'n', 'r'),
-	TAG_FOURCC_SBSP               = A_MAKE_FOURCC('s', 'b', 's', 'p'),
-	TAG_FOURCC_BITMAP             = A_MAKE_FOURCC('b', 'i', 't', 'm'),
-	TAG_FOURCC_SHADER             = A_MAKE_FOURCC('s', 'h', 'd', 'r'),
+typedef enum TagFourCC : uint32_t {
+	TAG_FOURCC_SCENARIO = A_MAKE_FOURCC('s', 'c', 'n', 'r'),
+	TAG_FOURCC_SBSP = A_MAKE_FOURCC('s', 'b', 's', 'p'),
+	TAG_FOURCC_BITMAP = A_MAKE_FOURCC('b', 'i', 't', 'm'),
+	TAG_FOURCC_SHADER = A_MAKE_FOURCC('s', 'h', 'd', 'r'),
 	TAG_FOURCC_SHADER_ENVIRONMENT = A_MAKE_FOURCC('s', 'e', 'n', 'v')
-};
+} TagFourCC;
 
 A_PACK(struct MapHeader {
 	uint32_t     head_magic;
@@ -698,19 +691,6 @@ A_EXTERN_C uint32_t       	  CL_Map_CollVertexCount(void);
 A_EXTERN_C BSPLightmap*       CL_Map_Lightmap(uint16_t i);
 A_EXTERN_C uint32_t           CL_Map_LightmapCount(void);
 
-A_EXTERN_C void     CL_Init              (void);
-A_EXTERN_C void     CL_EnableFpsCounter  (size_t localClientNum, bool enable);
-A_EXTERN_C void     CL_Frame             (void);
-A_EXTERN_C void     CL_EnterSplitscreen  (size_t activeLocalClient);
-A_EXTERN_C void     CL_LeaveSplitscreen  (size_t activeLocalClient);
-A_EXTERN_C void	    CL_GiveKbmFocus	     (size_t localClientNum);
-A_EXTERN_C bool	    CL_HasKbmFocus		 (size_t localClientNum);
-A_EXTERN_C size_t   CL_ClientWithKbmFocus(void);
-A_EXTERN_C KeyFocus CL_KeyFocus		     (size_t localClientNum);
-A_EXTERN_C void     CL_SetKeyFocus		 (size_t localClientNum, KeyFocus f);
 A_EXTERN_C bool     CL_BitmapDataFormatIsCompressed(BSPBitmapDataFormat format);
 A_EXTERN_C size_t   CL_BitmapDataFormatBPP(BSPBitmapDataFormat format);
-A_EXTERN_C bool     CL_LoadMap			 (std::string_view map_name);
-A_EXTERN_C bool     CL_UnloadMap         (void);
-A_EXTERN_C bool     CL_IsMapLoaded       (void);
-A_EXTERN_C void     CL_Shutdown          (void);
+A_EXTERN_C bool     CL_LoadMap			  (std::string_view map_name);

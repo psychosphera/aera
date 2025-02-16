@@ -1,9 +1,11 @@
 #include "a_string.h"
 #include "a_type.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <assert.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "z_mem.h"
 
@@ -95,9 +97,29 @@ void A_cstrncpyz(char* A_RESTRICT dest, const char* A_RESTRICT src, size_t n) {
         dest[n - 1] = '\0';
 }
 
-A_EXTERN_C size_t A_cstrchr(const char* A_RESTRICT s, char c) {
+size_t A_cstrchr(const char* A_RESTRICT s, char c) {
     const char* A_RESTRICT p = memchr(s, c, A_cstrlen(s));
     return p == NULL ? A_NPOS : p - s;
+}
+
+size_t A_itoa(int i, char* A_RESTRICT p, size_t n) {
+    int ret = snprintf(p, n, "%*d", (int)n, i);
+    assert(ret < n);
+    return ret;
+}
+
+int A_atoi(const char* A_RESTRICT s) {
+    return atoi(s);
+}
+
+size_t A_ftoa(float f, char* A_RESTRICT p, size_t n) {
+    int ret = snprintf(p, n, "%*f", (int)n, f);
+    assert(ret < n);
+    return ret;
+}
+
+float A_atof(const char* A_RESTRICT s) {
+    return atof(s);
 }
 
 // str_t A_literal_internal(const char* A_RESTRICT s, size_t c) {

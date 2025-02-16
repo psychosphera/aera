@@ -1,16 +1,20 @@
 #include "gfx_text.h"
 
+#include <assert.h>
+
+#include "acommon/a_string.h"
+
 #include "cg_cgame.h"
 #include "db_files.hpp"
-#include "dvar.hpp"
+#include "dvar.h"
 #include "font.h"
 #include "gfx_defs.h"
 #include "gfx_shader.h"
 #include "gfx_uniform.h"
 #include "sys.h" 
 
-extern dvar_t* vid_width;
-extern dvar_t* vid_height;
+A_EXTERN_C dvar_t* vid_width;
+A_EXTERN_C dvar_t* vid_height;
 FontDef r_defaultFont;
 
 static const GfxSubTexDef s_subTexDefs[6] = {
@@ -125,8 +129,8 @@ void R_DrawText(
 
     cg_t* cg = CG_GetLocalClientGlobals(localClientNum);
 
-    const float screenScaleX = cg->viewport.w * Dvar_GetInt(*vid_width);
-    const float screenScaleY = cg->viewport.h * Dvar_GetInt(*vid_height);
+    const float screenScaleX = cg->viewport.w * Dvar_GetInt(vid_width);
+    const float screenScaleY = cg->viewport.h * Dvar_GetInt(vid_height);
 
     const float min_x =  rect->x * screenScaleX;
     const float max_x = (rect->x + rect->w) * screenScaleX;
@@ -234,13 +238,13 @@ void R_DrawText(
             continue;
         }
 
-        float xpos = x + g->left;
+        /*float xpos = x + g->left;
         float ypos = y - (g->height - g->top);
 
         glm::mat4 model(1.0f);
         model = glm::translate(model, glm::vec3(xpos, ypos, 0.0f));
         model = glm::scale(model, glm::vec3(w, h, 0.0f));
-        R_SetUniformMat4f(font->prog.program, "uModel", model);
+        R_SetUniformMat4f(font->prog.program, "uModel", model);*/
 
         // If the same glyph is being rendered again, the coord uniform doesn't
         // need to be updated.
@@ -342,7 +346,7 @@ bool R_ActivateTextDrawDef(size_t localClientNum, size_t id, bool active) {
     return wasActive;
 }
 
-bool R_RemoveTextDrawDef(size_t localClientNum, size_t id) {
+A_EXTERN_C bool R_RemoveTextDrawDef(size_t localClientNum, size_t id) {
     GfxTextDraw* d = NULL;
     if (!R_GetTextDraw(localClientNum, id, &d))
         return false;
@@ -356,7 +360,7 @@ bool R_RemoveTextDrawDef(size_t localClientNum, size_t id) {
     return true;
 }
 
-void R_ClearTextDrawDefs(size_t localClientNum) {
+A_EXTERN_C void R_ClearTextDrawDefs(size_t localClientNum) {
     for (int i = 0; i < A_countof(r_textDraws[i]); i++) {
         GfxTextDraw* d = &r_textDraws[localClientNum][i];
         d->active = false;
@@ -364,7 +368,7 @@ void R_ClearTextDrawDefs(size_t localClientNum) {
     }
 }
 
-void R_DrawTextDrawDefs(size_t localClientNum) {
+A_EXTERN_C void R_DrawTextDrawDefs(size_t localClientNum) {
     for (int i = 0; i < A_countof(r_textDraws); i++) {
         for (int j = 0; j < A_countof(r_textDraws[i]); j++) {
             GfxTextDraw* d = &r_textDraws[i][j];

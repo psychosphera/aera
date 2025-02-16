@@ -7,12 +7,13 @@
 #include <GL/glew.h>
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
-#include <glm/gtc/matrix_transform.hpp>
 
 #include "cg_cgame.h"
 #include "cl_client.hpp"
+#include "cl_client.h"
+#include "com_print.hpp"
 #include "db_files.hpp"
-#include "dvar.hpp"
+#include "dvar.h"
 #include "font.h"
 #include "gfx_backend.h"
 #include "gfx_shader.h"
@@ -21,10 +22,8 @@
 #include "m_math.h"
 #include "sys.h"
 
-extern dvar_t* vid_width;
-extern dvar_t* vid_height;
-A_EXTERN_C void R_DrawTextDrawDefs (size_t localClientNum);
-A_EXTERN_C void R_ClearTextDrawDefs(size_t localClientNum);
+A_EXTERN_C dvar_t* vid_width;
+A_EXTERN_C dvar_t* vid_height;
 
 A_NO_DISCARD const char* R_GlDebugErrorString(GLenum err) {
     switch (err) {
@@ -50,24 +49,24 @@ A_NO_DISCARD const char* R_GlDebugErrorString(GLenum err) {
     }
 }
 
-A_NO_DISCARD static const char* R_GlDebugSourceString(GLenum source) {
-    switch (source) {
-    case GL_DEBUG_SOURCE_API:
-        return "API";
-    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
-        return "WindowSystem";
-    case GL_DEBUG_SOURCE_SHADER_COMPILER:
-        return "ShaderCompiler";
-    case GL_DEBUG_SOURCE_THIRD_PARTY:
-        return "ThirdParty";
-    case GL_DEBUG_SOURCE_APPLICATION:
-        return "Application";
-    case GL_DEBUG_SOURCE_OTHER:
-        return "Other";
-    default:
-        return "<unknown>";
-    };
-}
+//A_NO_DISCARD static const char* R_GlDebugSourceString(GLenum source) {
+//    switch (source) {
+//    case GL_DEBUG_SOURCE_API:
+//        return "API";
+//    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+//        return "WindowSystem";
+//    case GL_DEBUG_SOURCE_SHADER_COMPILER:
+//        return "ShaderCompiler";
+//    case GL_DEBUG_SOURCE_THIRD_PARTY:
+//        return "ThirdParty";
+//    case GL_DEBUG_SOURCE_APPLICATION:
+//        return "Application";
+//    case GL_DEBUG_SOURCE_OTHER:
+//        return "Other";
+//    default:
+//        return "<unknown>";
+//    };
+//}
 
 A_NO_DISCARD static const char* R_GlDebugTypeString(GLenum type) {
     switch (type) {
@@ -206,24 +205,24 @@ static void R_InitLocalClient(size_t localClientNum) {
     R_UpdateLocalClientView(localClientNum);
 }
 
-static void R_UpdateOrtho(size_t localClientNum) {
-    cg_t* cg = CG_GetLocalClientGlobals(localClientNum);
+static void R_UpdateOrtho(size_t /*localClientNum*/) {
+    /*cg_t* cg = CG_GetLocalClientGlobals(localClientNum);
 
-    float left   = cg->viewport.x * Dvar_GetInt(*vid_width);
-    float right  = cg->viewport.w * Dvar_GetInt(*vid_width)  + left;
-    float bottom = cg->viewport.y * Dvar_GetInt(*vid_height);
-    float top    = cg->viewport.h * Dvar_GetInt(*vid_height) + bottom;
-    cg->camera.orthoProjection = glm::ortho(left, right, bottom, top);
+    float left   = cg->viewport.x * Dvar_GetInt(vid_width);
+    float right  = cg->viewport.w * Dvar_GetInt(vid_width)  + left;
+    float bottom = cg->viewport.y * Dvar_GetInt(vid_height);
+    float top    = cg->viewport.h * Dvar_GetInt(vid_height) + bottom;
+    cg->camera.orthoProjection = glm::ortho(left, right, bottom, top);*/
 }
 
-void R_UpdateProjection(size_t localClientNum) {
-    cg_t* cg = CG_GetLocalClientGlobals(localClientNum);
+void R_UpdateProjection(size_t /*localClientNum*/) {
+    /*cg_t* cg = CG_GetLocalClientGlobals(localClientNum);
 
-    float w = cg->viewport.w * Dvar_GetInt(*vid_width);
-    float h = cg->viewport.h * Dvar_GetInt(*vid_height);
+    float w = cg->viewport.w * Dvar_GetInt(vid_width);
+    float h = cg->viewport.h * Dvar_GetInt(vid_height);
     cg->camera.perspectiveProjection = glm::perspective(
         A_radians(cg->fovy), w / h, cg->nearPlane, cg->farPlane
-    );
+    );*/
 }
 
 static void R_UpdateLocalClientView(size_t localClientNum) {
@@ -232,11 +231,11 @@ static void R_UpdateLocalClientView(size_t localClientNum) {
 }
 
 static void R_RegisterDvars(void) {
-    r_vsync          = &Dvar_RegisterBool("r_vsync", DVAR_FLAG_NONE, true);
-    r_fullscreen     = &Dvar_RegisterBool("r_fullscreen", DVAR_FLAG_NONE, false);
-    r_noBorder       = &Dvar_RegisterBool("r_noBorder", DVAR_FLAG_NONE, false);
-    r_renderDistance = &Dvar_RegisterFloat("r_renderDistance", DVAR_FLAG_NONE, R_FAR_PLANE_DEFAULT, 10.0f, 1000000.0f);
-    r_wireframe      = &Dvar_RegisterBool("r_wireframe", DVAR_FLAG_NONE, false);
+    r_vsync          = Dvar_RegisterBool("r_vsync", DVAR_FLAG_NONE, true);
+    r_fullscreen     = Dvar_RegisterBool("r_fullscreen", DVAR_FLAG_NONE, false);
+    r_noBorder       = Dvar_RegisterBool("r_noBorder", DVAR_FLAG_NONE, false);
+    r_renderDistance = Dvar_RegisterFloat("r_renderDistance", DVAR_FLAG_NONE, R_FAR_PLANE_DEFAULT, 10.0f, 1000000.0f);
+    r_wireframe      = Dvar_RegisterBool("r_wireframe", DVAR_FLAG_NONE, false);
 }
 
 A_EXTERN_C void R_DrawFrame(size_t localClientNum) {
@@ -777,8 +776,8 @@ A_EXTERN_C void R_RenderMapInternal(void) {
     R_SetUniformInt(r_mapGlob.prog.program, "uMicroDetailMap",     4);
     R_SetUniformInt(r_mapGlob.prog.program, "uBumpMap",            5);
 
-    glm::mat4 model(1.0f);
-    R_SetUniformMat4f(r_mapGlob.prog.program, "uModel", model);    
+    //glm::mat4 model(1.0f);
+    //R_SetUniformMat4f(r_mapGlob.prog.program, "uModel", model);    
     for (uint32_t i = 0; i < r_mapGlob.lightmap_count; i++) {
         for (uint32_t j = 0; j < r_mapGlob.lightmaps[i].material_count; j++) {
             GL_CALL(glBindVertexArray, 
@@ -866,7 +865,7 @@ A_EXTERN_C void R_RenderMapInternal(void) {
             bool has_micro_detail_map =
                 r_mapGlob.lightmaps[i].materials[j].micro_detail_map.tex != 0;
             
-            bool wireframe = Dvar_GetBool(*r_wireframe);
+            bool wireframe = Dvar_GetBool(r_wireframe);
             int flags = wireframe | has_map << 1 | has_base_map << 2 |
                 has_primary_detail_map << 3 | has_secondary_detail_map << 4 |
                 has_micro_detail_map << 5 | has_bump_map << 6;
@@ -874,7 +873,7 @@ A_EXTERN_C void R_RenderMapInternal(void) {
             GLsizei vertices_count =
                 r_mapGlob.lightmaps[i].materials[j].vertices_count;
             GL_CALL(glDrawArrays, GL_TRIANGLES, 0, vertices_count);
-            if (Dvar_GetBool(*r_wireframe)) {
+            if (Dvar_GetBool(r_wireframe)) {
                 R_SetUniformInt(r_mapGlob.prog.program, "uFlags", flags & 0x7F);
                 GL_CALL(glPolygonMode, GL_FRONT_AND_BACK, GL_LINE);
                 GL_CALL(glDrawArrays,  GL_TRIANGLES,      0, vertices_count);
@@ -895,17 +894,17 @@ A_EXTERN_C void R_RenderMap(void) {
     R_RenderMapInternal();
 }
 
-A_EXTERN_C static void R_DrawFrameInternal(size_t localClientNum) {
+static void R_DrawFrameInternal(size_t localClientNum) {
     cg_t* cg = CG_GetLocalClientGlobals(localClientNum);
 
-    GLint   x = (GLint)  (cg->viewport.x * Dvar_GetInt(*vid_width));
-    GLint   y = (GLint)  (cg->viewport.y * Dvar_GetInt(*vid_height));
-    GLsizei w = (GLsizei)(cg->viewport.w * Dvar_GetInt(*vid_width));
-    GLsizei h = (GLsizei)(cg->viewport.h * Dvar_GetInt(*vid_height));
+    GLint   x = (GLint)  (cg->viewport.x * Dvar_GetInt(vid_width));
+    GLint   y = (GLint)  (cg->viewport.y * Dvar_GetInt(vid_height));
+    GLsizei w = (GLsizei)(cg->viewport.w * Dvar_GetInt(vid_width));
+    GLsizei h = (GLsizei)(cg->viewport.h * Dvar_GetInt(vid_height));
 
-    if (Dvar_WasModified(*cg->fov)) {
+    if (Dvar_WasModified(cg->fov)) {
         R_UpdateProjection(localClientNum);
-        Dvar_ClearModified(*cg->fov);
+        Dvar_ClearModified(cg->fov);
     }
 
     GL_CALL(glViewport, x, y, w, h);
@@ -920,14 +919,14 @@ A_EXTERN_C static void R_DrawFrameInternal(size_t localClientNum) {
     );
     */
 
-    glm::vec3 pos    = glm::vec3(cg->camera.pos.x, cg->camera.pos.y, cg->camera.pos.z);
+    /*glm::vec3 pos    = glm::vec3(cg->camera.pos.x, cg->camera.pos.y, cg->camera.pos.z);
     glm::vec3 front  = glm::vec3(cg->camera.front.x, cg->camera.front.y, cg->camera.front.z);
     glm::vec3 center = pos + front;
     glm::vec3 up     = glm::vec3(cg->camera.up.x, cg->camera.up.y, cg->camera.up.z);
-    glm::mat4 view   = glm::lookAt(pos, center, up);
+    glm::mat4 view   = glm::lookAt(pos, center, up);*/
 
     GL_CALL(glUseProgram, r_mapGlob.prog.program);
-    R_SetUniformMat4f(r_mapGlob.prog.program, "uView", view);
+    //R_SetUniformMat4f(r_mapGlob.prog.program, "uView", view);
     R_SetUniformMat4f(
         r_mapGlob.prog.program, "uPerspectiveProjection",
         cg->camera.perspectiveProjection

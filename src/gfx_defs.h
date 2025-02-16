@@ -35,6 +35,7 @@ A_EXTERN_C bool R_AppendVertexData  (A_INOUT GfxVertexBuffer* vb,
 A_EXTERN_C bool R_DeleteVertexBuffer(A_INOUT GfxVertexBuffer* vb);
 
 typedef enum ImageFormat {
+    R_IMAGE_FORMAT_UNKNOWN,
     R_IMAGE_FORMAT_DXT1,
     R_IMAGE_FORMAT_DXT3,
     R_IMAGE_FORMAT_DXT5,

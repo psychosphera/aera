@@ -1,15 +1,15 @@
 #include "sys.h"
 
-#include <cstdio>
+#include <stdio.h>
 
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 
 #include "acommon/a_string.h"
 
-#include "cl_client.hpp"
+#include "cl_client.h"
 #include "devcon.h"
-#include "dvar.hpp"
+#include "dvar.h"
 #include "gfx.h"
 #include "in_input.h"
 
@@ -35,24 +35,24 @@ void Sys_Init(const char**) {
 
     SDL_Init(SDL_INIT_VIDEO);
 
-    vid_width  = &Dvar_RegisterInt(
+    vid_width  = Dvar_RegisterInt(
         "vid_width", DVAR_FLAG_NONE, VID_WIDTH_DEFAULT,  1, INT_MAX
     );
-    vid_height = &Dvar_RegisterInt(
+    vid_height = Dvar_RegisterInt(
         "vid_hight", DVAR_FLAG_NONE, VID_HEIGHT_DEFAULT, 1, INT_MAX
     );
 
     g_sdlWindow = SDL_CreateWindow(
         "Halo 1 Map Viewer",
-        Dvar_GetInt(*vid_width),
-        Dvar_GetInt(*vid_height),
+        Dvar_GetInt(vid_width),
+        Dvar_GetInt(vid_height),
         SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
     );
 
     int x, y;
     SDL_GetWindowPosition(g_sdlWindow, &x, &y);
-    vid_xpos = &Dvar_RegisterInt("vid_xpos", DVAR_FLAG_NONE, x, 0, INT_MAX);
-    vid_ypos = &Dvar_RegisterInt("vid_ypos", DVAR_FLAG_NONE, y, 0, INT_MAX);
+    vid_xpos = Dvar_RegisterInt("vid_xpos", DVAR_FLAG_NONE, x, 0, INT_MAX);
+    vid_ypos = Dvar_RegisterInt("vid_ypos", DVAR_FLAG_NONE, y, 0, INT_MAX);
     SDL_SetRelativeMouseMode(SDL_TRUE);
     SDL_SetWindowFullscreenMode(g_sdlWindow, NULL);
 
@@ -94,13 +94,13 @@ bool Sys_HandleEvent(void) {
             );
             break;
         case SDL_EVENT_WINDOW_RESIZED:
-            Dvar_SetInt(*vid_width, ev.window.data1);
-            Dvar_SetInt(*vid_height, ev.window.data2);
+            Dvar_SetInt(vid_width, ev.window.data1);
+            Dvar_SetInt(vid_height, ev.window.data2);
             R_WindowResized();
             break;
         case SDL_EVENT_WINDOW_MOVED:
-            Dvar_SetInt(*vid_xpos, ev.window.data1);
-            Dvar_SetInt(*vid_ypos, ev.window.data2);
+            Dvar_SetInt(vid_xpos, ev.window.data1);
+            Dvar_SetInt(vid_ypos, ev.window.data2);
             break;
         case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
             SDL_DestroyWindow(g_sdlWindow);
@@ -119,12 +119,12 @@ uint64_t Sys_Milliseconds(void) {
     return (uint64_t)SDL_GetTicks() - s_timeBase;
 }
 
-std::array<SDL_Thread*, 32> sys_hThreads;
-std::array<int(*)(void*), 32> sys_threadFuncs;
-std::array<bool, 32> sys_awaitingThreads;
+SDL_Thread* sys_hThreads[32];
+int(*sys_threadFuncs[32])(void*);
+bool sys_awaitingThreads[32];
 
 int Sys_ThreadMain(void* data) {
-    return sys_threadFuncs.at((size_t)data)(data);
+    return sys_threadFuncs[(int)data](data);
 }
 
 void Sys_InitThreads(void) {
@@ -148,11 +148,11 @@ bool Sys_CreateThread(
 */
 
 bool Sys_AwaitingThread(thread_t thread) {
-    return sys_awaitingThreads.at(thread);
+    return sys_awaitingThreads[thread];
 }
 
 void Sys_WaitThread(thread_t thread) {
-    SDL_WaitThread(sys_hThreads.at(thread), NULL);
+    SDL_WaitThread(sys_hThreads[thread], NULL);
 }
 
 void Sys_ShutdownThreads(void) {

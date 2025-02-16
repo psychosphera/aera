@@ -1,18 +1,21 @@
 #include "fs_files.h"
 
+#include <assert.h>
+#include <stdio.h>
+
 #include "acommon/z_mem.h"
 
 #include "com_defs.h"
-#include "com_print.hpp"
 
 A_EXTERN_C A_NO_DISCARD void* FS_ReadFile(const char* path) {
 	SDL_RWops* ops = SDL_RWFromFile(path, "r");
 	if (ops == NULL) {
-		Com_Println(
+		/*Com_Println(
 			CON_DEST_CLIENT,
 			"Failed to open file '{}' for reading: {}",
 			path, SDL_GetError()
-		);
+		);*/
+		assert(false && "Failed to open file for reading");
 		return NULL;
 	}
 
@@ -21,12 +24,14 @@ A_EXTERN_C A_NO_DISCARD void* FS_ReadFile(const char* path) {
 	void* p = (char*)Z_Alloc(len + 1);
 
 	size_t c = SDL_RWread(ops, p, len);
-	if ((Sint64)c < len)
-		Com_Println(
+	if ((Sint64)c < len) {
+		/*Com_Println(
 			CON_DEST_ERR,
 			"Truncated read of file '{}' (expected {} bytes, got {}).",
 			path, len, c
-		);
+		);*/
+		assert(false && "Truncated read of file");
+	}
 
 	return p;
 }
@@ -34,11 +39,12 @@ A_EXTERN_C A_NO_DISCARD void* FS_ReadFile(const char* path) {
 A_EXTERN_C A_NO_DISCARD char* FS_ReadFileText(const char* path) {
 	SDL_RWops* ops = SDL_RWFromFile(path, "r");
 	if (ops == NULL) {
-		Com_Println(
+		/*Com_Println(
 			CON_DEST_CLIENT, 
 			"Failed to open file '{}' for reading: {}", 
 			path, SDL_GetError()
-		);
+		);*/
+		assert(false && "Failed to open file for reading");
 		return NULL;
 	}
 
@@ -47,12 +53,14 @@ A_EXTERN_C A_NO_DISCARD char* FS_ReadFileText(const char* path) {
 	char* p = (char*)Z_Alloc(len + 1);
 
 	size_t c = SDL_RWread(ops, p, len);
-	if ((Sint64)c < len)
-		Com_Println(
-			CON_DEST_ERR, 
+	if ((Sint64)c < len) {
+		/*Com_Println(
+			CON_DEST_ERR,
 			"Truncated read of file '{}' (expected {} bytes, got {}).",
 			path, len, c
-		);
+		);*/
+		assert(false && "Truncated read of file");
+	}
 
 	if (p[len] != '\0')
 		p[len]  = '\0';
@@ -95,8 +103,10 @@ A_EXTERN_C A_NO_DISCARD size_t FS_StreamPos(A_INOUT StreamFile* file) {
 }
 
 A_EXTERN_C long long FS_SeekStream(A_INOUT StreamFile* file, SeekFrom from, size_t off) {
-	if (off > file->size) 
-		Com_DPrintln("FS_SeekStream: attempted to seek beyond bounds of file (off={}, expected <{})", off, file->size);
+	if (off > file->size) {
+		//Com_DPrintln("FS_SeekStream: attempted to seek beyond bounds of file (off={}, expected <{})", off, file->size);
+		assert(false && "Attempted to seek beyond bounds of file");
+	}
 	assert(off <= file->size);
 
 	Sint64 res       = -1;
@@ -111,11 +121,11 @@ A_EXTERN_C long long FS_SeekStream(A_INOUT StreamFile* file, SeekFrom from, size
 		res = SDL_RWseek(file->f, (long long)off, SDL_RW_SEEK_CUR);
 		break;
 	default:
-		assert(false);
+		assert(false && "Bad SeekFrom value");
 	}
 	if (res < 0) {
-		Com_DPrintln("FS_SeekStream failed: {}", SDL_GetError());
-		
+		//Com_DPrintln("FS_SeekStream failed: {}", SDL_GetError());
+		assert(false && "Seek failed");
 	}
 
 	return res;
@@ -133,8 +143,10 @@ A_EXTERN_C A_NO_DISCARD size_t FS_FileSize(A_INOUT StreamFile* file) {
 
 A_EXTERN_C A_NO_DISCARD bool FS_ReadStream(A_INOUT StreamFile* file, void* dst, size_t count) {
 	size_t sz = SDL_RWread(file->f, dst, count);
-	if(sz <= 0) 
-		Com_DPrintln("FS_ReadStream: failed to write {} bytes (wrote {}): {}", count, sz, SDL_GetError());
+	if (sz <= 0) {
+		//Com_DPrintln("FS_ReadStream: failed to read {} bytes (read {}): {}", count, sz, SDL_GetError());
+		assert(false && "Failed to read all bytes");
+	}
 	return sz > 0;
 }
 
@@ -142,8 +154,10 @@ A_EXTERN_C A_NO_DISCARD bool FS_WriteStream(A_INOUT StreamFile* file, const void
 	size_t sz = SDL_RWwrite(file->f, src, count);
 	if(sz > 0)
 		file->size += sz;
-	if(sz != count) 
-		Com_DPrintln("FS_WriteStream: failed to write {} bytes (wrote {}): {}", count, sz, SDL_GetError());
+	if (sz != count) {
+		//Com_DPrintln("FS_WriteStream: failed to write {} bytes (wrote {}): {}", count, sz, SDL_GetError());
+		assert(false && "Failed to write all bytes");
+	}
 	return sz == count;
 }
 

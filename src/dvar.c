@@ -1,0 +1,1077 @@
+#include <assert.h>
+
+#include "acommon/a_string.h"
+#include "acommon/z_mem.h"
+
+#include "dvar.h"
+#include "cmd_commands.h"
+
+typedef enum DvarType {
+	DVAR_TYPE_NONE,
+	DVAR_TYPE_BOOL,
+	DVAR_TYPE_INT,
+	DVAR_TYPE_FLOAT,
+	DVAR_TYPE_STRING,
+	DVAR_TYPE_ENUM,
+	DVAR_TYPE_VEC2,
+	DVAR_TYPE_VEC3,
+	DVAR_TYPE_VEC4
+} DvarType;
+
+typedef union DvarDomain {
+	struct { int   min, max; } i;
+	struct { float min, max; } f;
+	int e;
+} DvarDomain;
+
+typedef union DvarValue {
+	bool     b;
+	int      i;
+	float    f;
+	avec2f_t v2;
+	avec3f_t v3;
+	avec4f_t v4;
+} DvarValue;
+
+typedef struct dvar_t {
+	char*      name;
+	DvarType   type;
+	DvarDomain domain;
+	DvarValue  value;
+	DvarValue  latched;
+	int        flags;
+	char**     e;
+	int        i;
+	bool       modified;
+	bool       hasLatched;
+} dvar_t;
+
+static dvar_t* s_dvars[DVAR_MAX_DVARS];
+static int     s_dvarCount;
+
+void Dvar_Init() {
+	Cmd_AddCommand("set",  Dvar_Set_f);
+	Cmd_AddCommand("seta", Dvar_SetA_f);
+
+	A_memset(s_dvars, 0, sizeof(s_dvars));
+	s_dvarCount = 0;
+}
+
+A_NO_DISCARD bool Dvar_WasModified(const dvar_t* d) {
+	return d->modified;
+}
+
+void Dvar_SetModified(A_INOUT dvar_t* d) {
+	d->modified = true;
+}
+
+void Dvar_ClearModified(A_INOUT dvar_t* d) {
+	d->modified = false;
+}
+
+A_NO_DISCARD bool Dvar_IsBool(const dvar_t* d) {
+	return d->type == DVAR_TYPE_BOOL;
+}
+
+A_NO_DISCARD bool Dvar_IsInt(const dvar_t* d) {
+	return d->type == DVAR_TYPE_INT;
+}
+
+A_NO_DISCARD bool Dvar_IsFloat(const dvar_t* d) {
+	return d->type == DVAR_TYPE_FLOAT;
+}
+
+A_NO_DISCARD bool Dvar_IsString(const dvar_t* d) {
+	return d->type == DVAR_TYPE_STRING;
+}
+
+A_NO_DISCARD bool Dvar_IsEnum(const dvar_t* d) {
+	return d->type == DVAR_TYPE_ENUM;
+}
+
+A_NO_DISCARD bool Dvar_IsVec2(const dvar_t* d) {
+	return d->type == DVAR_TYPE_VEC2;
+}
+
+A_NO_DISCARD bool Dvar_IsVec3(const dvar_t* d) {
+	return d->type == DVAR_TYPE_VEC3;
+}
+
+A_NO_DISCARD bool Dvar_IsVec4(const dvar_t* d) {
+	return d->type == DVAR_TYPE_VEC4;
+}
+
+void Dvar_LatchValue(A_INOUT dvar_t* d) {
+	d->latched = d->value;
+	d->hasLatched = true;
+}
+
+bool Dvar_RestoreValue(A_INOUT dvar_t* d) {
+	if (d->hasLatched) {
+		d->value = d->latched;
+		d->hasLatched = false;
+		return true;
+	}
+
+	return false;
+}
+
+bool Dvar_HasLatchedValue(const dvar_t* d) {
+	return d->hasLatched;
+}
+
+static void Dvar_DestroyDvar(dvar_t* d) {
+	A_cstrfree(d->name);
+	if (d->type == DVAR_TYPE_ENUM) {
+		for (int i = 0; i < d->domain.e; i++)
+			A_cstrfree(d->e[i]);
+		Z_Free(d->e);
+	}
+	else if (d->type == DVAR_TYPE_STRING || d->type == DVAR_TYPE_BOOL) {
+		A_cstrfree(d->e[0]);
+		Z_Free(d->e);
+	}
+	else if (d->type == DVAR_TYPE_INT || d->type == DVAR_TYPE_FLOAT ||
+		d->type == DVAR_TYPE_VEC2 || d->type == DVAR_TYPE_VEC3 ||
+		d->type == DVAR_TYPE_VEC4
+		) {
+		Z_Free(d->e[0]);
+		Z_Free(d->e);
+	}
+}
+
+dvar_t Dvar_CreateBool(const char* name, int flags, bool value) {
+	char** e = Z_Alloc(sizeof(*e));
+	e[0] = Z_Alloc(6);
+	if (value == true)
+		A_cstrncpyz(e[0], "true", 6);
+	else
+		A_cstrncpyz(e[0], "false", 6);
+	dvar_t d = {
+		.name = (char*)name,
+		.type = DVAR_TYPE_BOOL,
+		.value = {.b = value },
+		.flags = flags,
+		.e = e,
+		.modified = false,
+		.hasLatched = false
+	};
+
+	return d;
+}
+
+dvar_t Dvar_CreateInt(const char* name, int flags, int value, int min, int max) {
+	char** e = Z_Alloc(sizeof(*e));
+	e[0] = Z_Alloc(12);
+	A_itoa(value, e[0], 12);
+
+	dvar_t d = {
+		.name = (char*)name,
+		.type = DVAR_TYPE_INT,
+		.domain = {.i = {.min = min, .max = max } },
+		.value = {.i = value },
+		.flags = flags,
+		.e = e,
+		.modified = false,
+		.hasLatched = false
+	};
+
+	return d;
+}
+
+dvar_t Dvar_CreateFloat(const char* name, int flags, float value, float min, float max) {
+	char** e = Z_Alloc(sizeof(*e));
+	e[0] = Z_Alloc(32);
+	A_itoa(value, e[0], 32);
+
+	dvar_t d = {
+		.name = (char*)name,
+		.type = DVAR_TYPE_FLOAT,
+		.domain = {.f = {.min = min, .max = max } },
+		.value = {.f = value },
+		.flags = flags,
+		.e = e,
+		.modified = false,
+		.hasLatched = false
+	};
+
+	return d;
+}
+
+dvar_t Dvar_CreateString(const char* /*name*/, int flags, const char* value) {
+	char** e = Z_Alloc(sizeof(*e));
+	e[0] = A_cstrdup(value);
+
+	dvar_t d = {
+		.type = DVAR_TYPE_STRING,
+		.flags = flags,
+		.e = e,
+		.modified = false,
+		.hasLatched = false
+	};
+
+	return d;
+}
+
+dvar_t Dvar_CreateEnum(
+	const char* name, int flags, int value,
+	const char** domain, size_t domain_count
+) {
+	char** e = Z_Alloc(sizeof(*e) * domain_count);
+	for (size_t i = 0; i < domain_count; i++)
+		e[i] = A_cstrdup(domain[i]);
+
+	dvar_t d = {
+		.name = (char*)name,
+		.type = DVAR_TYPE_ENUM,
+		.domain = {.e = (int)domain_count },
+		.flags = flags,
+		.e = e,
+		.i = value,
+		.modified = false,
+		.hasLatched = false
+	};
+
+	return d;
+}
+
+dvar_t Dvar_CreateVec2(const char* name, int flags, avec2f_t value, float min, float max) {
+	char** e = Z_Alloc(sizeof(*e));
+	e[0] = Z_Alloc(32 + 1 + 32);
+	size_t pos = A_itoa(value.x, e[0], 32);
+	e[0][pos] = ' ';
+	A_itoa(value.y, &e[0][pos + 1], 32);
+
+	dvar_t d = {
+		.name = (char*)name,
+		.type = DVAR_TYPE_VEC2,
+		.domain = { .f = {.min = min, .max = max } },
+		.value = { .v2 = value },
+		.flags = flags,
+		.e = e,
+		.modified = false,
+		.hasLatched = false
+	};
+
+	return d;
+}
+
+dvar_t Dvar_CreateVec3(const char* name, int flags, avec3f_t value, float min, float max) {
+	char** e = Z_Alloc(sizeof(*e));
+	e[0] = Z_Alloc(32 + 1 + 32 + 1 + 32);
+	size_t pos = A_itoa(value.x, e[0], 32);
+	e[0][pos] = ' ';
+	pos = A_itoa(value.y, &e[0][pos + 1], 32);
+	e[0][pos] = ' ';
+	A_itoa(value.y, &e[0][pos + 1], 32);
+
+	dvar_t d = {
+		.name = (char*)name,
+		.type = DVAR_TYPE_VEC3,
+		.domain = {.f = {.min = min, .max = max } },
+		.value = {.v3 = value },
+		.flags = flags,
+		.e = e,
+		.modified = false,
+		.hasLatched = false
+	};
+
+	return d;
+}
+
+dvar_t Dvar_CreateVec4(const char* name, int flags, avec4f_t value, float min, float max) {
+	char** e = Z_Alloc(sizeof(*e));
+	e[0] = Z_Alloc(32 + 1 + 32 + 1 + 32 + 1 + 32);
+	size_t pos = A_itoa(value.x, e[0], 32);
+	e[0][pos] = ' ';
+	pos = A_itoa(value.y, &e[0][pos + 1], 32);
+	e[0][pos] = ' ';
+	pos = A_itoa(value.y, &e[0][pos + 1], 32);
+	e[0][pos] = ' ';
+	A_itoa(value.y, &e[0][pos + 1], 32);
+
+	dvar_t d = {
+		.name = (char*)name,
+		.type = DVAR_TYPE_VEC4,
+		.domain = {.f = {.min = min, .max = max } },
+		.value = {.v4 = value },
+		.flags = flags,
+		.e = e,
+		.modified = false,
+		.hasLatched = false
+	};
+
+	return d;
+}
+
+
+bool Dvar_GetBool(const dvar_t* d) {
+	if (d->type != DVAR_TYPE_BOOL)
+		return false;
+	return d->value.b;
+}
+
+int Dvar_GetInt(const dvar_t* d) {
+	if (d->type == DVAR_TYPE_INT)
+		return d->value.i;
+	else if (d->type == DVAR_TYPE_ENUM)
+		return d->i;
+
+	return 0;
+}
+
+float Dvar_GetFloat(const dvar_t* d) {
+	if (d->type != DVAR_TYPE_FLOAT)
+		return 0;
+	return d->value.f;
+}
+
+const char* Dvar_GetString(const dvar_t* d) {
+	if (d->type == DVAR_TYPE_ENUM)
+		return d->e[d->i];
+	return d->e[0];
+}
+
+avec2f_t Dvar_GetVec2(const dvar_t* d) {
+	if (d->type != DVAR_TYPE_VEC2)
+		return A_VEC2F_ZERO;
+	return d->value.v2;
+}
+
+avec3f_t Dvar_GetVec3(const dvar_t* d) {
+	if (d->type != DVAR_TYPE_VEC3)
+		return A_VEC3F_ZERO;
+	return d->value.v3;
+}
+
+avec4f_t Dvar_GetVec4(const dvar_t* d) {
+	if (d->type != DVAR_TYPE_VEC4)
+		return A_VEC4F_ZERO;
+	return d->value.v4;
+}
+
+void Dvar_SetBool(A_INOUT dvar_t* d, bool b) {
+	if (d->type == DVAR_TYPE_BOOL) {
+		d->value.b = b;
+		if (b)
+			A_cstrncpyz(d->e[0], "true", 6);
+		else
+			A_cstrncpyz(d->e[0], "false", 6);
+		d->modified = true;
+	}
+}
+
+void Dvar_SetInt(A_INOUT dvar_t* d, int i) {
+	if (d->type == DVAR_TYPE_INT &&
+		(i <= d->domain.i.max && i >= d->domain.i.min)
+	) {
+		d->value.i = i;
+		d->modified = true;
+	}
+	else if (d->type == DVAR_TYPE_ENUM && i < d->i) {
+		d->i = i;
+	}
+}
+
+void Dvar_SetFloat(A_INOUT dvar_t* d, float f) {
+	if (d->type == DVAR_TYPE_FLOAT &&
+		(f <= d->domain.f.max && f >= d->domain.f.min)
+	) {
+		d->value.f = f;
+		A_ftoa(f, d->e[0], 32);
+		d->modified = true;
+	}
+}
+
+void Dvar_SetString(A_INOUT dvar_t* d, const char* s) {
+	if (d->type == DVAR_TYPE_STRING) {
+		d->e[0] = A_cstrdup(s);
+		d->modified = true;
+	} else if (d->type == DVAR_TYPE_ENUM) {
+		d->e[d->i] = A_cstrdup(s);
+		d->modified = true;
+	}
+}
+
+void Dvar_SetVec2(A_INOUT dvar_t* d, avec2f_t v) {
+	if (d->type == DVAR_TYPE_VEC2 &&
+		(v.x <= d->domain.f.max && v.x >= d->domain.f.min) &&
+		(v.y <= d->domain.f.max && v.y >= d->domain.f.min)
+	) {
+		d->value.v2 = v;
+		size_t pos = A_ftoa(v.x, d->e[0], 32);
+		d->e[0][pos] = ' ';
+		A_ftoa(v.y, d->e[0] + pos + 1, 32);
+		d->modified = true;
+	}
+}
+
+void Dvar_SetVec3(A_INOUT dvar_t* d, avec3f_t v) {
+	if (d->type == DVAR_TYPE_VEC3 &&
+		(v.x <= d->domain.f.max && v.x >= d->domain.f.min) &&
+		(v.y <= d->domain.f.max && v.y >= d->domain.f.min) &&
+		(v.z <= d->domain.f.max && v.z >= d->domain.f.min)
+	) {
+		d->value.v3 = v;
+		size_t pos = A_ftoa(v.x, d->e[0], 32);
+		d->e[0][pos] = ' ';
+		pos = A_ftoa(v.y, d->e[0] + pos + 1, 32);
+		d->e[0][pos] = ' ';
+		A_ftoa(v.z, d->e[0] + pos + 1, 32);
+		d->modified = true;
+		
+	}
+}
+
+void Dvar_SetVec4(A_INOUT dvar_t* d, avec4f_t v) {
+	if (d->type == DVAR_TYPE_VEC4 &&
+		(v.x <= d->domain.f.max && v.x >= d->domain.f.min) &&
+		(v.y <= d->domain.f.max && v.y >= d->domain.f.min) &&
+		(v.z <= d->domain.f.max && v.z >= d->domain.f.min) &&
+		(v.w <= d->domain.f.max && v.w >= d->domain.f.min)
+	) {
+		d->value.v4 = v;
+		size_t pos = A_ftoa(v.x, d->e[0], 32);
+		d->e[0][pos] = ' ';
+		pos = A_ftoa(v.y, d->e[0] + pos + 1, 32);
+		d->e[0][pos] = ' ';
+		pos = A_ftoa(v.z, d->e[0] + pos + 1, 32);
+		d->e[0][pos] = ' ';
+		A_ftoa(v.w, d->e[0] + pos + 1, 32);
+		d->modified = true;
+	}
+}
+
+void Dvar_AddFlags(A_INOUT dvar_t* d, int flags) {
+	d->flags |= flags;
+}
+
+void Dvar_ClearFlags(A_INOUT dvar_t* d, int flags) {
+	d->flags &= ~flags;
+}
+
+bool Dvar_Exists(const char* name) {
+	for (int i = 0; i < s_dvarCount; i++) {
+		if (s_dvars[i]->name && A_cstrcmp(s_dvars[i]->name, name))
+			return true;
+	}
+	
+	return false;
+}
+
+dvar_t* Dvar_Find(const char* name) {
+	for (int i = 0; i < s_dvarCount; i++) {
+		if (s_dvars[i]->name && A_cstrcmp(s_dvars[i]->name, name))
+			return s_dvars[i];
+	}
+
+	return NULL;
+}
+
+static dvar_t** Dvar_TakeFreeDvar() {
+	if (s_dvarCount < DVAR_MAX_DVARS) {
+		dvar_t** d = &s_dvars[s_dvarCount++];
+		assert(d == NULL);
+		return d;
+	}
+
+	for (int i = 0; i < DVAR_MAX_DVARS; i++) {
+		if (s_dvars[i] == NULL)
+			return &s_dvars[i];
+	}
+	
+	return NULL;
+}
+
+static dvar_t* Dvar_RegisterDvar(const char* name, const dvar_t* d) {
+	dvar_t** dvar = Dvar_TakeFreeDvar();
+	if (d == NULL)
+		return NULL;
+
+	*dvar = Z_Alloc(sizeof(*d));
+	A_memcpy(*dvar, d, sizeof(*d));
+	(*dvar)->name = A_cstrdup(name);
+	return *dvar;
+}
+
+static dvar_t* Dvar_RegisterNewDvar(const char* name, const dvar_t* d) {
+	if (Dvar_Exists(name))
+		return NULL;
+
+	return Dvar_RegisterDvar(name, d);
+}
+
+dvar_t* Dvar_RegisterNewBool(
+	const char* name, int flags, bool value
+) {
+	dvar_t d = Dvar_CreateBool(name, flags, value);
+	return Dvar_RegisterNewDvar(name, &d);
+}
+
+dvar_t* Dvar_RegisterNewInt(
+	const char* name, int flags, 
+	int value, int min, int max
+) {
+	dvar_t d = Dvar_CreateInt(name, flags, value, min, max);
+	return Dvar_RegisterNewDvar(name, &d);
+}
+
+dvar_t* Dvar_RegisterNewFloat(
+	const char* name, int flags, 
+	float value, float min, float max
+) {
+	dvar_t d = Dvar_CreateFloat(name, flags, value, min, max);
+	return Dvar_RegisterNewDvar(name, &d);
+}
+
+dvar_t* Dvar_RegisterNewString(
+	const char* name, int flags, 
+	const char* value
+) {
+	dvar_t d = Dvar_CreateString(name, flags, value);
+	return Dvar_RegisterNewDvar(name, &d);
+}
+
+dvar_t* Dvar_RegisterNewEnum(
+	const char* name, int flags, int value,
+	const char** domain, size_t domain_count
+) {
+	dvar_t d = Dvar_CreateEnum(name, flags, value, domain, domain_count);
+	return Dvar_RegisterNewDvar(name, &d);
+}
+
+dvar_t* Dvar_RegisterNewVec2(
+	const char* name, int flags, avec2f_t value, 
+	float min, float max
+) {
+	dvar_t d = Dvar_CreateVec2(name, flags, value, min, max);
+	return Dvar_RegisterNewDvar(name, &d);
+}
+
+dvar_t* Dvar_RegisterNewVec3(
+	const char* name, int flags, avec3f_t value,
+	float min, float max
+) {
+	dvar_t d = Dvar_CreateVec3(name, flags, value, min, max);
+	return Dvar_RegisterNewDvar(name, &d);
+}
+
+dvar_t* Dvar_RegisterNewVec4(
+	const char* name, int flags, avec4f_t value,
+	float min, float max
+) {
+	dvar_t d = Dvar_CreateVec4(name, flags, value, min, max);
+	return Dvar_RegisterNewDvar(name, &d);
+}
+
+static dvar_t* Dvar_ReregisterDvar(const char* name, const dvar_t* d) {
+	if (!Dvar_Exists(name))
+		return NULL;
+
+	Dvar_Unregister(name);
+	return Dvar_RegisterDvar(name, d);
+}
+
+dvar_t* Dvar_ReregisterBool(
+	const char* name, int flags, bool value
+) {
+	dvar_t d = Dvar_CreateBool(name, flags, value);
+	return Dvar_ReregisterDvar(name, &d);
+}
+
+dvar_t* Dvar_ReregisterInt(
+	const char* name, int flags, 
+	int value, int min, int max
+) {
+	dvar_t d = Dvar_CreateInt(name, flags, value, min, max);
+	return Dvar_RegisterDvar(name, &d);
+}
+
+dvar_t* Dvar_ReregisterFloat(
+	const char* name, int flags, 
+	float value, float min, float max
+) {
+	dvar_t d = Dvar_CreateFloat(name, flags, value, min, max);
+	return Dvar_RegisterDvar(name, &d);
+}
+
+dvar_t* Dvar_ReregisterString(
+	const char* name, int flags, 
+	const char* value
+) {
+	dvar_t d = Dvar_CreateString(name, flags, value);
+	return Dvar_RegisterDvar(name, &d);
+}
+
+dvar_t* Dvar_ReregisterEnum(
+	const char* name, int flags, 
+	int value, const char** domain, size_t domain_count
+) {
+	dvar_t d = Dvar_CreateEnum(name, flags, value, domain, domain_count);
+	return Dvar_RegisterDvar(name, &d);
+}
+
+dvar_t* Dvar_ReregisterVec2(
+	const char* name, int flags, 
+	avec2f_t value, float min, float max
+) {
+	dvar_t d = Dvar_CreateVec2(name, flags, value, min, max);
+	return Dvar_RegisterDvar(name, &d);
+}
+
+dvar_t* Dvar_ReregisterVec3(
+	const char* name, int flags,
+	avec3f_t value, float min, float max
+) {
+	dvar_t d = Dvar_CreateVec3(name, flags, value, min, max);
+	return Dvar_RegisterDvar(name, &d);
+}
+
+dvar_t* Dvar_ReregisterVec4(
+	const char* name, int flags,
+	avec4f_t value, float min, float max
+) {
+	dvar_t d = Dvar_CreateVec4(name, flags, value, min, max);
+	return Dvar_RegisterDvar(name, &d);
+}
+
+dvar_t* Dvar_RegisterBool(
+	const char* name, int flags, bool value
+) {
+	if (Dvar_Exists(name))
+		return Dvar_ReregisterBool(name, flags, value);
+	else
+		return Dvar_RegisterNewBool(name, flags, value);
+}
+
+dvar_t* Dvar_RegisterInt(
+	const char* name, int flags, int value, int min, int max
+) {
+	if (Dvar_Exists(name))
+		return Dvar_ReregisterInt(name, flags, value, min, max);
+	else
+		return Dvar_RegisterNewInt(name, flags, value, min, max);
+}
+
+dvar_t* Dvar_RegisterFloat(
+	const char* name, int flags, 
+	float value, float min, float max
+) {
+	if (Dvar_Exists(name))
+		return Dvar_ReregisterFloat(name, flags, value, min, max);
+	else
+		return Dvar_RegisterNewFloat(name, flags, value, min, max);
+}
+
+dvar_t* Dvar_RegisterString(
+	const char* name, int flags, const char* value
+) {
+	if (Dvar_Exists(name))
+		return Dvar_ReregisterString(name, flags, value);
+	else
+		return Dvar_RegisterNewString(name, flags, value);
+}
+
+dvar_t* Dvar_RegisterEnum(
+	const char* name, int flags, 
+	int value, const char** domain, size_t domain_count
+) {
+	if (Dvar_Exists(name))
+		return Dvar_ReregisterEnum(name, flags, value, domain, domain_count);
+	else
+		return Dvar_RegisterNewEnum(name, flags, value, domain, domain_count);
+}
+
+dvar_t* Dvar_RegisterVec2(
+	const char* name, int flags, 
+	avec2f_t value, float min, float max
+) {
+	if (Dvar_Exists(name))
+		return Dvar_ReregisterVec2(name, flags, value, min, max);
+	else
+		return Dvar_RegisterNewVec2(name, flags, value, min, max);
+}
+
+dvar_t* Dvar_RegisterVec3(
+	const char* name, int flags, 
+	avec3f_t value, float min, float max
+) {
+	if (Dvar_Exists(name))
+		return Dvar_ReregisterVec3(name, flags, value, min, max);
+	else
+		return Dvar_RegisterNewVec3(name, flags, value, min, max);
+}
+
+dvar_t* Dvar_RegisterVec4(
+	const char* name, int flags, 
+	avec4f_t value, float min, float max
+) {
+	if (Dvar_Exists(name))
+		return Dvar_ReregisterVec4(name, flags, value, min, max);
+	else
+		return Dvar_RegisterNewVec4(name, flags, value, min, max);
+}
+
+bool Dvar_Unregister(const char* name) {
+	for (int i = 0; i < s_dvarCount; i++) {
+		if (A_cstrcmp(name, s_dvars[i]->name)) {
+			dvar_t** d = &s_dvars[i];
+			Dvar_DestroyDvar(*d);
+			Z_Free(*d);
+			*d = NULL;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void Dvar_ClearDvars() {
+	for (int i = 0; i < s_dvarCount; i++) {
+		dvar_t** d = &s_dvars[i];
+		Dvar_DestroyDvar(*d);
+		Z_Free(*d);
+		*d = NULL;
+	}
+}
+
+static dvar_t* s_localDvars[MAX_LOCAL_CLIENTS][DVAR_MAX_DVARS];
+static int s_localDvarCount;
+
+A_NO_DISCARD bool Dvar_LocalExists(int localClientNum, const char* name) {
+	for (int i = 0; i < s_localDvarCount; i++) {
+		if (s_localDvars[localClientNum][i]->name &&
+			A_cstrcmp(s_localDvars[localClientNum][i]->name, name)
+		) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+dvar_t* Dvar_FindLocal(int localClientNum, const char* name) {
+	for (int i = 0; i < s_localDvarCount; i++) {
+		if (s_localDvars[localClientNum][i]->name && A_cstrcmp(s_localDvars[localClientNum][i]->name, name))
+			return s_localDvars[localClientNum][i];
+	}
+
+	return NULL;
+}
+
+static dvar_t** Dvar_TakeFreeLocalDvar(int localClientNum) {
+	if (s_localDvarCount < DVAR_MAX_DVARS) {
+		dvar_t** d = &s_localDvars[localClientNum][s_localDvarCount++];
+		assert(d == NULL);
+		return d;
+	}
+
+	for (int i = 0; i < DVAR_MAX_DVARS; i++) {
+		if (s_localDvars[localClientNum][i] == NULL)
+			return &s_localDvars[localClientNum][i];
+	}
+
+	return NULL;
+}
+
+static dvar_t* Dvar_RegisterLocalDvar(int localClientNum, const char* name, const dvar_t* d) {
+	dvar_t** dvar = Dvar_TakeFreeLocalDvar(localClientNum);
+	if (d == NULL)
+		return NULL;
+
+	*dvar = Z_Alloc(sizeof(*d));
+	A_memcpy(*dvar, d, sizeof(*d));
+	(*dvar)->name = A_cstrdup(name);
+	return *dvar;
+}
+
+static dvar_t* Dvar_RegisterNewLocalDvar(int localClientNum, const char* name, const dvar_t* d) {
+	if (Dvar_LocalExists(localClientNum, name))
+		return NULL;
+
+	return Dvar_RegisterLocalDvar(localClientNum, name, d);
+}
+
+dvar_t* Dvar_RegisterNewLocalBool(int localClientNum,
+	const char* name, int flags, bool value
+) {
+	dvar_t d = Dvar_CreateBool(name, flags, value);
+	return Dvar_RegisterNewLocalDvar(localClientNum, name, &d);
+}
+
+dvar_t* Dvar_RegisterNewLocalInt(int localClientNum,
+	const char* name, int flags,
+	int value, int min, int max
+) {
+	dvar_t d = Dvar_CreateInt(name, flags, value, min, max);
+	return Dvar_RegisterNewLocalDvar(localClientNum, name, &d);
+}
+
+dvar_t* Dvar_RegisterNewLocalFloat(int localClientNum,
+	const char* name, int flags,
+	float value, float min, float max
+) {
+	dvar_t d = Dvar_CreateFloat(name, flags, value, min, max);
+	return Dvar_RegisterNewLocalDvar(localClientNum, name, &d);
+}
+
+dvar_t* Dvar_RegisterNewLocalString(int localClientNum,
+	const char* name, int flags,
+	const char* value
+) {
+	dvar_t d = Dvar_CreateString(name, flags, value);
+	return Dvar_RegisterNewLocalDvar(localClientNum, name, &d);
+}
+
+dvar_t* Dvar_RegisterNewLocalEnum(int localClientNum,
+	const char* name, int flags, int value,
+	const char** domain, size_t domain_count
+) {
+	dvar_t d = Dvar_CreateEnum(name, flags, value, domain, domain_count);
+	return Dvar_RegisterNewLocalDvar(localClientNum, name, &d);
+}
+
+dvar_t* Dvar_RegisterNewLocalVec2(int localClientNum,
+	const char* name, int flags, avec2f_t value,
+	float min, float max
+) {
+	dvar_t d = Dvar_CreateVec2(name, flags, value, min, max);
+	return Dvar_RegisterNewLocalDvar(localClientNum, name, &d);
+}
+
+dvar_t* Dvar_RegisterNewLocalVec3(int localClientNum,
+	const char* name, int flags, avec3f_t value,
+	float min, float max
+) {
+	dvar_t d = Dvar_CreateVec3(name, flags, value, min, max);
+	return Dvar_RegisterNewLocalDvar(localClientNum, name, &d);
+}
+
+dvar_t* Dvar_RegisterNewLocalVec4(int localClientNum,
+	const char* name, int flags, avec4f_t value,
+	float min, float max
+) {
+	dvar_t d = Dvar_CreateVec4(name, flags, value, min, max);
+	return Dvar_RegisterNewLocalDvar(localClientNum, name, &d);
+}
+
+static dvar_t* Dvar_ReregisterLocalDvar(int localClientNum, const char* name, const dvar_t* d) {
+	if (!Dvar_LocalExists(localClientNum, name))
+		return NULL;
+
+	Dvar_UnregisterLocal(localClientNum, name);
+	return Dvar_RegisterLocalDvar(localClientNum, name, d);
+}
+
+dvar_t* Dvar_ReregisterLocalBool(int localClientNum,
+	const char* name, int flags, bool value
+) {
+	dvar_t d = Dvar_CreateBool(name, flags, value);
+	return Dvar_ReregisterLocalDvar(localClientNum, name, &d);
+}
+
+dvar_t* Dvar_ReregisterLocalInt(int localClientNum,
+	const char* name, int flags,
+	int value, int min, int max
+) {
+	dvar_t d = Dvar_CreateInt(name, flags, value, min, max);
+	return Dvar_RegisterLocalDvar(localClientNum, name, &d);
+}
+
+dvar_t* Dvar_ReregisterLocalFloat(int localClientNum,
+	const char* name, int flags,
+	float value, float min, float max
+) {
+	dvar_t d = Dvar_CreateFloat(name, flags, value, min, max);
+	return Dvar_RegisterLocalDvar(localClientNum, name, &d);
+}
+
+dvar_t* Dvar_ReregisterLocalString(int localClientNum,
+	const char* name, int flags,
+	const char* value
+) {
+	dvar_t d = Dvar_CreateString(name, flags, value);
+	return Dvar_RegisterLocalDvar(localClientNum, name, &d);
+}
+
+dvar_t* Dvar_ReregisterLocalEnum(int localClientNum,
+	const char* name, int flags,
+	int value, const char** domain, size_t domain_count
+) {
+	dvar_t d = Dvar_CreateEnum(name, flags, value, domain, domain_count);
+	return Dvar_RegisterLocalDvar(localClientNum, name, &d);
+}
+
+dvar_t* Dvar_ReregisterLocalVec2(int localClientNum,
+	const char* name, int flags,
+	avec2f_t value, float min, float max
+) {
+	dvar_t d = Dvar_CreateVec2(name, flags, value, min, max);
+	return Dvar_RegisterLocalDvar(localClientNum, name, &d);
+}
+
+dvar_t* Dvar_ReregisterLocalVec3(int localClientNum,
+	const char* name, int flags,
+	avec3f_t value, float min, float max
+) {
+	dvar_t d = Dvar_CreateVec3(name, flags, value, min, max);
+	return Dvar_RegisterLocalDvar(localClientNum, name, &d);
+}
+
+dvar_t* Dvar_ReregisterLocalVec4(int localClientNum,
+	const char* name, int flags,
+	avec4f_t value, float min, float max
+) {
+	dvar_t d = Dvar_CreateVec4(name, flags, value, min, max);
+	return Dvar_RegisterLocalDvar(localClientNum, name, &d);
+}
+
+dvar_t* Dvar_RegisterLocalBool(int localClientNum,
+	const char* name, int flags, bool value
+) {
+	if (Dvar_LocalExists(localClientNum, name))
+		return Dvar_ReregisterLocalBool(localClientNum, name, flags, value);
+	else
+		return Dvar_RegisterNewLocalBool(localClientNum, name, flags, value);
+}
+
+dvar_t* Dvar_RegisterLocalInt(int localClientNum,
+	const char* name, int flags, int value, int min, int max
+) {
+	if (Dvar_LocalExists(localClientNum, name))
+		return Dvar_ReregisterLocalInt(localClientNum, name, flags, value, min, max);
+	else
+		return Dvar_RegisterNewLocalInt(localClientNum, name, flags, value, min, max);
+}
+
+dvar_t* Dvar_RegisterLocalFloat(int localClientNum,
+	const char* name, int flags,
+	float value, float min, float max
+) {
+	if (Dvar_LocalExists(localClientNum, name))
+		return Dvar_ReregisterLocalFloat(localClientNum, name, flags, value, min, max);
+	else
+		return Dvar_RegisterNewLocalFloat(localClientNum, name, flags, value, min, max);
+}
+
+dvar_t* Dvar_RegisterLocalString(int localClientNum,
+	const char* name, int flags, const char* value
+) {
+	if (Dvar_LocalExists(localClientNum, name))
+		return Dvar_ReregisterLocalString(localClientNum, name, flags, value);
+	else
+		return Dvar_RegisterNewLocalString(localClientNum, name, flags, value);
+}
+
+dvar_t* Dvar_RegisterLocalEnum(int localClientNum,
+	const char* name, int flags,
+	int value, const char** domain, size_t domain_count
+) {
+	if (Dvar_LocalExists(localClientNum, name))
+		return Dvar_ReregisterLocalEnum(localClientNum, name, flags, value, domain, domain_count);
+	else
+		return Dvar_RegisterNewLocalEnum(localClientNum, name, flags, value, domain, domain_count);
+}
+
+dvar_t* Dvar_RegisterLocalVec2(int localClientNum,
+	const char* name, int flags,
+	avec2f_t value, float min, float max
+) {
+	if (Dvar_LocalExists(localClientNum, name))
+		return Dvar_ReregisterLocalVec2(localClientNum, name, flags, value, min, max);
+	else
+		return Dvar_RegisterNewLocalVec2(localClientNum, name, flags, value, min, max);
+}
+
+dvar_t* Dvar_RegisterLocalVec3(int localClientNum,
+	const char* name, int flags,
+	avec3f_t value, float min, float max
+) {
+	if (Dvar_LocalExists(localClientNum, name))
+		return Dvar_ReregisterLocalVec3(localClientNum, name, flags, value, min, max);
+	else
+		return Dvar_RegisterNewLocalVec3(localClientNum, name, flags, value, min, max);
+}
+
+dvar_t* Dvar_RegisterLocalVec4(int localClientNum,
+	const char* name, int flags,
+	avec4f_t value, float min, float max
+) {
+	if (Dvar_LocalExists(localClientNum, name))
+		return Dvar_ReregisterLocalVec4(localClientNum, name, flags, value, min, max);
+	else
+		return Dvar_RegisterNewLocalVec4(localClientNum, name, flags, value, min, max);
+}
+
+bool Dvar_UnregisterLocal(int localClientNum, const char* name) {
+	for (int i = 0; i < s_localDvarCount; i++) {
+		if (A_cstrcmp(name, s_localDvars[localClientNum][i]->name)) {
+			dvar_t** d = &s_dvars[i];
+			Dvar_DestroyDvar(*d);
+			Z_Free(*d);
+			*d = NULL;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void Dvar_ClearLocalDvars(int localClientNum) {
+	for (int i = 0; i < s_localDvarCount; i++) {
+		dvar_t** d = &s_localDvars[localClientNum][i];
+		Dvar_DestroyDvar(*d);
+		Z_Free(*d);
+		*d = NULL;
+	}
+}
+
+void Dvar_Set_f() {
+	/*int argc = Cmd_Argc();
+	if (argc < 3) {
+		Com_Println(CON_DEST_CLIENT, "USAGE: set <variable> <value>");
+		return;
+	}
+
+	const char* name = Cmd_Argv(1);
+	
+	const char* argv[4];
+	if (argc <= 3)
+		argv[0] = Cmd_Argv(2);
+	if (argc <= 4)
+		argv[1] = Cmd_Argv(3);
+	if (argc <= 5)
+		argv[2] = Cmd_Argv(4);
+	if (argc <= 6)
+		argv[3] = Cmd_Argv(5);
+
+	dvar_t* d = Dvar_Find(name);
+	if (d) {
+		if (!Dvar_SetFromString(*d, DVAR_FLAG_NONE, v))
+			Dvar_ReregisterFromString(name, DVAR_FLAG_NONE, v);
+	} else {
+		Dvar_RegisterFromString(name, DVAR_FLAG_NONE, v);
+	}*/
+}
+
+void Dvar_SetA_f() {
+	int argc = Cmd_Argc();
+	if (argc < 3) {
+		/*Com_Println(CON_DEST_CLIENT, "USAGE: seta <variable> <value>");*/
+		return;
+	}
+
+	Dvar_Set_f();
+	const char* name = Cmd_Argv(1);
+	dvar_t* d = Dvar_Find(name);
+	Dvar_AddFlags(d, DVAR_FLAG_ARCHIVE);
+}
+
+void Dvar_Shutdown() {
+	Cmd_RemoveCommand("set");
+	Cmd_RemoveCommand("seta");
+
+	Dvar_ClearDvars();
+	for(size_t i = 0; i < MAX_LOCAL_CLIENTS; i++)
+		Dvar_ClearLocalDvars(i);
+}
