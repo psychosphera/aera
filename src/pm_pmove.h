@@ -51,6 +51,6 @@ typedef struct pm_t {
 #define PM_ACCELERATE  10.0f
 
 A_EXTERN_C pm_t* PM_GetLocalClientGlobals(size_t localClientNum);
-A_EXTERN_C void  PM_Init(void);
+A_EXTERN_C void  PM_Init    (void);
 A_EXTERN_C void  PmoveSingle(A_INOUT pmove_t* pm, A_INOUT pml_t* pml);
 A_EXTERN_C void  Pmove      (A_INOUT pmove_t* pm, A_INOUT pml_t* pml);

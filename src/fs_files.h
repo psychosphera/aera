@@ -11,8 +11,10 @@ typedef struct StreamFile {
 	size_t size;
 } StreamFile;
 
-A_EXTERN_C A_NO_DISCARD void* FS_ReadFile(const char* path);
-A_EXTERN_C A_NO_DISCARD char* FS_ReadFileText(const char* path);
+A_EXTERN_C A_NO_DISCARD void* FS_ReadFile(const char* path, A_OPTIONAL_OUT size_t* sz);
+A_EXTERN_C              void  FS_FreeFile(void* p);
+A_EXTERN_C A_NO_DISCARD char* FS_ReadFileText(const char* path, A_OPTIONAL_OUT size_t* sz);
+A_EXTERN_C              void  FS_FreeFileText(char* text);
 
 typedef enum SeekFrom {
 	FS_SEEK_BEGIN,
@@ -43,3 +45,6 @@ A_EXTERN_C              bool FS_WriteStream(A_INOUT StreamFile* file, const void
 
 A_EXTERN_C bool FS_DeleteFile(const char* filename);
 A_EXTERN_C bool FS_FileExists(const char* filename);
+
+A_EXTERN_C char* FS_BuildOsPath(const char* gamedir, const char* subdir,
+	                            const char* file,    const char* ext);

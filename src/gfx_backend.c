@@ -5,6 +5,7 @@
 #include <GL/glew.h>
 #include <SDL3/SDL.h>
 
+#include "com_print.h"
 #include "dvar.h"
 #include "gfx.h"
 #include "sys.h"
@@ -53,10 +54,10 @@ A_EXTERN_C void RB_BeginFrame(void) {
     if (Dvar_WasModified(r_vsync)) {
         bool enable = Dvar_GetBool(r_vsync);
         if (!RB_EnableVsync(enable)) {
-            /*Com_Println(
-                CON_DEST_ERR, "Failed to {} vsync: {}",
+            Com_Println(
+                CON_DEST_ERR, "Failed to %s vsync: %s",
                 enable ? "enable" : "disable", SDL_GetError()
-            );*/
+            );
         }
     }
 

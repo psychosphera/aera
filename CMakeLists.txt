@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.27)
 project(h1_map_viewer C CXX)
-include(FetchContent)
 
-set(CMAKE_C_STANDARD 17)
+set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_REQUIRED ON)
@@ -27,31 +26,19 @@ endif()
 find_package(Freetype REQUIRED)
 find_package(GLEW     REQUIRED)
 find_package(OpenGL   REQUIRED)
-find_package(glm      REQUIRED)
 find_package(ZLIB     REQUIRED)
 
-#FetchContent_Declare(
-#    metalang99
-#    URL https://github.com/hirrolot/metalang99/archive/refs/tags/v1.2.3.tar.gz # v1.2.3
-#)
-#FetchContent_Declare(
-#    datatype99
-#    URL https://github.com/hirrolot/datatype99/archive/refs/tags/v1.6.4.tar.gz
-#)
-
-#FetchContent_MakeAvailable(metalang99)
-#FetchContent_MakeAvailable(datatype99)
-
 add_executable(h1_map_viewer
-    src/acommon/a_common.c src/acommon/a_math.h src/acommon/a_math.c
-    src/acommon/z_mem.c src/acommon/a_string.c src/acommon/a_type.c 
+    src/acommon/a_common.c src/acommon/a_math.c src/acommon/a_string.c
+    src/acommon/a_type.c  src/acommon/z_mem.c
 
-	src/cg_cgame.cpp src/com.c src/font.cpp src/fs_files.c src/gfx.cpp 
-	src/gfx_backend.c  src/in_input.c src/main.cpp src/sys.c
- 	src/db_files.cpp src/cmd_commands.c src/cl_client.cpp src/devgui.c
-	src/gfx_text.cpp src/gfx_shader.c src/devcon.c src/dvar.c
-	src/con_console.c src/pm_pmove.c src/m_math.c
- 	src/gfx_defs.c src/gfx_uniform.c src/cl_client.h)
+	src/cg_cgame.c src/cl_client.c src/cl_map.cpp src/cmd_commands.c src/com.c
+	src/com_print.c src/con_console.c src/db_files.c src/devcon.c 
+	src/devgui.c src/dvar.c src/font.c src/fs_files.c src/gfx.c 
+	src/gfx_backend.c src/gfx_defs.c src/gfx_shader.c src/gfx_text.c 
+	src/gfx_uniform.c  src/in_input.c src/main.c src/m_math.c src/pm_pmove.c 
+	src/sys.c
+)
 
 
 # SDL3 and SDL3_image aren't available from vcpkg. SDL_image contains SDL as a
@@ -73,19 +60,10 @@ target_link_libraries(h1_map_viewer PRIVATE Freetype::Freetype)
 target_link_libraries(h1_map_viewer PRIVATE GLEW::GLEW)
 target_link_libraries(h1_map_viewer PRIVATE OpenGL::GL)
 target_link_libraries(h1_map_viewer PRIVATE ZLIB::ZLIB)
-#target_link_libraries(h1_map_viewer PRIVATE metalang99)
-#target_link_libraries(h1_map_viewer PRIVATE datatype99)
 
-target_include_directories(h1_map_viewer PRIVATE SDL3::SDL3)
-target_include_directories(h1_map_viewer PRIVATE SDL3_image::SDL3_image)
-target_include_directories(h1_map_viewer PRIVATE Freetype::Freetype)
-target_include_directories(h1_map_viewer PRIVATE GLEW::GLEW)
-target_include_directories(h1_map_viewer PRIVATE glm::glm)
 target_include_directories(
 	h1_map_viewer PRIVATE ${CMAKE_SOURCE_DIR}/deps/invader/include
 )
-#target_include_directories(h1_map_viewer PRIVATE metalang99)
-#target_include_directories(h1_map_viewer PRIVATE datatype99)
 
 set_target_properties(
 	h1_map_viewer PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/build
@@ -101,14 +79,18 @@ endif()
 
 if(MSVC)
 	target_compile_options(h1_map_viewer PRIVATE 
-		"/permissive-" "/W4" "/wd4005" "/bigobj" "/WX" "/Og"
+		"/permissive-" "/W4" "/bigobj" "/WX" 
 	)
 
-    if (CMAKE_BUILD_TYPE STREQUAL "Release" OR 
-	    CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo"
+	if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+		target_compile_options(h1_map_viewer PRIVATE 
+		    "/Od"
+	    )
+    elseif (CMAKE_BUILD_TYPE STREQUAL "Release" OR 
+	        CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo"
 	)
         target_compile_options(h1_map_viewer PRIVATE 
-		    
+		    "/O2"
 	    )
     endif()
 endif()
@@ -145,13 +127,14 @@ endif()
 
 if(CLANG OR GCC)
     target_compile_options(h1_map_viewer PRIVATE
-		"-Wno-int-to-pointer-cast" "-g"
+		"-Wno-int-to-pointer-cast"
     )
 endif()
 
 if(MSVC AND NOT CLANG)
 	target_compile_options(h1_map_viewer PRIVATE 
-		"/Zc:preprocessor" "/Zc:__cplusplus" "/Zc:__STDC__"
+		"/Zc:preprocessor" "/Zc:__cplusplus" "/Zc:__STDC__" "/wd4005" "/wd4244"
+		"/wd4267" "/wd4311" "/wd4305" "/wd4312" "/wd4201" "/wd4018"
 	)
 endif()
 

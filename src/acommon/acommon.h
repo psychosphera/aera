@@ -133,13 +133,8 @@
 #define A_OPTIONAL_OUT
 #endif // A_TARGET_OS_IS_WINDOWS
 
-#define A_POINTER_SIZE (UINTPTR_MAX == UINT32_MAX ? 32 : \
-                            UINTPTR_MAX == UINT64_MAX ? 64 \
-                                : -1) 
-
-#if A_POINTER_SIZE == -1
-#error "pointer size ????"
-#endif
+#define A_ARCH_IS_32BIT (UINTPTR_MAX == UINT32_MAX)
+#define A_ARCH_IS_64BIT (UINTPTR_MAX == UINT64_MAX)
 
 #if A_CXX17 || A_C23
 #define A_NO_DISCARD [[nodiscard]]
@@ -251,6 +246,11 @@
 #else 
 #error "Struct packing unimplemented."
 #endif // A_COMPILER_IS_GCC_COMPATIBLE
+
+#if !A_CXX && (A_STDC && !A_C23) 
+#include <stdbool.h>
+#define nullptr NULL
+#endif // !A_CXX && (A_STDC && !A_C23)
 
 #define A_MAKE_FOURCC(a, b, c, d) ((d) | (c << 8) | (b << 16) | (a << 24))
 

@@ -9,8 +9,6 @@
 #include "gfx_defs.h"
 #include "cl_client.h"
 
-
-
 typedef struct SpawnPoint {
 	apoint3f_t pos;
 	float      front;
@@ -29,7 +27,7 @@ typedef struct cg_t {
 	SpawnPoint spawn;
 } cg_t;
 
-A_EXTERN_C void       CG_Init();
+A_EXTERN_C void       CG_Init(void);
 A_EXTERN_C cg_t*      CG_GetLocalClientGlobals(size_t localClientNum);
 A_EXTERN_C void       CG_Teleport             (size_t localClientNum, apoint3f_t pos);
 A_EXTERN_C void       CG_SetSpawn             (size_t localClientNum, 
@@ -42,4 +40,4 @@ A_EXTERN_C void       CG_ActivateLocalClient  (size_t localClientNum);
 A_EXTERN_C void       CG_DectivateLocalClient (size_t localClientNum);
 
 A_EXTERN_C void       CG_Frame(uint64_t deltaTime);
-A_EXTERN_C void       CG_Shutdown();
+A_EXTERN_C void       CG_Shutdown(void);

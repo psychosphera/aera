@@ -30,7 +30,9 @@ static bool   Sys_CreateThread(
 );
 */
 
-void Sys_Init(const char**) {
+void Sys_Init(const char** argv) {
+    A_UNUSED(argv);
+
     s_timeBase = (uint64_t)SDL_GetTicks();
 
     SDL_Init(SDL_INIT_VIDEO);

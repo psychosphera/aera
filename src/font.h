@@ -24,7 +24,7 @@ typedef struct FontDef {
     GlyphDef         glyphs[95];
 } FontDef;
 
-A_EXTERN_C void Font_Init();
+A_EXTERN_C void Font_Init(void);
 A_EXTERN_C A_NO_DISCARD bool Font_Load(
 	const char* font_name, int width, int height, A_OUT FontDef* fd
 );
@@ -35,4 +35,4 @@ A_EXTERN_C bool            Font_RemoveGlyph  (A_INOUT FontDef* fd, char c);
 A_EXTERN_C const GlyphDef* Font_Glyphs       (const   FontDef* fd);
 A_EXTERN_C size_t          Font_GlyphCount   (const   FontDef* fd);
 A_EXTERN_C void            Font_Unload       (A_INOUT FontDef* fd);
-A_EXTERN_C void            Font_Shutdown     ();
+A_EXTERN_C void            Font_Shutdown     (void);

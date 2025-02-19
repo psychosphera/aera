@@ -5,6 +5,7 @@
 #include "acommon/a_math.h"
 #include "acommon/a_string.h"
 
+#include "com_print.h"
 #include "dvar.h"
 
 extern dvar_t* vid_width;
@@ -22,15 +23,15 @@ A_NO_DISCARD float R_VidAspectInv(void) {
     return (float)Dvar_GetInt(vid_width) / (float)Dvar_GetInt(vid_width);
 }
 
-GLenum R_GlCheckError(int /*line*/, const char* /*file*/) {
+GLenum R_GlCheckError(int line, const char* file) {
     GLenum err = glGetError();
-    /*if (err != GL_NO_ERROR) {
+    if (err != GL_NO_ERROR) {
         const char* s = R_GlDebugErrorString(err);
         Com_Println(
             CON_DEST_ERR,
-            "GL call at line {} in {} failed with {}.", line, file, s
+            "GL call at line %d in %s failed with %s.", line, file, s
         );
-    }*/
+    }
     return err;
 }
 
@@ -155,7 +156,7 @@ A_NO_DISCARD GLenum R_ImageFormatToGl(ImageFormat format) {
         gl_format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
         break;
     default:
-        //Com_Errorln("R_ImageFormatToGL: Unimplemented ImageFormat {}.", (int)format);
+        Com_Errorln(-1, "R_ImageFormatToGL: Unimplemented ImageFormat %d.", (int)format);
     };
 
     return gl_format;
@@ -187,7 +188,7 @@ A_NO_DISCARD ImageFormat R_ImageFormatFromGl(GLenum format) {
         break;
     default:
         assert(false && "Unimplemented GL format");
-        //Com_Errorln("R_ImageFormatToGL: Unimplemented GL format {}.", format);
+        Com_Errorln(-1, "R_ImageFormatToGL: Unimplemented GL format %d.", format);
     };
 
     return img_format;

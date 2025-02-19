@@ -20,11 +20,11 @@ static uint64_t s_deltaTime;
 
 dvar_t* com_maxfps;
 
-void Com_Quit_f() {
+void Com_Quit_f(void) {
     Sys_NormalExit(3);
 }
 
-bool Com_Init() {
+bool Com_Init(void) {
     com_maxfps = Dvar_RegisterInt("com_maxfps", DVAR_FLAG_NONE, 165, 1, 1000);
 
     Cmd_Init();
@@ -41,7 +41,7 @@ bool Com_Init() {
     return true;
 }
 
-bool Com_Frame() {
+bool Com_Frame(void) {
     uint64_t wait_msec = 1000 / (uint64_t)Dvar_GetInt(com_maxfps);
     while (Sys_Milliseconds() - s_lastFrameTime < wait_msec);
 
@@ -70,7 +70,7 @@ bool Com_Frame() {
     }
     if (DevCon_HasText()) {
         char* t = DevCon_TakeText();
-        Con_ProcessInput(DevCon_TakeText());
+        Con_ProcessInput(t);
         A_cstrfree(t);
     }
     
@@ -79,15 +79,15 @@ bool Com_Frame() {
     return true;
 }
 
-uint64_t Com_LastFrameTimeDelta() {
+uint64_t Com_LastFrameTimeDelta(void) {
     return s_deltaTime;
 }
 
-uint64_t Com_LastFrameTime() {
+uint64_t Com_LastFrameTime(void) {
     return s_lastFrameTime;
 }
 
-void Com_Shutdown() {
+void Com_Shutdown(void) {
     DevGui_Shutdown();
     CL_Shutdown();
     CG_Shutdown();

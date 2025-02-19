@@ -1,6 +1,7 @@
 #include "con_console.h"
 
 #include "cmd_commands.h"
+#include "com_print.h"
 #include "dvar.h"
 
 bool Con_ProcessInput(const char* input) {
@@ -18,7 +19,7 @@ bool Con_ProcessInput(const char* input) {
             /*int argc = 0;*/
 
             if (Cmd_Argc() == 1) {
-                /*Com_Println(CON_DEST_CLIENT, "{}", Dvar_GetString(*d));*/
+                Com_Println(CON_DEST_CLIENT, "%s", Dvar_GetString(d));
                 return true;
             }
             else {
@@ -62,7 +63,7 @@ bool Con_ProcessLocalInput(const char* input, size_t localClientNum) {
             /*int argc = 0;*/
 
             if (Cmd_Argc() == 1) {
-                /*Com_Println(CON_DEST_CLIENT, "{}", Dvar_GetString(*d));*/
+                Com_Println(CON_DEST_CLIENT, "%s", Dvar_GetString(d));
                 return true;
             } else {
                 argv[0] = Cmd_Argv(1);
@@ -92,7 +93,7 @@ bool Con_ProcessLocalInput(const char* input, size_t localClientNum) {
             /*int argc = 0;*/
 
             if (Cmd_Argc() == 1) {
-               /* Com_Println(CON_DEST_CLIENT, "{}", Dvar_GetString(*dl));*/
+               Com_Println(CON_DEST_CLIENT, "%s", Dvar_GetString(dl));
                 return true;
             }
             else {

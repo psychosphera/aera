@@ -5,7 +5,7 @@
 #include "a_string.h"
 
 char A_tolower(char c) {
-    return tolower(c);
+    return (char)tolower(c);
 }
 
 bool A_isspace(char c) {

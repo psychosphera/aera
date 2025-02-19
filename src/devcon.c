@@ -27,16 +27,16 @@ timeval     devcon_timeval = { .tv_sec = 0, .tv_usec = 0 };
 #endif
 
 // Check if stdin has a line
-//static bool DevCon_StdinHasLine();
+//static bool DevCon_StdinHasLine(void);
 
 #if A_TARGET_OS_IS_WINDOWS
 /*
-static bool DevCon_StdinHasLine() {
+static bool DevCon_StdinHasLine(void) {
     return false;
 }
 */
 #else 
-static bool DevCon_StdinHasLine() {
+static bool DevCon_StdinHasLine(void) {
     SDL_LockMutex(devcon_selectMutex);
     FD_ZERO(&devcon_fds);
     FD_CLR(STDIN_FILENO, &devcon_fds);
@@ -56,11 +56,11 @@ static bool DevCon_StdinHasLine() {
 #endif
 
 #if A_TARGET_OS_IS_WINDOWS
-A_EXTERN_C void DevCon_Frame() {
+A_EXTERN_C void DevCon_Frame(void) {
     return;
 }
 #else
-void DevCon_Frame() {
+void DevCon_Frame(void) {
     // Don't even try to read a new line if the previous one hasn't 
     // been taken
     if (devcon_hasText)
@@ -81,14 +81,14 @@ void DevCon_Frame() {
 #endif // A_TARGET_OS_IS_WINDOWS
 
 #if A_TARGET_OS_IS_WINDOWS
-A_EXTERN_C void DevCon_Init() {
+A_EXTERN_C void DevCon_Init(void) {
     devcon_ioMutex = SDL_CreateMutex();
     DevCon_PrintMessage("DevCon doesn't work correctly on Windows.\n");
     DevCon_PrintMessage("Output works just fine but input doesn't.\n");
     DevCon_PrintMessage("Use DevGui for input instead.\n");
 }
 #else
-A_EXTERN_C void DevCon_Init() {
+A_EXTERN_C void DevCon_Init(void) {
     A_memset(devcon_in, 0, sizeof(devcon_in));
 	devcon_inMutex     = SDL_CreateMutex();
     devcon_ioMutex     = SDL_CreateMutex();
@@ -97,16 +97,16 @@ A_EXTERN_C void DevCon_Init() {
 }
 #endif // A_TARGET_OS_IS_WINDOWS
 
-A_EXTERN_C A_NO_DISCARD bool DevCon_HasText() {
+A_EXTERN_C A_NO_DISCARD bool DevCon_HasText(void) {
 	return devcon_hasText;
 }
 
 #if A_TARGET_OS_IS_WINDOWS
-A_EXTERN_C A_NO_DISCARD char* DevCon_TakeText() {
+A_EXTERN_C A_NO_DISCARD char* DevCon_TakeText(void) {
     return "";
 }
 #else
-A_EXTERN_C A_NO_DISCARD char* DevCon_TakeText() {
+A_EXTERN_C A_NO_DISCARD char* DevCon_TakeText(void) {
     SDL_LockMutex(devcon_inMutex);
     devcon_hasText = false;
     char* s = A_cstrdup(devcon_in);
@@ -123,11 +123,11 @@ A_EXTERN_C void DevCon_PrintMessage(const char* s) {
 }
 
 #if A_TARGET_OS_IS_WINDOWS
-A_EXTERN_C void DevCon_Shutdown() {
+A_EXTERN_C void DevCon_Shutdown(void) {
     SDL_DestroyMutex(devcon_ioMutex);
 }
 #else
-A_EXTERN_C void DevCon_Shutdown() {
+A_EXTERN_C void DevCon_Shutdown(void) {
     SDL_DestroyMutex(devcon_inMutex);
     SDL_DestroyMutex(devcon_ioMutex);
     SDL_DestroyMutex(devcon_selectMutex);

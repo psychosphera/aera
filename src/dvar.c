@@ -198,11 +198,12 @@ dvar_t Dvar_CreateFloat(const char* name, int flags, float value, float min, flo
 	return d;
 }
 
-dvar_t Dvar_CreateString(const char* /*name*/, int flags, const char* value) {
+dvar_t Dvar_CreateString(const char* name, int flags, const char* value) {
 	char** e = Z_Alloc(sizeof(*e));
 	e[0] = A_cstrdup(value);
 
 	dvar_t d = {
+		.name = (char*)name,
 		.type = DVAR_TYPE_STRING,
 		.flags = flags,
 		.e = e,

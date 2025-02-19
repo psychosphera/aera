@@ -21,7 +21,7 @@ typedef struct CmdArgs {
 } CmdArgs;
 CmdArgs cmd_args;
 
-void Cmd_Init() {
+void Cmd_Init(void) {
 	A_memset(s_cmds, 0, sizeof(s_cmds));
 	s_cmds_idx = 0;
 }
@@ -96,7 +96,7 @@ void Cmd_RemoveCommand(const char* cmdName) {
 	}
 }
 
-void Cmd_ClearCommands() {
+void Cmd_ClearCommands(void) {
 	for (size_t i = 0; i < s_cmds_idx; i++) {
 		A_cstrfree(s_cmds[i].name);
 		s_cmds[i].name = NULL;
@@ -106,7 +106,7 @@ void Cmd_ClearCommands() {
 		
 }
 
-int Cmd_Argc() {
+int Cmd_Argc(void) {
 	return (int)cmd_args.idx;
 }
 
@@ -135,6 +135,6 @@ bool Cmd_TakeInput(const char* input) {
 	return true;
 }
 
-void Cmd_Shutdown() {
+void Cmd_Shutdown(void) {
 	Cmd_ClearCommands();
 }
