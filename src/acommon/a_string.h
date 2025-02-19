@@ -64,10 +64,12 @@ A_EXTERN_C void  A_cstrfree(      char* A_RESTRICT s);
 
 A_EXTERN_C void   A_cstrncpyz(char* A_RESTRICT dest, const char* A_RESTRICT src, size_t n);
 A_EXTERN_C size_t A_cstrchr(const char* A_RESTRICT s, char c);
+A_EXTERN_C int    A_snprintf(char* buf, size_t count, const char* fmt, ...);
+A_EXTERN_C bool   A_atob(const char* A_RESTRICT s, A_OUT bool* b);
 A_EXTERN_C size_t A_itoa(int i, char* A_RESTRICT p, size_t n);
-A_EXTERN_C int    A_atoi(const char* A_RESTRICT s);
+A_EXTERN_C bool   A_atoi(const char* A_RESTRICT s, A_OUT int* i);
 A_EXTERN_C size_t A_ftoa(float f, char* A_RESTRICT p, size_t n);
-A_EXTERN_C float  A_atof(const char* A_RESTRICT s);
+A_EXTERN_C bool   A_atof(const char* A_RESTRICT s, A_OUT float* f);
 // // ============================================================================
 // // These are two primary types that the rest of the string library uses.
 // //

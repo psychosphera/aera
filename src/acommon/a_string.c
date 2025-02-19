@@ -102,14 +102,51 @@ size_t A_cstrchr(const char* A_RESTRICT s, char c) {
     return p == NULL ? A_NPOS : p - s;
 }
 
+int A_snprintf(char* buf, size_t count, const char* fmt, ...) {
+    if (buf == NULL || fmt == NULL || count < 1)
+        return -1;
+    va_list ap;
+    va_start(ap, fmt);
+    return vsnprintf(buf, count, fmt, ap);
+}
+
+bool A_atob(const char* A_RESTRICT s, A_OUT bool* b) {
+    *b = false;
+    if (A_cstricmp(s, "true")) {
+        *b = true;
+        return true;
+    }
+    if (A_cstricmp(s, "false")) {
+        return true;
+    }
+    int i = 0;
+    if (A_atoi(s, &i)) {
+        if (i == 0)
+            return false;
+        if (i == 1)
+            return true;
+    }
+    return false;
+}
+
 size_t A_itoa(int i, char* A_RESTRICT p, size_t n) {
     int ret = snprintf(p, n, "%*d", (int)n, i);
     assert(ret < n);
     return ret;
 }
 
-int A_atoi(const char* A_RESTRICT s) {
-    return atoi(s);
+bool A_atoi(const char* A_RESTRICT s, A_OUT int* i) {
+    assert(i);
+    *i = 0;
+    if (s == NULL)
+        return false;
+    errno = 0;
+    const char* end = s;
+    int l = strtod(s, &end);
+    if (errno != 0 || end == s)
+        return false;
+    *i = l;
+    return true;
 }
 
 size_t A_ftoa(float f, char* A_RESTRICT p, size_t n) {
@@ -118,8 +155,18 @@ size_t A_ftoa(float f, char* A_RESTRICT p, size_t n) {
     return ret;
 }
 
-float A_atof(const char* A_RESTRICT s) {
-    return atof(s);
+bool A_atof(const char* A_RESTRICT s, A_OUT float* f) {
+    assert(f);
+    *f = 0.0f;
+    if (s == NULL)
+        return false;
+    errno = 0;
+    const char* end = s;
+    float g = strtof(s, &end);
+    if (errno != 0 || end == s)
+        return false;
+    *f = g;
+    return true;
 }
 
 // str_t A_literal_internal(const char* A_RESTRICT s, size_t c) {

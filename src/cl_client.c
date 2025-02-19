@@ -56,7 +56,8 @@ A_EXTERN_C void CL_Init(void) {
 		CL_SetKeyFocus(i, KF_GAME);
 		RectDef rect = { .x = 0.985f, .y = 0.99f, .w = 0.0498f, .h = 0.0498f };
 		acolor_rgb_t color = A_color_rgb(0.5, 0.8f, 0.2f);
-		const char* text = NULL; // A_Format("FPS: {:.0f}", 1000.0f / s_lastFpsDrawDelta).c_str()
+		char text[10];
+		A_snprintf(text, sizeof(text), "FPS: %.0f", 1000.0f / s_lastFpsDrawDelta);
 		bool b = R_AddTextDrawDef(
 			i, NULL, &rect, text,
 			0.5f, 0.5f,
@@ -81,7 +82,8 @@ A_EXTERN_C void CL_EnableFpsCounter(size_t localClientNum, bool enable) {
 }
 
 A_EXTERN_C void CL_DrawFps(size_t localClientNum) {
-	const char* text = NULL; // A_Format("FPS: {:.0f}", 1000.0f / (float)s_lastFpsDrawDelta).c_str()
+	char text[10];
+	A_snprintf(text, sizeof(text), "FPS: %.0f", 1000.0f / s_lastFpsDrawDelta);
 	R_UpdateTextDrawDef(
 		localClientNum, CL_GetLocalClientLocals(localClientNum)->fpsTextDrawId,
 		text

@@ -95,10 +95,10 @@ void CG_Teleport_f(void) {
 		return;
 	}
 
-	avec3f_t pos = A_vec3(A_atof(Cmd_Argv(1)), 
-		                  A_atof(Cmd_Argv(2)), 
-		                  A_atof(Cmd_Argv(3)));
-	apoint3f_t p = { .x = pos.x, .y = pos.y, .z = pos.z };
+	apoint3f_t p;
+	A_atof(Cmd_Argv(1), &p.x);
+	A_atof(Cmd_Argv(2), &p.y);
+	A_atof(Cmd_Argv(3), &p.z);
 	CG_Teleport(CL_ClientWithKbmFocus(), p);
 }
 

@@ -1,10 +1,13 @@
 #include <assert.h>
+#include <float.h>
+#include <limits.h>
 
 #include "acommon/a_string.h"
 #include "acommon/z_mem.h"
 
 #include "dvar.h"
 #include "cmd_commands.h"
+#include "com_print.h"
 
 typedef enum DvarType {
 	DVAR_TYPE_NONE,
@@ -1027,15 +1030,163 @@ void Dvar_ClearLocalDvars(int localClientNum) {
 	}
 }
 
+bool Dvar_SetFromString(A_INOUT dvar_t* d, int argc, const char** argv) {
+	assert(d);
+	assert(argc > 0);
+	assert(argv);
+	
+	if (argc == 4 && d->type == DVAR_TYPE_VEC4) {
+		avec4f_t v;
+		A_atof(argv[0], &v.x);
+		A_atof(argv[1], &v.y);
+		A_atof(argv[2], &v.z);
+		A_atof(argv[3], &v.w);
+		Dvar_SetVec4(d, v);
+		return true;
+	} 
+	if (argc == 3 && d->type == DVAR_TYPE_VEC3) {
+		avec3f_t v;
+		A_atof(argv[0], &v.x);
+		A_atof(argv[1], &v.y);
+		A_atof(argv[2], &v.z);
+		Dvar_SetVec3(d, v);
+		return true;
+	}
+	if (argc == 2 && d->type == DVAR_TYPE_VEC2) {
+		avec2f_t v;
+		A_atof(argv[0], &v.x);
+		A_atof(argv[1], &v.y);
+		Dvar_SetVec2(d, v);
+		return true;
+	}
+	
+	if (d->type == DVAR_TYPE_BOOL) {
+		bool b = false;
+		A_atob(argv[0], &b);
+		Dvar_SetBool(d, b);
+		return true;
+	}
+
+	if (d->type == DVAR_TYPE_FLOAT) {
+		float f = 0.0f;
+		A_atof(argv[0], &f);
+		Dvar_SetFloat(d, f);
+		return true;
+	}
+
+	if (d->type == DVAR_TYPE_INT) {
+		int i = 0;
+		A_atoi(argv[0], &i);
+		Dvar_SetInt(d, i);
+		return true;
+	}
+
+	return false;
+}
+
+dvar_t* Dvar_RegisterNewFromString(const char* name, int flags,
+	                               int argc, const char** argv
+) {
+	assert(argc > 0);
+	assert(argv);
+	assert(name);
+	if (argc == 4) {
+		avec4f_t v;
+		A_atof(argv[0], &v.x);
+		A_atof(argv[1], &v.y);
+		A_atof(argv[2], &v.z);
+		A_atof(argv[3], &v.w);
+		return Dvar_RegisterNewVec4(name, flags, v, FLT_MIN, FLT_MAX);
+	}
+
+	if (argc == 3) {
+		avec3f_t v;
+		A_atof(argv[0], &v.x);
+		A_atof(argv[1], &v.y);
+		A_atof(argv[2], &v.z);
+		return Dvar_RegisterNewVec3(name, flags, v, FLT_MIN, FLT_MAX);
+	}
+
+	if (argc == 2) {
+		avec2f_t v;
+		A_atof(argv[0], &v.x);
+		A_atof(argv[1], &v.y);
+		return Dvar_RegisterNewVec2(name, flags, v, FLT_MIN, FLT_MAX);
+	}
+
+	int i = 0;
+	if (A_atoi(argv[0], &i))
+		return Dvar_RegisterNewInt(name, flags, i, INT_MIN, INT_MAX);
+	bool b = false;
+	if (A_atob(argv[0], &b))
+		return Dvar_RegisterNewBool(name, flags, b);
+	float f = 0.0f;
+	if (A_atof(name, &f))
+		return Dvar_RegisterNewFloat(name, flags, f, FLT_MIN, FLT_MAX);
+
+	return NULL;
+}
+
+dvar_t* Dvar_ReregisterFromString(const char* name, int flags, 
+	                              int argc, const char** argv
+) {
+	assert(argc > 0);
+	assert(argv);
+	assert(name);
+	if (argc == 4) {
+		avec4f_t v;
+		A_atof(argv[0], &v.x);
+		A_atof(argv[1], &v.y);
+		A_atof(argv[2], &v.z);
+		A_atof(argv[3], &v.w);
+		return Dvar_ReregisterVec4(name, flags, v, FLT_MIN, FLT_MAX);
+	}
+
+	if (argc == 3) {
+		avec3f_t v;
+		A_atof(argv[0], &v.x);
+		A_atof(argv[1], &v.y);
+		A_atof(argv[2], &v.z);
+		return Dvar_ReregisterVec3(name, flags, v, FLT_MIN, FLT_MAX);
+	}
+
+	if (argc == 2) {
+		avec2f_t v;
+		A_atof(argv[0], &v.x);
+		A_atof(argv[1], &v.y);
+		return Dvar_ReregisterVec2(name, flags, v, FLT_MIN, FLT_MAX);
+	}
+
+	int i = 0;
+	if (A_atoi(argv[0], &i))
+		return Dvar_ReregisterInt(name, flags, i, INT_MIN, INT_MAX);
+	bool b = false;
+	if (A_atob(argv[0], &b))
+		return Dvar_ReregisterBool(name, flags, b);
+	float f = 0.0f;
+	if (A_atof(name, &f))
+		return Dvar_ReregisterFloat(name, flags, f, FLT_MIN, FLT_MAX);
+
+	return NULL;
+}
+
+dvar_t* Dvar_RegisterFromString(const char* name, int flags,
+	                           int argc, const char** argv
+) {
+	if (Dvar_Exists(name))
+		return Dvar_ReregisterFromString(name, flags, argc, argv);
+	return Dvar_RegisterNewFromString(name, flags, argc, argv);
+}
+
 void Dvar_Set_f() {
-	/*int argc = Cmd_Argc();
+	int argc = Cmd_Argc();
 	if (argc < 3) {
 		Com_Println(CON_DEST_CLIENT, "USAGE: set <variable> <value>");
 		return;
 	}
 
 	const char* name = Cmd_Argv(1);
-	
+
 	const char* argv[4];
 	if (argc <= 3)
 		argv[0] = Cmd_Argv(2);
@@ -1048,17 +1199,19 @@ void Dvar_Set_f() {
 
 	dvar_t* d = Dvar_Find(name);
 	if (d) {
-		if (!Dvar_SetFromString(*d, DVAR_FLAG_NONE, v))
-			Dvar_ReregisterFromString(name, DVAR_FLAG_NONE, v);
+		if (!Dvar_SetFromString(d, A_MIN(argc - 2, 4), argv))
+			Dvar_ReregisterFromString(
+				name, DVAR_FLAG_NONE, A_MIN(argc - 2, 4), argv);
 	} else {
-		Dvar_RegisterFromString(name, DVAR_FLAG_NONE, v);
-	}*/
+		Dvar_RegisterNewFromString(
+			name, DVAR_FLAG_NONE, A_MIN(argc - 2, 4), argv);
+	}
 }
 
 void Dvar_SetA_f() {
 	int argc = Cmd_Argc();
 	if (argc < 3) {
-		/*Com_Println(CON_DEST_CLIENT, "USAGE: seta <variable> <value>");*/
+		Com_Println(CON_DEST_CLIENT, "USAGE: seta <variable> <value>");
 		return;
 	}
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <assert.h>
 #include <stdbool.h>
 
 #include "acommon/acommon.h"
@@ -258,10 +259,16 @@ A_EXTERN_C dvar_t* Dvar_RegisterLocalVec4(
 	avec4f_t value, float min, float max
 );
 
-A_EXTERN_C bool Dvar_UnregisterLocal(int localClientNum, const char* name);
-A_EXTERN_C void Dvar_ClearLocalDvars(int localClientNum);
+A_EXTERN_C bool    Dvar_UnregisterLocal(int localClientNum, const char* name);
+A_EXTERN_C void    Dvar_ClearLocalDvars(int localClientNum);
 
-
-
+A_EXTERN_C bool    Dvar_SetFromString        (A_INOUT dvar_t* d,
+	                                          int argc, const char** argv);
+A_EXTERN_C dvar_t* Dvar_RegisterNewFromString(const char* name, int flags,
+	                                          int argc, const char** argv);
+A_EXTERN_C dvar_t* Dvar_ReregisterFromString (const char* name, int flags,
+	                                          int argc, const char** argv);
+A_EXTERN_C dvar_t* Dvar_RegisterFromString   (const char* name, int flags,
+	                                          int argc, const char** argv);
 A_EXTERN_C void Dvar_Set_f(void);
 A_EXTERN_C void Dvar_SetA_f(void);

@@ -64,24 +64,18 @@ bool Cmd_CommandExists(const char* cmdName) {
 	return false;
 }
 
-bool Cmd_FindCommand(
-	const char* cmdName, A_OUT void(**fn)(void)
-) {
-	assert(fn);
-
-	*fn = NULL;
-
+CmdFn Cmd_FindCommand(const char* cmdName) {
 	if (!Cmd_CommandExists(cmdName))
-		*fn = NULL;
+		return NULL;
 
 	for (size_t i = 0; i < CMD_MAX_COMMANDS; i++) {
 		if (A_cstrcmp(cmdName, s_cmds[i].name)) {
-			*fn = s_cmds[i].cmd;
-			break;
+			if (s_cmds[i].cmd)
+				return s_cmds[i].cmd;
 		}
 	}
 	
-	return *fn != NULL;
+	return NULL;
 }
 
 void Cmd_RemoveCommand(const char* cmdName) {
