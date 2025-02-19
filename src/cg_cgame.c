@@ -2,6 +2,8 @@
 
 #include <assert.h>
 
+#include "acommon/a_string.h"
+
 #include "cmd_commands.h"
 #include "com_print.h"
 #include "dvar.h"
@@ -93,12 +95,10 @@ void CG_Teleport_f(void) {
 		return;
 	}
 
-	/*glm::vec3 pos;
-	A_Parse(Cmd_Argv(1), pos.x);
-	A_Parse(Cmd_Argv(2), pos.y);
-	A_Parse(Cmd_Argv(3), pos.z);*/
-	
-	apoint3f_t p = { .x = 0, .y = 0, .z = 0 };
+	avec3f_t pos = A_vec3(A_atof(Cmd_Argv(1)), 
+		                  A_atof(Cmd_Argv(2)), 
+		                  A_atof(Cmd_Argv(3)));
+	apoint3f_t p = { .x = pos.x, .y = pos.y, .z = pos.z };
 	CG_Teleport(CL_ClientWithKbmFocus(), p);
 }
 

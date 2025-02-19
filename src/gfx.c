@@ -212,24 +212,22 @@ static void R_InitLocalClient(size_t localClientNum) {
 
 static void R_UpdateOrtho(size_t localClientNum) {
     cg_t* cg = CG_GetLocalClientGlobals(localClientNum);
-    A_UNUSED(cg);
 
-    /*float left = cg->viewport.x * Dvar_GetInt(vid_width);
+    float left = cg->viewport.x * Dvar_GetInt(vid_width);
     float right  = cg->viewport.w * Dvar_GetInt(vid_width)  + left;
     float bottom = cg->viewport.y * Dvar_GetInt(vid_height);
     float top    = cg->viewport.h * Dvar_GetInt(vid_height) + bottom;
-    cg->camera.orthoProjection = glm::ortho(left, right, bottom, top);*/
+    cg->camera.orthoProjection = A_mat4f_ortho(left, right, bottom, top);
 }
 
 void R_UpdateProjection(size_t localClientNum) {
     cg_t* cg = CG_GetLocalClientGlobals(localClientNum);
-    A_UNUSED(cg);
 
-    /*float w = cg->viewport.w * Dvar_GetInt(vid_width);
+    float w = cg->viewport.w * Dvar_GetInt(vid_width);
     float h = cg->viewport.h * Dvar_GetInt(vid_height);
-    cg->camera.perspectiveProjection = glm::perspective(
+    cg->camera.perspectiveProjection = A_mat4f_perspective(
         A_radians(cg->fovy), w / h, cg->nearPlane, cg->farPlane
-    );*/
+    );
 }
 
 static void R_UpdateLocalClientView(size_t localClientNum) {
@@ -786,8 +784,8 @@ A_EXTERN_C void R_RenderMapInternal(void) {
     R_SetUniformInt(r_mapGlob.prog.program, "uMicroDetailMap",     4);
     R_SetUniformInt(r_mapGlob.prog.program, "uBumpMap",            5);
 
-    //glm::mat4 model(1.0f);
-    //R_SetUniformMat4f(r_mapGlob.prog.program, "uModel", model);    
+    amat4f_t model = A_MAT4F_IDENTITY;
+    R_SetUniformMat4f(r_mapGlob.prog.program, "uModel", model);    
     for (uint32_t i = 0; i < r_mapGlob.lightmap_count; i++) {
         for (uint32_t j = 0; j < r_mapGlob.lightmaps[i].material_count; j++) {
             GL_CALL(glBindVertexArray, 
@@ -921,22 +919,29 @@ static void R_DrawFrameInternal(size_t localClientNum) {
     GL_CALL(glScissor,  x, y, w, h);
     GL_CALL(glClear, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    /*
-    R_DrawText(
-        NULL, "Testing 123...", 
-        25.0, 25.0, 1.0, 1.0, 
-        glm::vec3(0.5, 0.8f, 0.2f)
+    const RectDef rect = {
+        .x = x,
+        .y = y,
+        .w = w,
+        .h = h
+    };
+    acolor_rgb_t color = A_color_rgb(0.5f, 0.8f, 0.2f);
+    R_DrawText(localClientNum,
+        NULL, &rect, "Testing 123...", 
+        1.0f, 1.0f, color, false
     );
-    */
 
-    /*glm::vec3 pos    = glm::vec3(cg->camera.pos.x, cg->camera.pos.y, cg->camera.pos.z);
-    glm::vec3 front  = glm::vec3(cg->camera.front.x, cg->camera.front.y, cg->camera.front.z);
-    glm::vec3 center = pos + front;
-    glm::vec3 up     = glm::vec3(cg->camera.up.x, cg->camera.up.y, cg->camera.up.z);
-    glm::mat4 view   = glm::lookAt(pos, center, up);*/
-
+    avec3f_t pos   = A_vec3(cg->camera.pos.x,   
+                            cg->camera.pos.y,   
+                            cg->camera.pos.z);
+    avec3f_t front = A_vec3(cg->camera.front.x, 
+                            cg->camera.front.y, 
+                            cg->camera.front.z);
+    avec3f_t center = A_vec3f_add(pos, front);
+    amat4f_t view   = A_mat4f_look_at(pos, center, cg->camera.up);
+    
     GL_CALL(glUseProgram, r_mapGlob.prog.program);
-    //R_SetUniformMat4f(r_mapGlob.prog.program, "uView", view);
+    R_SetUniformMat4f(r_mapGlob.prog.program, "uView", view);
     R_SetUniformMat4f(
         r_mapGlob.prog.program, "uPerspectiveProjection",
         cg->camera.perspectiveProjection

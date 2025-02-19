@@ -172,7 +172,7 @@
 #ifdef __cplusplus
 #define A_EXTERN_C extern "C"
 #else
-#define A_EXTERN_C
+#define A_EXTERN_C extern
 #endif // __cplusplus
 
 #ifdef __cplusplus

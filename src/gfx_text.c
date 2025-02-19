@@ -243,13 +243,15 @@ void R_DrawText(
             continue;
         }
 
-        /*float xpos = x + g->left;
+        float xpos = x + g->left;
         float ypos = y - (g->height - g->top);
 
-        glm::mat4 model(1.0f);
-        model = glm::translate(model, glm::vec3(xpos, ypos, 0.0f));
-        model = glm::scale(model, glm::vec3(w, h, 0.0f));
-        R_SetUniformMat4f(font->prog.program, "uModel", model);*/
+        amat4f_t model = A_MAT4F_IDENTITY;
+        avec3f_t pos = A_vec3(xpos, ypos, 0.0f);
+        model = A_mat4f_translate_vec3(model, pos);
+        avec3f_t scale = A_vec3(w, h, 0.0f);
+        model = A_mat4f_scale_vec3(model, scale);
+        R_SetUniformMat4f(font->prog.program, "uModel", model);
 
         // If the same glyph is being rendered again, the coord uniform doesn't
         // need to be updated.
@@ -282,7 +284,6 @@ GfxTextDraw r_textDraws[MAX_LOCAL_CLIENTS][256];
 
 bool R_GetTextDraw(size_t localClientNum, size_t id, A_OUT GfxTextDraw** draw) 
 {
-    draw = NULL;
     assert(id < A_countof(r_textDraws[localClientNum]));
 
     *draw = &r_textDraws[localClientNum][id];
