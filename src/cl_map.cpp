@@ -141,7 +141,7 @@ bool CL_LoadMap(const char* map_name) {
 		CL_LoadMap_Decompress(map_name, &header);
 	}
 
-	TagHeader tag_header = {};
+	TagHeader tag_header;
 	if (!CL_LoadMap_TagHeader(&header, is_xbox, &tag_header)) return false;
 	g_load.tag_count = tag_header.common.tag_count;
 	if (!CL_LoadMap_TagData(&header, &tag_header, is_xbox)) return false;
@@ -596,7 +596,7 @@ static bool CL_LoadMap_Header(A_OUT MapHeader* header) {
 	long long pos = FS_SeekStream(&g_load.f, FS_SEEK_BEGIN, 0);
 	assert(pos == 0);
 	(void)pos;
-	if (!FS_ReadStream(&g_load.f, &header, sizeof(header)))
+	if (!FS_ReadStream(&g_load.f, header, sizeof(*header)))
 		Com_Errorln(-1, "CL_LoadMap: Read failed.");
 
 	if ((uint32_t)header->head_magic != MAP_HEADER_HEAD)
@@ -616,17 +616,18 @@ static bool CL_LoadMap_Decompress(
 		FileMapping f = DB_LoadMap_Mmap(map_name);
 		size_t decompressed_map_size =
 			(size_t)header->decompressed_file_size;
-		void* decompressed = Z_Zalloc(decompressed_map_size - sizeof(header));
+		void* decompressed = Z_Zalloc(decompressed_map_size);
 
 		z_stream stream;
-		stream.zalloc = Z_NULL;
-		stream.zfree = Z_NULL;
-		stream.opaque = Z_NULL;
-		stream.avail_in = f.n - sizeof(header);
-		stream.next_in = (Bytef*)f.p + sizeof(header);
-		stream.avail_out = decompressed_map_size - sizeof(header);
-		stream.next_out = (Bytef*)decompressed;
-		int ret = inflateInit2(&stream, -8);
+		stream.zalloc    = Z_NULL;
+		stream.zfree     = Z_NULL;
+		stream.opaque    = Z_NULL;
+		stream.avail_in  = f.n - sizeof(*header);
+		stream.next_in   = (Bytef*)f.p + sizeof(*header);
+		stream.avail_out = decompressed_map_size - sizeof(*header);
+		stream.next_out  = (Bytef*)decompressed + sizeof(*header);
+
+		int ret = inflateInit2(&stream, -MAX_WBITS);
 		assert(ret == Z_OK);
 		ret = inflate(&stream, Z_FINISH);
 		assert(ret == Z_STREAM_END);
@@ -701,7 +702,8 @@ static bool CL_LoadMap_TagData(
 	bool is_xbox
 ) {
 	const void* tag_base = is_xbox ?
-		(const void*)TAGS_BASE_ADDR_XBOX : (const void*)TAGS_BASE_ADDR_GEARBOX;
+		(const void*)TAGS_BASE_ADDR_XBOX : 
+			(const void*)TAGS_BASE_ADDR_GEARBOX;
 	size_t total_tag_space = is_xbox ?
 		TAGS_MAX_SIZE_XBOX : TAGS_MAX_SIZE_GEARBOX;
 	uint32_t tag_array_offset =
@@ -711,24 +713,16 @@ static bool CL_LoadMap_TagData(
 		sizeof(tag_header->xbox) : sizeof(tag_header->pc);
 	uint32_t off = tag_array_offset - tag_header_size;
 	FS_SeekStream(&g_load.f, FS_SEEK_CUR, off);
-	std::vector<std::byte> v;
-	v.resize(header->tag_data_size);
-	bool b = FS_ReadStream(&g_load.f, v.data(), (size_t)header->tag_data_size);
-	assert(b);
-	(void)b;
-	assert(v.size() > 0);
 	Com_DPrintln(CON_DEST_CLIENT, "CL_LoadMap: allocating %zu bytes for tag data.",
 		total_tag_space);
 	g_load.n = total_tag_space;
 	g_load.p = Z_AllocAt(tag_base, g_load.n);
 	assert(g_load.p == tag_base);
-	A_memcpy(g_load.p, &tag_header, tag_header_size);
-	A_memcpy(
-		(void*)((intptr_t)g_load.p +
-			(intptr_t)tag_header_size + (intptr_t)off),
-		v.data(), v.size()
-	);
-
+	A_memcpy(g_load.p, tag_header, tag_header_size);
+	bool b = FS_ReadStream(&g_load.f, (char*)g_load.p + tag_header_size, (size_t)header->tag_data_size);
+	assert(b);
+	(void)b;
+	
 	g_load.tags = (Tag*)tag_header->common.tag_ptr;
 	g_load.tag_count = tag_header->common.tag_count;
 	return true;

@@ -131,7 +131,7 @@ bool A_atob(const char* A_RESTRICT s, A_OUT bool* b) {
 
 size_t A_itoa(int i, char* A_RESTRICT p, size_t n) {
     int ret = snprintf(p, n, "%*d", (int)n, i);
-    assert(ret < n);
+    assert(ret <= n);
     return ret;
 }
 
@@ -151,7 +151,7 @@ bool A_atoi(const char* A_RESTRICT s, A_OUT int* i) {
 
 size_t A_ftoa(float f, char* A_RESTRICT p, size_t n) {
     int ret = snprintf(p, n, "%*f", (int)n, f);
-    assert(ret < n);
+    assert(ret <= n);
     return ret;
 }
 

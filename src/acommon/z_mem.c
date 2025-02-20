@@ -36,10 +36,16 @@ void* Z_AllocAt(const void* p, size_t n) {
     void* alloc = VirtualAlloc(
         (void*)(intptr_t)p, n, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE
     );
-    
-    if (alloc < p) {
-        alloc = (void*)(intptr_t)p;
+
+    if (alloc == NULL) {
+        DWORD err = GetLastError();
+        A_UNUSED(err);
+        return NULL;
     }
+    
+    if (alloc < p)
+        alloc = (void*)p;
+
     return alloc == p ? alloc : NULL;
 }
 #else 
@@ -62,8 +68,8 @@ void* Z_ZallocAt(const void* p, size_t n) {
 
 #ifdef _WIN32
 bool Z_FreeAt(const void* p, size_t n) {
-    n = 0;
-    return VirtualFree((void*)(intptr_t)p, n, MEM_RELEASE);
+    A_UNUSED(n);
+    return VirtualFree((void*)(intptr_t)p, 0, MEM_RELEASE);
 }
 #else
 bool Z_FreeAt(const void* p, size_t n) {

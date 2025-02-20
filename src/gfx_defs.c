@@ -143,6 +143,9 @@ A_NO_DISCARD GLenum R_ImageFormatToGl(ImageFormat format) {
     case R_IMAGE_FORMAT_A8:
         gl_format = GL_ALPHA8;
         break;
+    case R_IMAGE_FORMAT_R8:
+        gl_format = GL_RED;
+        break;
     case R_IMAGE_FORMAT_RGB565:
         gl_format = GL_RGB565;
         break;
@@ -210,11 +213,11 @@ A_NO_DISCARD bool R_ImageFormatIsCompressed(ImageFormat format) {
 }
 
 A_NO_DISCARD bool R_CreateImage2D(int width, int height,
-                                             ImageFormat format,
-                                             ImageFormat internal_format,
-                                             const void* pixels,
-                                             size_t      pixels_size,
-                                             A_INOUT GfxImage* image
+                                  ImageFormat       format,
+                                  ImageFormat       internal_format,
+                                  const void*       pixels,
+                                  size_t            pixels_size,
+                                  A_INOUT GfxImage* image
 ) {
     assert(image);
     if (!image)
@@ -263,8 +266,8 @@ A_NO_DISCARD bool R_CreateImage2D(int width, int height,
             GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, gl_internal_format,
                 width, height, 0, gl_format, GL_UNSIGNED_BYTE, pixels);
         }
+        GL_CALL(glGenerateMipmap, GL_TEXTURE_2D);
     }
-    GL_CALL(glGenerateMipmap, GL_TEXTURE_2D);
 
     image->width           = width;
     image->height          = height;

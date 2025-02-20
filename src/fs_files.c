@@ -9,7 +9,8 @@
 #include "com_print.h"
 
 A_NO_DISCARD void* FS_ReadFile(const char* path, A_OPTIONAL_OUT size_t* sz) {
-	*sz = 0;
+	if (sz)
+		*sz = 0;
 
 	SDL_RWops* ops = SDL_RWFromFile(path, "r");
 	if (ops == NULL) {
@@ -47,7 +48,8 @@ void FS_FreeFile(void* p) {
 }
 
 A_NO_DISCARD char* FS_ReadFileText(const char* path, A_OPTIONAL_OUT size_t* sz) {
-	*sz = 0;
+	if (sz)
+		*sz = 0;
 
 	SDL_RWops* ops = SDL_RWFromFile(path, "r");
 	if (ops == NULL) {
@@ -207,7 +209,7 @@ char* FS_BuildOsPath(const char* gamedir, const char* subdir,
 	if (ext == NULL)
 		ext = "";
 
-	if (snprintf(s_osPathBuf, sizeof(s_osPathBuf), "%s%s%s%s", gamedir, subdir, file, ext) < 4)
+	if (snprintf(s_osPathBuf, sizeof(s_osPathBuf), "%s/%s/%s%s%s", gamedir, subdir, file, ext ? "." : "", ext) < 1)
 		return NULL;
 	return s_osPathBuf;
 }

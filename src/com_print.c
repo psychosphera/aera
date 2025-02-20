@@ -1,5 +1,6 @@
 #include "com_print.h"
 
+#include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -13,7 +14,7 @@ void Com_PrintMessage(print_msg_dest_t dest, const char* msg) {
     if (dest == CON_DEST_CLIENT)
         dest = CON_DEST_DEVCON;
 
-    if (dest == CON_DEST_ERR || dest == CON_DEST_ERR)
+    if (dest == CON_DEST_ERR)
         fprintf(stderr, "%s", msg);
     else if (dest == CON_DEST_DEVCON)
         DevCon_PrintMessage(msg);
@@ -66,6 +67,9 @@ A_NO_RETURN Com_Error(int ec, const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     Com_PrintMessage(CON_DEST_ERR, Com_VFormat(s_printBuf, sizeof(s_printBuf), fmt, ap));
+#if _DEBUG
+    assert(false);
+#endif // _DEBUG
     Sys_NormalExit(ec);
 }
 
@@ -74,5 +78,8 @@ void Com_Errorln(int ec, const char* fmt, ...) {
     va_start(ap, fmt);
     Com_PrintMessage(CON_DEST_ERR, Com_VFormat(s_printBuf, sizeof(s_printBuf), fmt, ap));
     Com_PrintMessage(CON_DEST_ERR, "\n");
+#if _DEBUG
+    assert(false);
+#endif // _DEBUG
     Sys_NormalExit(ec);
 }

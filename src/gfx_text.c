@@ -43,7 +43,7 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
     DB_UnloadShader(vertSource);
     DB_UnloadShader(fragSource);
 
-    for (int i = 0; i < Font_GlyphCount(f); i++) {
+    for (char i = ' '; i < Font_GlyphCount(f) + ' '; i++) {
         const GlyphDef* g = Font_GetGlyph(f, i);
         f->atlas_width += g->width + 1;
         f->atlas_height = A_MAX(f->atlas_height, g->height);
@@ -73,8 +73,10 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
     GL_CALL(glEnableVertexAttribArray, 0);
     GL_CALL(glEnableVertexAttribArray, 1);
 
-    b = R_CreateImage2D(0, 0, R_IMAGE_FORMAT_R8, R_IMAGE_FORMAT_R8, NULL, 0, &f->image);
+    ImageFormat format = R_IMAGE_FORMAT_R8;
+    b = R_CreateImage2D(0, 0, format, format, NULL, 0, &f->image);
     assert(b);
+    GLenum gl_format = R_ImageFormatToGl(format);
 
     GLint unpackAlign = 0;
     GL_CALL(glGetIntegerv, GL_UNPACK_ALIGNMENT, &unpackAlign);
@@ -90,22 +92,22 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
     GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    int x = 0;
-    for (int i = 0; i < Font_GlyphCount(f); i++) {
-        GlyphDef* g = Font_GetGlyph(f, i);
+    for (char c = ' '; c < ' ' + Font_GlyphCount(f); c++) {
+        GlyphDef* g = Font_GetGlyph(f, c);
         if (g->advance_x == 0)
             continue;
 
         if (g->width > 0 && g->height > 0)
             GL_CALL(glTexSubImage2D,
-                GL_TEXTURE_2D, 0, x, 0, g->width, g->height,
-                GL_RED, GL_UNSIGNED_BYTE, g->pixels
+                GL_TEXTURE_2D, 0, f->image.width, 0, g->width, g->height,
+                gl_format, GL_UNSIGNED_BYTE, g->pixels
             );
 
-        g->atlas_x = (float)x / (float)f->atlas_width;
+        g->atlas_x = (float)f->image.width / (float)f->atlas_width;
         g->atlas_y = 0.0f;
 
-        x += g->width + 1;
+        f->image.width += g->width + 1;
+        f->image.height = A_MAX(f->image.height, g->height);
     }
 
     R_SetUniformInt(f->prog.program, "uTex", 0);

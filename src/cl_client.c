@@ -20,14 +20,14 @@ extern dvar_t* vid_height;
 
 typedef struct cll_t {
 	KeyFocus keyfocus;
-	bool drawDevGui;
-	size_t fpsTextDrawId;
+	bool     drawDevGui;
+	size_t   fpsTextDrawId;
 } cll_t;
 cll_t s_cll[MAX_LOCAL_CLIENTS];
 
 typedef struct cl_t {
 	dvar_t* drawfps;
-	bool hasKbmFocus;
+	bool    hasKbmFocus;
 } cl_t;
 cl_t s_cl[MAX_LOCAL_CLIENTS];
 

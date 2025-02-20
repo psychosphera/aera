@@ -51,24 +51,24 @@ A_NO_DISCARD const char* R_GlDebugErrorString(GLenum err) {
     }
 }
 
-//A_NO_DISCARD static const char* R_GlDebugSourceString(GLenum source) {
-//    switch (source) {
-//    case GL_DEBUG_SOURCE_API:
-//        return "API";
-//    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
-//        return "WindowSystem";
-//    case GL_DEBUG_SOURCE_SHADER_COMPILER:
-//        return "ShaderCompiler";
-//    case GL_DEBUG_SOURCE_THIRD_PARTY:
-//        return "ThirdParty";
-//    case GL_DEBUG_SOURCE_APPLICATION:
-//        return "Application";
-//    case GL_DEBUG_SOURCE_OTHER:
-//        return "Other";
-//    default:
-//        return "<unknown>";
-//    };
-//}
+A_NO_DISCARD static const char* R_GlDebugSourceString(GLenum source) {
+    switch (source) {
+    case GL_DEBUG_SOURCE_API:
+        return "API";
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+        return "WindowSystem";
+    case GL_DEBUG_SOURCE_SHADER_COMPILER:
+        return "ShaderCompiler";
+    case GL_DEBUG_SOURCE_THIRD_PARTY:
+        return "ThirdParty";
+    case GL_DEBUG_SOURCE_APPLICATION:
+        return "Application";
+    case GL_DEBUG_SOURCE_OTHER:
+        return "Other";
+    default:
+        return "<unknown>";
+    };
+}
 
 A_NO_DISCARD static const char* R_GlDebugTypeString(GLenum type) {
     switch (type) {
@@ -123,13 +123,14 @@ static void GLAPIENTRY R_GlDebugOutput(
         return;
     }
 
-    const char* src = R_GlDebugErrorString(source);
+    const char* i   = R_GlDebugErrorString(id);
+    const char* src = R_GlDebugSourceString(source);
     const char* t   = R_GlDebugTypeString(type);
     const char* sev = R_GlDebugSeverityString(severity);
     
     Com_DPrintln(CON_DEST_CLIENT,
-        "OpenGL debug message (id=%d, source=%d, type=%d, severity=%d): %s", 
-        id, src, t, sev, message
+        "OpenGL debug message (id=%s, source=%s, type=%s, severity=%s): %s", 
+        i, src, t, sev, message
     );
 }
 

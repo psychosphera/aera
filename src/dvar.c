@@ -309,13 +309,13 @@ dvar_t Dvar_CreateVec4(const char* name, int flags, avec4f_t value, float min, f
 }
 
 
-bool Dvar_GetBool(const dvar_t* d) {
+A_NO_DISCARD bool Dvar_GetBool(const dvar_t* d) {
 	if (d->type != DVAR_TYPE_BOOL)
 		return false;
 	return d->value.b;
 }
 
-int Dvar_GetInt(const dvar_t* d) {
+A_NO_DISCARD int Dvar_GetInt(const dvar_t* d) {
 	if (d->type == DVAR_TYPE_INT)
 		return d->value.i;
 	else if (d->type == DVAR_TYPE_ENUM)
@@ -324,31 +324,31 @@ int Dvar_GetInt(const dvar_t* d) {
 	return 0;
 }
 
-float Dvar_GetFloat(const dvar_t* d) {
+A_NO_DISCARD float Dvar_GetFloat(const dvar_t* d) {
 	if (d->type != DVAR_TYPE_FLOAT)
 		return 0;
 	return d->value.f;
 }
 
-const char* Dvar_GetString(const dvar_t* d) {
+A_NO_DISCARD const char* Dvar_GetString(const dvar_t* d) {
 	if (d->type == DVAR_TYPE_ENUM)
 		return d->e[d->i];
 	return d->e[0];
 }
 
-avec2f_t Dvar_GetVec2(const dvar_t* d) {
+A_NO_DISCARD avec2f_t Dvar_GetVec2(const dvar_t* d) {
 	if (d->type != DVAR_TYPE_VEC2)
 		return A_VEC2F_ZERO;
 	return d->value.v2;
 }
 
-avec3f_t Dvar_GetVec3(const dvar_t* d) {
+A_NO_DISCARD avec3f_t Dvar_GetVec3(const dvar_t* d) {
 	if (d->type != DVAR_TYPE_VEC3)
 		return A_VEC3F_ZERO;
 	return d->value.v3;
 }
 
-avec4f_t Dvar_GetVec4(const dvar_t* d) {
+A_NO_DISCARD avec4f_t Dvar_GetVec4(const dvar_t* d) {
 	if (d->type != DVAR_TYPE_VEC4)
 		return A_VEC4F_ZERO;
 	return d->value.v4;
@@ -454,19 +454,27 @@ void Dvar_ClearFlags(A_INOUT dvar_t* d, int flags) {
 	d->flags &= ~flags;
 }
 
-bool Dvar_Exists(const char* name) {
+A_NO_DISCARD bool Dvar_Exists(const char* name) {
 	for (int i = 0; i < s_dvarCount; i++) {
-		if (s_dvars[i]->name && A_cstrcmp(s_dvars[i]->name, name))
+		if (s_dvars[i] &&
+			s_dvars[i]->name &&
+			A_cstrcmp(s_dvars[i]->name, name)
+		) {
 			return true;
+		}
 	}
 	
 	return false;
 }
 
-dvar_t* Dvar_Find(const char* name) {
+A_NO_DISCARD dvar_t* Dvar_Find(const char* name) {
 	for (int i = 0; i < s_dvarCount; i++) {
-		if (s_dvars[i]->name && A_cstrcmp(s_dvars[i]->name, name))
+		if (s_dvars[i] &&
+			s_dvars[i]->name &&
+			A_cstrcmp(s_dvars[i]->name, name)
+		) {
 			return s_dvars[i];
+		}
 	}
 
 	return NULL;
@@ -475,7 +483,7 @@ dvar_t* Dvar_Find(const char* name) {
 static dvar_t** Dvar_TakeFreeDvar() {
 	if (s_dvarCount < DVAR_MAX_DVARS) {
 		dvar_t** d = &s_dvars[s_dvarCount++];
-		assert(d == NULL);
+		assert(*d == NULL);
 		return d;
 	}
 
@@ -744,7 +752,8 @@ static int s_localDvarCount;
 
 A_NO_DISCARD bool Dvar_LocalExists(int localClientNum, const char* name) {
 	for (int i = 0; i < s_localDvarCount; i++) {
-		if (s_localDvars[localClientNum][i]->name &&
+		if (s_localDvars[localClientNum][i] &&
+			s_localDvars[localClientNum][i]->name &&
 			A_cstrcmp(s_localDvars[localClientNum][i]->name, name)
 		) {
 			return true;
@@ -754,10 +763,14 @@ A_NO_DISCARD bool Dvar_LocalExists(int localClientNum, const char* name) {
 	return false;
 }
 
-dvar_t* Dvar_FindLocal(int localClientNum, const char* name) {
+A_NO_DISCARD dvar_t* Dvar_FindLocal(int localClientNum, const char* name) {
 	for (int i = 0; i < s_localDvarCount; i++) {
-		if (s_localDvars[localClientNum][i]->name && A_cstrcmp(s_localDvars[localClientNum][i]->name, name))
+		if (s_localDvars[localClientNum][i] &&
+			s_localDvars[localClientNum][i]->name &&
+			A_cstrcmp(s_localDvars[localClientNum][i]->name, name)
+		) {
 			return s_localDvars[localClientNum][i];
+		}
 	}
 
 	return NULL;
@@ -766,7 +779,7 @@ dvar_t* Dvar_FindLocal(int localClientNum, const char* name) {
 static dvar_t** Dvar_TakeFreeLocalDvar(int localClientNum) {
 	if (s_localDvarCount < DVAR_MAX_DVARS) {
 		dvar_t** d = &s_localDvars[localClientNum][s_localDvarCount++];
-		assert(d == NULL);
+		assert(*d == NULL);
 		return d;
 	}
 

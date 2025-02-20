@@ -90,7 +90,7 @@ void PM_UpdateViewAngles(A_INOUT playerState_t* ps, const usercmd_t* cmd) {
 }
 
 void PmoveSingle(A_INOUT pmove_t* pm, A_INOUT pml_t* pml) {
-	A_memset(&pml, 0, sizeof(pml));
+	A_memset(pml, 0, sizeof(*pml));
 
 	pml->msec = A_CLAMP(
 		(uint64_t)((float)pm->cmd.serverTime - (float)pm->ps->commandTime), 

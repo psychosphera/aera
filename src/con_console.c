@@ -52,6 +52,9 @@ bool Con_ProcessLocalInput(const char* input, size_t localClientNum) {
     if (!Cmd_TakeInput(input))
         return false;
 
+    if (Cmd_Argc() < 1)
+        return true;
+
     void(*fn)(void) = Cmd_FindCommand(Cmd_Argv(0));
     if (fn) {
         fn();

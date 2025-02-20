@@ -5,6 +5,9 @@
 #include "acommon/acommon.h"
 #include "acommon/a_math.h"
 
+#define TAGS_BASE_ADDR_XBOX    0x803A6000
+#define TAGS_BASE_ADDR_GEARBOX 0x40440000
+
 enum {
 	MAP_HEADER_HEAD        = A_MAKE_FOURCC('h', 'e', 'a', 'd'),
 	MAP_HEADER_FOOT        = A_MAKE_FOURCC('f', 'o', 'o', 't'),
@@ -12,9 +15,6 @@ enum {
 
 	TAGS_MAX_SIZE_XBOX     = 22 * 1024 * 1024,
 	TAGS_MAX_SIZE_GEARBOX  = 23 * 1024 * 1024,
-
-	TAGS_BASE_ADDR_XBOX    = 0x803A6000,
-	TAGS_BASE_ADDR_GEARBOX = 0x40440000
 };
 
 typedef enum MapEngine {
