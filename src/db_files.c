@@ -87,7 +87,8 @@ void DB_UnloadImage(void* image) {
 }
 
 A_NO_DISCARD StreamFile DB_LoadMap_Stream(const char* map_name) {
-	return FS_StreamFile(DB_MapPath(map_name), FS_SEEK_BEGIN, FS_STREAM_READ_EXISTING, 0);
+	return FS_StreamFile(DB_MapPath(map_name), 
+		                 FS_SEEK_BEGIN, FS_STREAM_READ_EXISTING, 0);
 }
 
 void DB_UnloadMap_Stream(A_INOUT StreamFile* stream) {

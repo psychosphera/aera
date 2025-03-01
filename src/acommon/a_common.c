@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-A_EXTERN_C size_t A_npow2(size_t n) {
+A_EXTERN_C A_NO_DISCARD size_t A_npow2(size_t n) {
     if(n == 0)
         return 1;
 
@@ -19,6 +19,6 @@ A_EXTERN_C size_t A_npow2(size_t n) {
     return (size_t)1 << ((size_t)i + 1);
 }
 
-A_EXTERN_C size_t A_ppow2(size_t n) {
+A_EXTERN_C A_NO_DISCARD size_t A_ppow2(size_t n) {
     return A_npow2(n) >> 1;
 }

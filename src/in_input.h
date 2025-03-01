@@ -124,14 +124,20 @@ typedef enum Keycode {
 
 A_EXTERN_C              Keycode IN_Key_SDLKToKeycode(SDL_Keycode k);
 
-A_EXTERN_C              void IN_Init           (void);
-A_EXTERN_C              void IN_Key_Init       (void);
-A_EXTERN_C A_NO_DISCARD bool IN_Key_IsDown     (size_t localClientNum, Keycode k);
-A_EXTERN_C A_NO_DISCARD bool IN_Key_IsUp       (size_t localClientNum, Keycode k);
-A_EXTERN_C A_NO_DISCARD bool IN_Key_IsToggled  (size_t localClientNum, Keycode k);
-A_EXTERN_C              bool IN_Key_Down       (size_t localClientNum, Keycode k);
-A_EXTERN_C              bool IN_Key_Up         (size_t localClientNum, Keycode k);
-A_EXTERN_C A_NO_DISCARD char IN_Key_Char       (size_t localClientNum, Keycode k);
+A_EXTERN_C              void IN_Init         (void);
+A_EXTERN_C              void IN_Key_Init     (void);
+A_EXTERN_C A_NO_DISCARD bool IN_Key_IsDown   (size_t localClientNum, 
+	                                          Keycode k);
+A_EXTERN_C A_NO_DISCARD bool IN_Key_IsUp     (size_t localClientNum, 
+	                                          Keycode k);
+A_EXTERN_C A_NO_DISCARD bool IN_Key_IsToggled(size_t localClientNum, 
+                                              Keycode k);
+A_EXTERN_C              bool IN_Key_Down     (size_t localClientNum, 
+                                              Keycode k);
+A_EXTERN_C              bool IN_Key_Up       (size_t localClientNum, 
+                                              Keycode k);
+A_EXTERN_C A_NO_DISCARD char IN_Key_Char     (size_t localClientNum, 
+	                                          Keycode k);
 
 A_EXTERN_C A_NO_DISCARD bool IN_Key_WasPressedOnCurrentFrame(
 	size_t localClientNum, 
@@ -144,11 +150,16 @@ A_EXTERN_C A_NO_DISCARD Keycode* IN_Key_AllPressedOnCurrentFrame(
 A_EXTERN_C              void IN_Key_Shutdown   (void);
 	  
 A_EXTERN_C              void IN_Mouse_Init     (void);
-A_EXTERN_C A_NO_DISCARD bool  IN_Mouse_IsDown  (size_t localClientNum, Uint8 button);
-A_EXTERN_C A_NO_DISCARD bool  IN_Mouse_IsUp    (size_t localClientNum, Uint8 button);
-A_EXTERN_C              bool  IN_Mouse_Down    (size_t localClientNum, Uint8 button);
-A_EXTERN_C              bool  IN_Mouse_Up      (size_t localClientNum, Uint8 button);
-A_EXTERN_C              void  IN_Mouse_Move    (size_t localClientNum, float xOff, float yOff);
+A_EXTERN_C A_NO_DISCARD bool  IN_Mouse_IsDown  (size_t localClientNum, 
+	                                            Uint8 button);
+A_EXTERN_C A_NO_DISCARD bool  IN_Mouse_IsUp    (size_t localClientNum, 
+	                                            Uint8 button);
+A_EXTERN_C              bool  IN_Mouse_Down    (size_t localClientNum, 
+	                                            Uint8 button);
+A_EXTERN_C              bool  IN_Mouse_Up      (size_t localClientNum, 
+	                                            Uint8 button);
+A_EXTERN_C              void  IN_Mouse_Move    (size_t localClientNum, 
+	                                            float xOff, float yOff);
 A_EXTERN_C A_NO_DISCARD float IN_Mouse_X       (size_t localClientNum);
 A_EXTERN_C A_NO_DISCARD float IN_Mouse_Y       (size_t localClientNum);
 A_EXTERN_C              void  IN_Mouse_Shutdown(void);

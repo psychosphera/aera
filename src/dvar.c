@@ -38,6 +38,7 @@ typedef union DvarValue {
 
 typedef struct dvar_t {
 	char*      name;
+	uint32_t   name_hash;
 	DvarType   type;
 	DvarDomain domain;
 	DvarValue  value;
@@ -52,9 +53,22 @@ typedef struct dvar_t {
 static dvar_t* s_dvars[DVAR_MAX_DVARS];
 static int     s_dvarCount;
 
+static uint32_t Dvar_HashName(const char* name) {
+	assert(name);
+	uint32_t hash = 0;
+	for (uint32_t i = 0; name[i] != '\0'; i++) {
+		char c = A_tolower(name[i]);
+		hash += (uint32_t)c * (i+119);
+	}
+	return hash;
+}
+
 void Dvar_Init() {
-	Cmd_AddCommand("set",  Dvar_Set_f);
-	Cmd_AddCommand("seta", Dvar_SetA_f);
+	Cmd_AddCommand("set",   Dvar_Set_f  );
+	Cmd_AddCommand("seta",  Dvar_SetA_f );
+	Cmd_AddCommand("setl",  Dvar_SetL_f );
+	Cmd_AddCommand("setla", Dvar_SetLA_f);
+
 
 	A_memset(s_dvars, 0, sizeof(s_dvars));
 	s_dvarCount = 0;
@@ -119,7 +133,7 @@ bool Dvar_RestoreValue(A_INOUT dvar_t* d) {
 	return false;
 }
 
-bool Dvar_HasLatchedValue(const dvar_t* d) {
+A_NO_DISCARD bool Dvar_HasLatchedValue(const dvar_t* d) {
 	return d->hasLatched;
 }
 
@@ -147,13 +161,14 @@ dvar_t Dvar_CreateBool(const char* name, int flags, bool value) {
 	char** e = Z_Alloc(sizeof(*e));
 	e[0] = Z_Alloc(6);
 	if (value == true)
-		A_cstrncpyz(e[0], "true", 6);
+		A_cstrncpyz(e[0], "true", 5);
 	else
 		A_cstrncpyz(e[0], "false", 6);
 	dvar_t d = {
 		.name = (char*)name,
+		.name_hash = Dvar_HashString(name),
 		.type = DVAR_TYPE_BOOL,
-		.value = {.b = value },
+		.value = { .b = value },
 		.flags = flags,
 		.e = e,
 		.modified = false,
@@ -163,16 +178,19 @@ dvar_t Dvar_CreateBool(const char* name, int flags, bool value) {
 	return d;
 }
 
-dvar_t Dvar_CreateInt(const char* name, int flags, int value, int min, int max) {
+dvar_t Dvar_CreateInt(const char* name, int flags, 
+	                  int value, int min, int max
+) {
 	char** e = Z_Alloc(sizeof(*e));
 	e[0] = Z_Alloc(12);
 	A_itoa(value, e[0], 12);
 
 	dvar_t d = {
 		.name = (char*)name,
+		.name_hash = Dvar_HashString(name),
 		.type = DVAR_TYPE_INT,
-		.domain = {.i = {.min = min, .max = max } },
-		.value = {.i = value },
+		.domain = { .i = {.min = min, .max = max } },
+		.value = { .i = value },
 		.flags = flags,
 		.e = e,
 		.modified = false,
@@ -182,13 +200,16 @@ dvar_t Dvar_CreateInt(const char* name, int flags, int value, int min, int max) 
 	return d;
 }
 
-dvar_t Dvar_CreateFloat(const char* name, int flags, float value, float min, float max) {
+dvar_t Dvar_CreateFloat(const char* name, int flags, 
+	                    float value, float min, float max
+) {
 	char** e = Z_Alloc(sizeof(*e));
 	e[0] = Z_Alloc(32);
 	A_itoa(value, e[0], 32);
 
 	dvar_t d = {
 		.name = (char*)name,
+		.name_hash = Dvar_HashString(name),
 		.type = DVAR_TYPE_FLOAT,
 		.domain = {.f = {.min = min, .max = max } },
 		.value = {.f = value },
@@ -207,6 +228,7 @@ dvar_t Dvar_CreateString(const char* name, int flags, const char* value) {
 
 	dvar_t d = {
 		.name = (char*)name,
+		.name_hash = Dvar_HashString(name),
 		.type = DVAR_TYPE_STRING,
 		.flags = flags,
 		.e = e,
@@ -227,6 +249,7 @@ dvar_t Dvar_CreateEnum(
 
 	dvar_t d = {
 		.name = (char*)name,
+		.name_hash = Dvar_HashString(name),
 		.type = DVAR_TYPE_ENUM,
 		.domain = {.e = (int)domain_count },
 		.flags = flags,
@@ -239,7 +262,9 @@ dvar_t Dvar_CreateEnum(
 	return d;
 }
 
-dvar_t Dvar_CreateVec2(const char* name, int flags, avec2f_t value, float min, float max) {
+dvar_t Dvar_CreateVec2(const char* name, int flags, 
+                       avec2f_t value, float min, float max
+) {
 	char** e = Z_Alloc(sizeof(*e));
 	e[0] = Z_Alloc(32 + 1 + 32);
 	size_t pos = A_itoa(value.x, e[0], 32);
@@ -248,6 +273,7 @@ dvar_t Dvar_CreateVec2(const char* name, int flags, avec2f_t value, float min, f
 
 	dvar_t d = {
 		.name = (char*)name,
+		.name_hash = Dvar_HashString(name),
 		.type = DVAR_TYPE_VEC2,
 		.domain = { .f = {.min = min, .max = max } },
 		.value = { .v2 = value },
@@ -260,7 +286,9 @@ dvar_t Dvar_CreateVec2(const char* name, int flags, avec2f_t value, float min, f
 	return d;
 }
 
-dvar_t Dvar_CreateVec3(const char* name, int flags, avec3f_t value, float min, float max) {
+dvar_t Dvar_CreateVec3(const char* name, int flags, 
+	                   avec3f_t value, float min, float max
+) {
 	char** e = Z_Alloc(sizeof(*e));
 	e[0] = Z_Alloc(32 + 1 + 32 + 1 + 32);
 	size_t pos = A_itoa(value.x, e[0], 32);
@@ -271,6 +299,7 @@ dvar_t Dvar_CreateVec3(const char* name, int flags, avec3f_t value, float min, f
 
 	dvar_t d = {
 		.name = (char*)name,
+		.name_hash = Dvar_HashString(name),
 		.type = DVAR_TYPE_VEC3,
 		.domain = {.f = {.min = min, .max = max } },
 		.value = {.v3 = value },
@@ -283,7 +312,9 @@ dvar_t Dvar_CreateVec3(const char* name, int flags, avec3f_t value, float min, f
 	return d;
 }
 
-dvar_t Dvar_CreateVec4(const char* name, int flags, avec4f_t value, float min, float max) {
+dvar_t Dvar_CreateVec4(const char* name, int flags, 
+	                   avec4f_t value, float min, float max
+) {
 	char** e = Z_Alloc(sizeof(*e));
 	e[0] = Z_Alloc(32 + 1 + 32 + 1 + 32 + 1 + 32);
 	size_t pos = A_itoa(value.x, e[0], 32);
@@ -296,6 +327,7 @@ dvar_t Dvar_CreateVec4(const char* name, int flags, avec4f_t value, float min, f
 
 	dvar_t d = {
 		.name = (char*)name,
+		.name_hash = Dvar_HashString(name),
 		.type = DVAR_TYPE_VEC4,
 		.domain = {.f = {.min = min, .max = max } },
 		.value = {.v4 = value },
@@ -457,9 +489,7 @@ void Dvar_ClearFlags(A_INOUT dvar_t* d, int flags) {
 A_NO_DISCARD bool Dvar_Exists(const char* name) {
 	for (int i = 0; i < s_dvarCount; i++) {
 		if (s_dvars[i] &&
-			s_dvars[i]->name &&
-			A_cstrcmp(s_dvars[i]->name, name)
-		) {
+			s_dvars[i]->name_hash == Dvar_HashName(name)) {
 			return true;
 		}
 	}
@@ -470,9 +500,8 @@ A_NO_DISCARD bool Dvar_Exists(const char* name) {
 A_NO_DISCARD dvar_t* Dvar_Find(const char* name) {
 	for (int i = 0; i < s_dvarCount; i++) {
 		if (s_dvars[i] &&
-			s_dvars[i]->name &&
-			A_cstrcmp(s_dvars[i]->name, name)
-		) {
+			s_dvars[i]->name_hash == Dvar_HashName(name)) 
+		{
 			return s_dvars[i];
 		}
 	}
@@ -726,7 +755,7 @@ dvar_t* Dvar_RegisterVec4(
 
 bool Dvar_Unregister(const char* name) {
 	for (int i = 0; i < s_dvarCount; i++) {
-		if (A_cstrcmp(name, s_dvars[i]->name)) {
+		if (s_dvars[i]->name_hash == Dvar_HashName(name)) {
 			dvar_t** d = &s_dvars[i];
 			Dvar_DestroyDvar(*d);
 			Z_Free(*d);
@@ -753,8 +782,7 @@ static int s_localDvarCount;
 A_NO_DISCARD bool Dvar_LocalExists(int localClientNum, const char* name) {
 	for (int i = 0; i < s_localDvarCount; i++) {
 		if (s_localDvars[localClientNum][i] &&
-			s_localDvars[localClientNum][i]->name &&
-			A_cstrcmp(s_localDvars[localClientNum][i]->name, name)
+			s_localDvars[localClientNum][i]->name_hash == Dvar_HashName(name)
 		) {
 			return true;
 		}
@@ -766,8 +794,7 @@ A_NO_DISCARD bool Dvar_LocalExists(int localClientNum, const char* name) {
 A_NO_DISCARD dvar_t* Dvar_FindLocal(int localClientNum, const char* name) {
 	for (int i = 0; i < s_localDvarCount; i++) {
 		if (s_localDvars[localClientNum][i] &&
-			s_localDvars[localClientNum][i]->name &&
-			A_cstrcmp(s_localDvars[localClientNum][i]->name, name)
+			s_localDvars[localClientNum][i]->name_hash == Dvar_HashName(name)
 		) {
 			return s_localDvars[localClientNum][i];
 		}
@@ -791,7 +818,10 @@ static dvar_t** Dvar_TakeFreeLocalDvar(int localClientNum) {
 	return NULL;
 }
 
-static dvar_t* Dvar_RegisterLocalDvar(int localClientNum, const char* name, const dvar_t* d) {
+static dvar_t* Dvar_RegisterLocalDvar(int localClientNum, 
+	                                  const char* name, 
+									  const dvar_t* d
+) {
 	dvar_t** dvar = Dvar_TakeFreeLocalDvar(localClientNum);
 	if (d == NULL)
 		return NULL;
@@ -802,7 +832,10 @@ static dvar_t* Dvar_RegisterLocalDvar(int localClientNum, const char* name, cons
 	return *dvar;
 }
 
-static dvar_t* Dvar_RegisterNewLocalDvar(int localClientNum, const char* name, const dvar_t* d) {
+static dvar_t* Dvar_RegisterNewLocalDvar(int localClientNum, 
+	                                     const char* name, 
+										 const dvar_t* d
+) {
 	if (Dvar_LocalExists(localClientNum, name))
 		return NULL;
 
@@ -872,7 +905,10 @@ dvar_t* Dvar_RegisterNewLocalVec4(int localClientNum,
 	return Dvar_RegisterNewLocalDvar(localClientNum, name, &d);
 }
 
-static dvar_t* Dvar_ReregisterLocalDvar(int localClientNum, const char* name, const dvar_t* d) {
+static dvar_t* Dvar_ReregisterLocalDvar(int localClientNum, 
+	                                    const char* name, 
+										const dvar_t* d
+) {
 	if (!Dvar_LocalExists(localClientNum, name))
 		return NULL;
 
@@ -956,9 +992,11 @@ dvar_t* Dvar_RegisterLocalInt(int localClientNum,
 	const char* name, int flags, int value, int min, int max
 ) {
 	if (Dvar_LocalExists(localClientNum, name))
-		return Dvar_ReregisterLocalInt(localClientNum, name, flags, value, min, max);
+		return Dvar_ReregisterLocalInt(localClientNum, name, flags, 
+			                           value, min, max);
 	else
-		return Dvar_RegisterNewLocalInt(localClientNum, name, flags, value, min, max);
+		return Dvar_RegisterNewLocalInt(localClientNum, name, flags, 
+			                            value, min, max);
 }
 
 dvar_t* Dvar_RegisterLocalFloat(int localClientNum,
@@ -966,9 +1004,11 @@ dvar_t* Dvar_RegisterLocalFloat(int localClientNum,
 	float value, float min, float max
 ) {
 	if (Dvar_LocalExists(localClientNum, name))
-		return Dvar_ReregisterLocalFloat(localClientNum, name, flags, value, min, max);
+		return Dvar_ReregisterLocalFloat(localClientNum, name, flags, 
+			                             value, min, max);
 	else
-		return Dvar_RegisterNewLocalFloat(localClientNum, name, flags, value, min, max);
+		return Dvar_RegisterNewLocalFloat(localClientNum, name, flags, 
+			                              value, min, max);
 }
 
 dvar_t* Dvar_RegisterLocalString(int localClientNum,
@@ -985,9 +1025,11 @@ dvar_t* Dvar_RegisterLocalEnum(int localClientNum,
 	int value, const char** domain, size_t domain_count
 ) {
 	if (Dvar_LocalExists(localClientNum, name))
-		return Dvar_ReregisterLocalEnum(localClientNum, name, flags, value, domain, domain_count);
+		return Dvar_ReregisterLocalEnum(localClientNum, name, flags, 
+			                            value, domain, domain_count);
 	else
-		return Dvar_RegisterNewLocalEnum(localClientNum, name, flags, value, domain, domain_count);
+		return Dvar_RegisterNewLocalEnum(localClientNum, name, flags, 
+			                             value, domain, domain_count);
 }
 
 dvar_t* Dvar_RegisterLocalVec2(int localClientNum,
@@ -995,9 +1037,11 @@ dvar_t* Dvar_RegisterLocalVec2(int localClientNum,
 	avec2f_t value, float min, float max
 ) {
 	if (Dvar_LocalExists(localClientNum, name))
-		return Dvar_ReregisterLocalVec2(localClientNum, name, flags, value, min, max);
+		return Dvar_ReregisterLocalVec2(localClientNum, name, flags, 
+			                            value, min, max);
 	else
-		return Dvar_RegisterNewLocalVec2(localClientNum, name, flags, value, min, max);
+		return Dvar_RegisterNewLocalVec2(localClientNum, name, flags, 
+			                             value, min, max);
 }
 
 dvar_t* Dvar_RegisterLocalVec3(int localClientNum,
@@ -1005,9 +1049,11 @@ dvar_t* Dvar_RegisterLocalVec3(int localClientNum,
 	avec3f_t value, float min, float max
 ) {
 	if (Dvar_LocalExists(localClientNum, name))
-		return Dvar_ReregisterLocalVec3(localClientNum, name, flags, value, min, max);
+		return Dvar_ReregisterLocalVec3(localClientNum, name, flags, 
+			                            value, min, max);
 	else
-		return Dvar_RegisterNewLocalVec3(localClientNum, name, flags, value, min, max);
+		return Dvar_RegisterNewLocalVec3(localClientNum, name, flags, 
+			                             value, min, max);
 }
 
 dvar_t* Dvar_RegisterLocalVec4(int localClientNum,
@@ -1015,14 +1061,18 @@ dvar_t* Dvar_RegisterLocalVec4(int localClientNum,
 	avec4f_t value, float min, float max
 ) {
 	if (Dvar_LocalExists(localClientNum, name))
-		return Dvar_ReregisterLocalVec4(localClientNum, name, flags, value, min, max);
+		return Dvar_ReregisterLocalVec4(localClientNum, name, flags, 
+			                            value, min, max);
 	else
-		return Dvar_RegisterNewLocalVec4(localClientNum, name, flags, value, min, max);
+		return Dvar_RegisterNewLocalVec4(localClientNum, name, flags, 
+			                             value, min, max);
 }
 
 bool Dvar_UnregisterLocal(int localClientNum, const char* name) {
 	for (int i = 0; i < s_localDvarCount; i++) {
-		if (A_cstrcmp(name, s_localDvars[localClientNum][i]->name)) {
+		if (s_localDvars[localClientNum][i] &&
+			s_localDvars[localClientNum][i]->name_hash == Dvar_HashName(name)
+		) {
 			dvar_t** d = &s_dvars[i];
 			Dvar_DestroyDvar(*d);
 			Z_Free(*d);
@@ -1191,7 +1241,7 @@ dvar_t* Dvar_RegisterFromString(const char* name, int flags,
 	return Dvar_RegisterNewFromString(name, flags, argc, argv);
 }
 
-void Dvar_Set_f() {
+void Dvar_Set_f(void) {
 	int argc = Cmd_Argc();
 	if (argc < 3) {
 		Com_Println(CON_DEST_CLIENT, "USAGE: set <variable> <value>");
@@ -1221,7 +1271,7 @@ void Dvar_Set_f() {
 	}
 }
 
-void Dvar_SetA_f() {
+void Dvar_SetA_f(void) {
 	int argc = Cmd_Argc();
 	if (argc < 3) {
 		Com_Println(CON_DEST_CLIENT, "USAGE: seta <variable> <value>");
@@ -1234,9 +1284,55 @@ void Dvar_SetA_f() {
 	Dvar_AddFlags(d, DVAR_FLAG_ARCHIVE);
 }
 
+void Dvar_SetL_f(void) {
+	int argc = Cmd_Argc();
+	if (argc < 3) {
+		Com_Println(CON_DEST_CLIENT, "USAGE: setl <variable> <value>");
+		return;
+	}
+
+	const char* name = Cmd_Argv(1);
+
+	const char* argv[4];
+	if (argc <= 3)
+		argv[0] = Cmd_Argv(2);
+	if (argc <= 4)
+		argv[1] = Cmd_Argv(3);
+	if (argc <= 5)
+		argv[2] = Cmd_Argv(4);
+	if (argc <= 6)
+		argv[3] = Cmd_Argv(5);
+
+	dvar_t* d = Dvar_FindLocal(name);
+	if (d) {
+		if (!Dvar_SetFromString(d, A_MIN(argc - 2, 4), argv))
+			Dvar_ReregisterLocalFromString(
+				name, DVAR_FLAG_NONE, A_MIN(argc - 2, 4), argv);
+	} else {
+		Dvar_RegisterNewLocalFromString(
+			name, DVAR_FLAG_NONE, A_MIN(argc - 2, 4), argv);
+	}
+}
+
+void Dvar_SetLA_f(void) {
+	int argc = Cmd_Argc();
+	if (argc < 3) {
+		Com_Println(CON_DEST_CLIENT, "USAGE: setla <variable> <value>");
+		return;
+	}
+
+	Dvar_SetL_f();
+	const char* name = Cmd_Argv(1);
+	dvar_t* d = Dvar_FindLocal(name);
+	Dvar_AddFlags(d, DVAR_FLAG_ARCHIVE);
+}
+
+
 void Dvar_Shutdown() {
 	Cmd_RemoveCommand("set");
 	Cmd_RemoveCommand("seta");
+	Cmd_RemoveCommand("setl");
+	Cmd_RemoveCommand("setla");
 
 	Dvar_ClearDvars();
 	for(size_t i = 0; i < MAX_LOCAL_CLIENTS; i++)

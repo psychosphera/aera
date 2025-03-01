@@ -84,8 +84,12 @@ A_EXTERN_C void RB_BeginFrame(void) {
             Dvar_RestoreValue(vid_ypos);
             Dvar_RestoreValue(vid_width);
             Dvar_RestoreValue(vid_height);
-            SDL_SetWindowPosition(g_sdlWindow, Dvar_GetInt(vid_xpos), Dvar_GetInt(vid_ypos));
-            SDL_SetWindowSize(g_sdlWindow, Dvar_GetInt(vid_width), Dvar_GetInt(vid_height));
+            SDL_SetWindowPosition(g_sdlWindow, 
+                                  Dvar_GetInt(vid_xpos), 
+                                  Dvar_GetInt(vid_ypos));
+            SDL_SetWindowSize(g_sdlWindow, 
+                              Dvar_GetInt(vid_width), 
+                              Dvar_GetInt(vid_height));
             R_WindowResized();
         }
 

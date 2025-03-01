@@ -46,7 +46,11 @@ A_NO_DISCARD const char* R_GlDebugErrorString(GLenum err) {
     case GL_INVALID_FRAMEBUFFER_OPERATION:
         return "GL_INVALID_FRAMEBUFFER_OPERATION";
     default:
-        Com_DPrintln(CON_DEST_CLIENT, "R_GlErrorStr called with unknown value (err=%d)", err);
+        Com_DPrintln(
+            CON_DEST_CLIENT, 
+            "R_GlErrorStr called with unknown value (err=%d)", 
+            err
+        );
         return "";
     }
 }
@@ -164,12 +168,19 @@ A_EXTERN_C void R_Init(void) {
     //GLint flags = 0;
     //GL_CALL(glGetIntegerv, GL_CONTEXT_FLAGS, &flags);
     //if ((flags & GL_CONTEXT_FLAG_DEBUG_BIT) == 0)
-    //    Com_Errorln("Failed to initialize OpenGL debug context in debug build.");
+    //    Com_Errorln(
+    //      "Failed to initialize OpenGL debug context in debug build."
+    //    );
 
     GLint num_extensions = 0;
     GL_CALL(glGetIntegerv, GL_NUM_EXTENSIONS, &num_extensions);
-    for (GLint i = 0; i < num_extensions; i++)
-        Com_Println(CON_DEST_CLIENT, "%s ", (const char*)glGetStringi(GL_EXTENSIONS, i));
+    for (GLint i = 0; i < num_extensions; i++) {
+        Com_Println(
+            CON_DEST_CLIENT,
+            "%s ",
+            (const char*)glGetStringi(GL_EXTENSIONS, i)
+        );
+    }
 
     GL_CALL(glEnable, GL_DEBUG_OUTPUT);
     GL_CALL(glEnable, GL_DEBUG_OUTPUT_SYNCHRONOUS);
@@ -240,7 +251,9 @@ static void R_RegisterDvars(void) {
     r_vsync          = Dvar_RegisterBool("r_vsync", DVAR_FLAG_NONE, true);
     r_fullscreen     = Dvar_RegisterBool("r_fullscreen", DVAR_FLAG_NONE, false);
     r_noBorder       = Dvar_RegisterBool("r_noBorder", DVAR_FLAG_NONE, false);
-    r_renderDistance = Dvar_RegisterFloat("r_renderDistance", DVAR_FLAG_NONE, R_FAR_PLANE_DEFAULT, 10.0f, 1000000.0f);
+    r_renderDistance = Dvar_RegisterFloat("r_renderDistance", DVAR_FLAG_NONE, 
+                                          R_FAR_PLANE_DEFAULT, 
+                                          10.0f, 1000000.0f);
     r_wireframe      = Dvar_RegisterBool("r_wireframe", DVAR_FLAG_NONE, false);
 }
 
@@ -571,7 +584,8 @@ A_EXTERN_C void R_LoadMap(void) {
             sizeof(*r_mapGlob.lightmaps[i].materials)
         );
         r_mapGlob.lightmaps[i].material_count = lightmap->materials.count;
-        const BSPMaterial* materials = (const BSPMaterial*)lightmap->materials.pointer;
+        const BSPMaterial* materials = 
+            (const BSPMaterial*)lightmap->materials.pointer;
         for (uint32_t j = 0; j < lightmap->materials.count; j++) {
             GL_CALL(glGenVertexArrays,
                 1, &r_mapGlob.lightmaps[i].materials[j].vb.vao);
@@ -647,7 +661,8 @@ A_EXTERN_C void R_LoadMap(void) {
             assert(shader_tag);
             assert(shader_tag->secondary_class == TAG_FOURCC_SHADER);
             if (shader_tag->primary_class == TAG_FOURCC_SHADER_ENVIRONMENT) {
-                BSPShaderEnvironment* shader = (BSPShaderEnvironment*)shader_tag->tag_data;
+                BSPShaderEnvironment* shader = 
+                    (BSPShaderEnvironment*)shader_tag->tag_data;
                 assert(shader);
                 r_mapGlob.lightmaps[i].materials[j].alpha_tested = 
                     shader->flags & 0x01;
@@ -677,7 +692,8 @@ A_EXTERN_C void R_LoadMap(void) {
                     );
                 }
                 assert(b);
-                assert(shader->secondary_detail_map.fourcc == TAG_FOURCC_BITMAP);
+                assert(shader->secondary_detail_map.fourcc == 
+                       TAG_FOURCC_BITMAP);
                 if (shader->secondary_detail_map.id.index != 0xFFFF) {
                     b = R_LoadBitmap(
                         shader->secondary_detail_map.id, 
@@ -800,7 +816,10 @@ A_EXTERN_C void R_RenderMapInternal(void) {
             R_SetUniformInt(r_mapGlob.prog.program, "uDetailMapFunction",
                 (int)r_mapGlob.lightmaps[i].materials[j].detail_map_function);
             R_SetUniformInt(r_mapGlob.prog.program, "uMicroDetailMapFunction",
-                (int)r_mapGlob.lightmaps[i].materials[j].micro_detail_map_function);
+                (int)r_mapGlob
+                    .lightmaps[i]
+                    .materials[j]
+                    .micro_detail_map_function);
 
             avec3f_t color = A_vec3(
                 r_mapGlob.lightmaps[i].materials[j].color.r,
@@ -814,18 +833,30 @@ A_EXTERN_C void R_RenderMapInternal(void) {
             color.z = r_mapGlob.lightmaps[i].materials[j].ambient_color.b;
             R_SetUniformVec3f(r_mapGlob.prog.program, "uAmbientColor", color);
 
-            R_SetUniformVec3f(r_mapGlob.prog.program, "uDistantLight0Dir", r_mapGlob.lightmaps[i].materials[j].distant_light_0_dir);
-            R_SetUniformVec3f(r_mapGlob.prog.program, "uDistantLight1Dir", r_mapGlob.lightmaps[i].materials[j].distant_light_1_dir);
+            R_SetUniformVec3f(
+                r_mapGlob.prog.program, "uDistantLight0Dir", 
+                r_mapGlob.lightmaps[i].materials[j].distant_light_0_dir);
+            R_SetUniformVec3f(
+                r_mapGlob.prog.program, "uDistantLight1Dir", 
+                r_mapGlob.lightmaps[i].materials[j].distant_light_1_dir);
 
-            color.x = r_mapGlob.lightmaps[i].materials[j].distant_light_0_color.r;
-            color.y = r_mapGlob.lightmaps[i].materials[j].distant_light_0_color.g;
-            color.z = r_mapGlob.lightmaps[i].materials[j].distant_light_0_color.b;
-            R_SetUniformVec3f(r_mapGlob.prog.program, "uDistantLight0Color", color);
+            color.x = 
+                r_mapGlob.lightmaps[i].materials[j].distant_light_0_color.r;
+            color.y = 
+                r_mapGlob.lightmaps[i].materials[j].distant_light_0_color.g;
+            color.z = 
+                r_mapGlob.lightmaps[i].materials[j].distant_light_0_color.b;
+            R_SetUniformVec3f(r_mapGlob.prog.program, 
+                              "uDistantLight0Color", color);
 
-            color.x = r_mapGlob.lightmaps[i].materials[j].distant_light_1_color.r;
-            color.y = r_mapGlob.lightmaps[i].materials[j].distant_light_1_color.g;
-            color.z = r_mapGlob.lightmaps[i].materials[j].distant_light_1_color.b;
-            R_SetUniformVec3f(r_mapGlob.prog.program, "uDistantLight1Color", color);
+            color.x = 
+                r_mapGlob.lightmaps[i].materials[j].distant_light_1_color.r;
+            color.y = 
+                r_mapGlob.lightmaps[i].materials[j].distant_light_1_color.g;
+            color.z = 
+                r_mapGlob.lightmaps[i].materials[j].distant_light_1_color.b;
+            R_SetUniformVec3f(r_mapGlob.prog.program, 
+                              "uDistantLight1Color", color);
 
             GL_CALL(glActiveTexture, GL_TEXTURE0);
             GL_CALL(glBindTexture,
@@ -883,7 +914,8 @@ A_EXTERN_C void R_RenderMapInternal(void) {
                 r_mapGlob.lightmaps[i].materials[j].vertices_count;
             GL_CALL(glDrawArrays, GL_TRIANGLES, 0, vertices_count);
             if (Dvar_GetBool(r_wireframe)) {
-                R_SetUniformInt(r_mapGlob.prog.program, "uFlags", flags & 0x7F);
+                R_SetUniformInt(r_mapGlob.prog.program, 
+                                "uFlags", flags & 0x7F);
                 GL_CALL(glPolygonMode, GL_FRONT_AND_BACK, GL_LINE);
                 GL_CALL(glDrawArrays,  GL_TRIANGLES,      0, vertices_count);
                 GL_CALL(glPolygonMode, GL_FRONT_AND_BACK, GL_FILL);

@@ -243,10 +243,15 @@ void IN_Init(void) {
 }
 
 void IN_Key_Init(void) {
-	for (size_t localClientNum = 0; localClientNum < MAX_LOCAL_CLIENTS; localClientNum++) {
+	for (size_t localClientNum = 0; 
+		 localClientNum < MAX_LOCAL_CLIENTS; 
+		 localClientNum++
+	) {
 		inl_t* inl = IN_GetLocalClientLocals(localClientNum);
 		A_memset(inl->keys, 0, sizeof(inl->keys));
-		A_memset(inl->keysPressedOnCurrentFrame, 0, sizeof(inl->keysPressedOnCurrentFrame));
+		A_memset(inl->keysPressedOnCurrentFrame, 
+			     0, 
+			     sizeof(inl->keysPressedOnCurrentFrame));
 		inl->numKeysPressedOnCurrentFrame = 0;
 	}
 }
@@ -291,8 +296,10 @@ bool IN_Key_Down(size_t localClientNum, Keycode k) {
 	key->down     = true;
 	key->justDown = true;
 	key->toggle   = !key->toggle;
-	if (inl->numKeysPressedOnCurrentFrame < IN_KEYCODE_COUNT_ON_CURRENT_FRAME)
-		inl->keysPressedOnCurrentFrame[inl->numKeysPressedOnCurrentFrame++] = k;
+	if (inl->numKeysPressedOnCurrentFrame < IN_KEYCODE_COUNT_ON_CURRENT_FRAME) {
+		inl->keysPressedOnCurrentFrame[inl->numKeysPressedOnCurrentFrame++]
+			= k;
+	}
 
 	return b;
 }
@@ -387,7 +394,8 @@ void IN_Mouse_Init(void) {
 
 A_NO_DISCARD bool IN_Mouse_IsDown(size_t localClientNum, Uint8 button) {
 	int i = IN_Mouse_SDLButtonToIndex(button);
-	return IN_GetLocalClientLocals(localClientNum)->mouse.buttons.array[i] == true;
+	return IN_GetLocalClientLocals(localClientNum)->
+		mouse.buttons.array[i] == true;
 }
 
 A_NO_DISCARD bool IN_Mouse_IsUp(size_t localClientNum, Uint8 button) {

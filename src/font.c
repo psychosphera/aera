@@ -15,7 +15,7 @@ A_EXTERN_C void Font_Init(void) {
 		Com_Errorln(-1, "FreeType init failed.");
 }
 
-A_EXTERN_C bool Font_Load(
+A_EXTERN_C A_NO_DISCARD bool Font_Load(
 	const char* font_name, int width, int height, A_OUT FontDef* fd
 ) {
 	A_memset(fd, 0, sizeof(*fd));

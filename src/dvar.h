@@ -32,9 +32,9 @@ A_EXTERN_C A_NO_DISCARD bool Dvar_IsVec2  (const dvar_t* d);
 A_EXTERN_C A_NO_DISCARD bool Dvar_IsVec3  (const dvar_t* d);
 A_EXTERN_C A_NO_DISCARD bool Dvar_IsVec4  (const dvar_t* d);
  
-A_EXTERN_C void Dvar_LatchValue     (A_INOUT dvar_t* d);
-A_EXTERN_C bool Dvar_RestoreValue   (A_INOUT dvar_t* d);
-A_EXTERN_C bool Dvar_HasLatchedValue(const   dvar_t* d);
+A_EXTERN_C              void Dvar_LatchValue     (A_INOUT dvar_t* d);
+A_EXTERN_C              bool Dvar_RestoreValue   (A_INOUT dvar_t* d);
+A_EXTERN_C A_NO_DISCARD bool Dvar_HasLatchedValue(const   dvar_t* d);
 
 A_EXTERN_C void Dvar_SetBool  (A_INOUT dvar_t* d, bool b);
 A_EXTERN_C void Dvar_SetInt   (A_INOUT dvar_t* d, int i);
@@ -158,8 +158,10 @@ A_EXTERN_C dvar_t* Dvar_RegisterVec4(
 A_EXTERN_C bool Dvar_Unregister(const char* name);
 A_EXTERN_C void Dvar_ClearDvars(void);
 
-A_EXTERN_C A_NO_DISCARD bool    Dvar_LocalExists(int localClientNum, const char* name);
-A_EXTERN_C A_NO_DISCARD dvar_t* Dvar_FindLocal  (int localClientNum, const char* name);
+A_EXTERN_C A_NO_DISCARD bool    Dvar_LocalExists(int localClientNum, 
+	                                             const char* name);
+A_EXTERN_C A_NO_DISCARD dvar_t* Dvar_FindLocal  (int localClientNum, 
+	                                             const char* name);
 
 A_EXTERN_C dvar_t* Dvar_RegisterNewLocalBool(int localClientNum,
 	const char* name, int flags,
@@ -270,5 +272,7 @@ A_EXTERN_C dvar_t* Dvar_ReregisterFromString (const char* name, int flags,
 	                                          int argc, const char** argv);
 A_EXTERN_C dvar_t* Dvar_RegisterFromString   (const char* name, int flags,
 	                                          int argc, const char** argv);
-A_EXTERN_C void Dvar_Set_f(void);
-A_EXTERN_C void Dvar_SetA_f(void);
+A_EXTERN_C void Dvar_Set_f  (void);
+A_EXTERN_C void Dvar_SetA_f (void);
+A_EXTERN_C void Dvar_SetL_f (void);
+A_EXTERN_C void Dvar_SetLA_f(void);

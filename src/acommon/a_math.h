@@ -180,46 +180,52 @@ A_EXTERN_C const amat4f_t A__priv__mat4f_identity;
 #define A_MAT4F_ZERO      A__priv__mat4f_zero
 #define A_MAT4F_IDENTITY  A__priv__mat4f_identity
 
-A_EXTERN_C float      A_sqrtf(float  x);
-A_EXTERN_C double     A_sqrt (double x);
-A_EXTERN_C float      A_sinf (float  x);
-A_EXTERN_C double     A_sin  (double x);
-A_EXTERN_C float      A_asinf(float  x);
-A_EXTERN_C double     A_asin (double x);
-A_EXTERN_C float      A_cosf (float  x);
-A_EXTERN_C double     A_cos  (double x);
-A_EXTERN_C float      A_acosf(float  x);
-A_EXTERN_C double     A_acos (double x);
-A_EXTERN_C float      A_tanf (float  x);
-A_EXTERN_C double     A_tan  (double x);
-A_EXTERN_C float      A_atanf(float  x);
-A_EXTERN_C double     A_atan (double x);
+A_EXTERN_C A_NO_DISCARD float      A_sqrtf(float  x);
+A_EXTERN_C A_NO_DISCARD double     A_sqrt (double x);
+A_EXTERN_C A_NO_DISCARD float      A_sinf (float  x);
+A_EXTERN_C A_NO_DISCARD double     A_sin  (double x);
+A_EXTERN_C A_NO_DISCARD float      A_asinf(float  x);
+A_EXTERN_C A_NO_DISCARD double     A_asin (double x);
+A_EXTERN_C A_NO_DISCARD float      A_cosf (float  x);
+A_EXTERN_C A_NO_DISCARD double     A_cos  (double x);
+A_EXTERN_C A_NO_DISCARD float      A_acosf(float  x);
+A_EXTERN_C A_NO_DISCARD double     A_acos (double x);
+A_EXTERN_C A_NO_DISCARD float      A_tanf (float  x);
+A_EXTERN_C A_NO_DISCARD double     A_tan  (double x);
+A_EXTERN_C A_NO_DISCARD float      A_atanf(float  x);
+A_EXTERN_C A_NO_DISCARD double     A_atan (double x);
 
-A_EXTERN_C float      A_radians(float degrees);
-A_EXTERN_C float      A_degrees(float radians);
-                      
-A_EXTERN_C float      A_vec2f_length   (avec2f_t v);
-A_EXTERN_C float      A_vec3f_length   (avec3f_t v);
-A_EXTERN_C float      A_vec4f_length   (avec4f_t v);
-A_EXTERN_C avec2f_t   A_vec2f_normalize(avec2f_t v);
-A_EXTERN_C avec3f_t   A_vec3f_normalize(avec3f_t v);
-A_EXTERN_C avec4f_t   A_vec4f_normalize(avec4f_t v);
+A_EXTERN_C A_NO_DISCARD float      A_radians(float degrees);
+A_EXTERN_C A_NO_DISCARD float      A_degrees(float radians);
+          
+A_EXTERN_C A_NO_DISCARD float      A_vec2f_length   (avec2f_t v);
+A_EXTERN_C A_NO_DISCARD float      A_vec3f_length   (avec3f_t v);
+A_EXTERN_C A_NO_DISCARD float      A_vec4f_length   (avec4f_t v);
+A_EXTERN_C A_NO_DISCARD avec2f_t   A_vec2f_normalize(avec2f_t v);
+A_EXTERN_C A_NO_DISCARD avec3f_t   A_vec3f_normalize(avec3f_t v);
+A_EXTERN_C A_NO_DISCARD avec4f_t   A_vec4f_normalize(avec4f_t v);
 
-A_EXTERN_C apoint3f_t A_point3f_swap_yz(apoint3f_t p);
+A_EXTERN_C A_NO_DISCARD apoint3f_t A_point3f_swap_yz(apoint3f_t p);
 
-A_EXTERN_C bool       A_vec3f_eq   (avec3f_t a, avec3f_t b);
-A_EXTERN_C avec3f_t   A_vec3f_add  (avec3f_t a, avec3f_t b);
-A_EXTERN_C avec3f_t   A_vec3f_sub  (avec3f_t a, avec3f_t b);
-A_EXTERN_C float      A_vec3f_dot  (avec3f_t a, avec3f_t b);
-A_EXTERN_C avec3f_t   A_vec3f_cross(avec3f_t a, avec3f_t b);
-A_EXTERN_C avec3f_t   A_vec3f_mul  (avec3f_t a, float b);
+A_EXTERN_C A_NO_DISCARD bool       A_vec3f_eq   (avec3f_t a, avec3f_t b);
+A_EXTERN_C A_NO_DISCARD avec3f_t   A_vec3f_add  (avec3f_t a, avec3f_t b);
+A_EXTERN_C A_NO_DISCARD avec3f_t   A_vec3f_sub  (avec3f_t a, avec3f_t b);
+A_EXTERN_C A_NO_DISCARD float      A_vec3f_dot  (avec3f_t a, avec3f_t b);
+A_EXTERN_C A_NO_DISCARD avec3f_t   A_vec3f_cross(avec3f_t a, avec3f_t b);
+A_EXTERN_C A_NO_DISCARD avec3f_t   A_vec3f_mul  (avec3f_t a, float b);
 
-A_EXTERN_C amat4f_t   A_mat4f_translate_vec3(amat4f_t m,   avec3f_t v);
-A_EXTERN_C amat4f_t   A_mat4f_scale_vec3    (amat4f_t m,   avec3f_t v);
-A_EXTERN_C amat4f_t   A_mat4f_look_at       (avec3f_t eye, 
-                                             avec3f_t center, 
-                                             avec3f_t up);
-A_EXTERN_C amat4f_t   A_mat4f_ortho         (float left,   float right, 
-                                             float top,    float bottom);
-A_EXTERN_C amat4f_t   A_mat4f_perspective   (float fovy,   float aspect,
-                                             float z_near, float z_far);
+A_EXTERN_C A_NO_DISCARD amat4f_t   A_mat4f_translate_vec3(amat4f_t m,   
+                                                          avec3f_t v);
+A_EXTERN_C A_NO_DISCARD amat4f_t   A_mat4f_scale_vec3    (amat4f_t m,   
+                                                          avec3f_t v);
+A_EXTERN_C A_NO_DISCARD amat4f_t   A_mat4f_look_at       (avec3f_t eye, 
+                                                          avec3f_t center, 
+                                                          avec3f_t up);
+A_EXTERN_C A_NO_DISCARD amat4f_t   A_mat4f_ortho         (float left,   
+                                                          float right, 
+                                                          float top,    
+                                                          float bottom);
+A_EXTERN_C A_NO_DISCARD amat4f_t   A_mat4f_perspective   (float fovy,   
+                                                          float aspect,
+                                                          float z_near, 
+                                                          float z_far);

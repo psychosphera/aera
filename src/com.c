@@ -88,14 +88,14 @@ uint64_t Com_LastFrameTime(void) {
 }
 
 void Com_Shutdown(void) {
+    
     DevGui_Shutdown();
     CL_Shutdown();
     CG_Shutdown();
     R_Shutdown();
     Font_Shutdown();
-    Dvar_Shutdown();
-    Cmd_Shutdown();
-
     Dvar_Unregister("com_maxfps");
     com_maxfps = NULL;
+    Dvar_Shutdown();
+    Cmd_Shutdown();
 }

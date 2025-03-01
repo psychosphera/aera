@@ -4,11 +4,11 @@
 
 #include "a_string.h"
 
-char A_tolower(char c) {
+A_EXTERN_C A_NO_DISCARD char A_tolower(char c) {
     return (char)tolower(c);
 }
 
-bool A_isspace(char c) {
+A_EXTERN_C A_NO_DISCARD bool A_isspace(char c) {
     return isspace(c) != 0;
 }
 

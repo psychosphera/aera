@@ -50,7 +50,8 @@ A_EXTERN_C void DevGui_Init() {
 }
 
 A_EXTERN_C bool DevGui_HasText(size_t localClientNum) {
-	return A_cstrchr(DevGui_GetLocalClientLocals(localClientNum)->buffer, '\n');
+	return A_cstrchr(
+		DevGui_GetLocalClientLocals(localClientNum)->buffer, '\n');
 }
 
 A_EXTERN_C void DevGui_SaveLine(size_t localClientNum, const char* line) {
@@ -118,7 +119,9 @@ A_EXTERN_C void DevGui_Frame() {
 			else if (*k == IN_KEYCODE_UP_ARROW) {
 				if (dgl->saved_idx > 0) {
 					A_cstrncpyz(dgl->buffer, "> ", sizeof(dgl->buffer));
-					A_cstrncpyz(dgl->buffer + 2, dgl->saved_lines[--dgl->saved_idx], sizeof(dgl->buffer) - 2);
+					A_cstrncpyz(dgl->buffer + 2, 
+						        dgl->saved_lines[--dgl->saved_idx], 
+						        sizeof(dgl->buffer) - 2);
 					dgl->buffer_idx = A_cstrlen(dgl->buffer);
 				}
 			}
@@ -127,7 +130,9 @@ A_EXTERN_C void DevGui_Frame() {
 					A_cstrlen(dgl->saved_lines[dgl->saved_idx + 1]) > 0
 				) {
 					A_cstrncpyz(dgl->buffer, "> ", sizeof(dgl->buffer));
-					A_cstrncpyz(dgl->buffer + 2, dgl->saved_lines[++dgl->saved_idx], sizeof(dgl->buffer) - 2);
+					A_cstrncpyz(dgl->buffer + 2, 
+						        dgl->saved_lines[++dgl->saved_idx], 
+						        sizeof(dgl->buffer) - 2);
 					dgl->buffer_idx = A_cstrlen(dgl->buffer);
 				}
 			}

@@ -15,15 +15,15 @@
 #include <fcntl.h>
 #endif // _WIN32
 
-void* Z_Alloc(size_t n) {
+A_NO_DISCARD void* Z_Alloc(size_t n) {
     return malloc(n);
 }
 
-void* Z_Zalloc(size_t n) {
+A_NO_DISCARD void* Z_Zalloc(size_t n) {
     return calloc(n, 1);
 }
 
-void* Z_Realloc(void* p, size_t n) {
+A_NO_DISCARD void* Z_Realloc(void* p, size_t n) {
     return realloc(p, n);
 }
 
@@ -32,7 +32,7 @@ void Z_Free(void* p) {
 }
 
 #ifdef _WIN32
-void* Z_AllocAt(const void* p, size_t n) {
+A_NO_DISCARD void* Z_AllocAt(const void* p, size_t n) {
     void* alloc = VirtualAlloc(
         (void*)(intptr_t)p, n, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE
     );
@@ -49,15 +49,15 @@ void* Z_AllocAt(const void* p, size_t n) {
     return alloc == p ? alloc : NULL;
 }
 #else 
-void* Z_AllocAt(const void* p, size_t n) {
+A_NO_DISCARD void* Z_AllocAt(const void* p, size_t n) {
     void* alloc = mmap(
-        (void*)(intptr_t)p, n, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0
-    );
+        (void*)(intptr_t)p, n, PROT_READ | PROT_WRITE,
+        MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     return alloc == p ? alloc : NULL;
 }
 #endif // _WIN32
 
-void* Z_ZallocAt(const void* p, size_t n) {
+A_NO_DISCARD void* Z_ZallocAt(const void* p, size_t n) {
     void* alloc = Z_AllocAt(p, n);
     if (alloc != p)
         return NULL;
@@ -78,7 +78,7 @@ bool Z_FreeAt(const void* p, size_t n) {
 #endif // _WIN32
 
 #ifdef _WIN32
-FileMapping Z_MapFile(const char* filename) {
+A_NO_DISCARD FileMapping Z_MapFile(const char* filename) {
     FileMapping f = { .p = NULL, .n = 0, .__hFile = NULL, .__hMap = NULL };
     HANDLE hFile = CreateFileA(
         filename, GENERIC_READ, FILE_SHARE_READ, NULL, 
@@ -106,7 +106,7 @@ FileMapping Z_MapFile(const char* filename) {
     return f;
 }
 #else
-FileMapping Z_MapFile(const char* filename) {
+A_NO_DISCARD FileMapping Z_MapFile(const char* filename) {
     FileMapping f = { .p = NULL, .n = 0 };
     struct stat st = { 0 };
 

@@ -254,5 +254,5 @@
 
 #define A_MAKE_FOURCC(a, b, c, d) ((d) | (c << 8) | (b << 16) | (a << 24))
 
-A_EXTERN_C size_t A_npow2(size_t n);
-A_EXTERN_C size_t A_ppow2(size_t n);
+A_EXTERN_C A_NO_DISCARD size_t A_npow2(size_t n);
+A_EXTERN_C A_NO_DISCARD size_t A_ppow2(size_t n);

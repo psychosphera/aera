@@ -159,7 +159,10 @@ A_NO_DISCARD GLenum R_ImageFormatToGl(ImageFormat format) {
         gl_format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
         break;
     default:
-        Com_Errorln(-1, "R_ImageFormatToGL: Unimplemented ImageFormat %d.", (int)format);
+        Com_Errorln(
+            -1, 
+            "R_ImageFormatToGL: Unimplemented ImageFormat %d.", 
+            (int)format);
     };
 
     return gl_format;
@@ -191,7 +194,10 @@ A_NO_DISCARD ImageFormat R_ImageFormatFromGl(GLenum format) {
         break;
     default:
         assert(false && "Unimplemented GL format");
-        Com_Errorln(-1, "R_ImageFormatToGL: Unimplemented GL format %d.", format);
+        Com_Errorln(
+            -1, 
+            "R_ImageFormatToGL: Unimplemented GL format %d.", 
+            format);
     };
 
     return img_format;

@@ -30,13 +30,15 @@ static char s_printBuf[4096];
 void Com_Print(print_msg_dest_t dest, const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    Com_PrintMessage(dest, Com_VFormat(s_printBuf, sizeof(s_printBuf), fmt, ap));
+    Com_PrintMessage(dest, 
+        Com_VFormat(s_printBuf, sizeof(s_printBuf), fmt, ap));
 }
 
 void Com_Println(print_msg_dest_t dest, const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    Com_PrintMessage(dest, Com_VFormat(s_printBuf, sizeof(s_printBuf), fmt, ap));
+    Com_PrintMessage(dest, 
+        Com_VFormat(s_printBuf, sizeof(s_printBuf), fmt, ap));
     Com_PrintMessage(dest, "\n");
 }
 
@@ -44,7 +46,8 @@ void Com_DPrint(print_msg_dest_t dest, const char* fmt, ...) {
 #if _DEBUG
     va_list ap;
     va_start(ap, fmt);
-    Com_PrintMessage(dest, Com_VFormat(s_printBuf, sizeof(s_printBuf), fmt, ap));
+    Com_PrintMessage(dest, 
+        Com_VFormat(s_printBuf, sizeof(s_printBuf), fmt, ap));
 #else
     A_UNUSED(dest);
     A_UNUSED(fmt);
@@ -55,7 +58,8 @@ void Com_DPrintln(print_msg_dest_t dest, const char* fmt, ...) {
 #if _DEBUG
     va_list ap;
     va_start(ap, fmt);
-    Com_PrintMessage(dest, Com_VFormat(s_printBuf, sizeof(s_printBuf), fmt, ap));
+    Com_PrintMessage(dest, 
+        Com_VFormat(s_printBuf, sizeof(s_printBuf), fmt, ap));
     Com_PrintMessage(dest, "\n");
 #else
     A_UNUSED(dest);
@@ -66,7 +70,8 @@ void Com_DPrintln(print_msg_dest_t dest, const char* fmt, ...) {
 A_NO_RETURN Com_Error(int ec, const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    Com_PrintMessage(CON_DEST_ERR, Com_VFormat(s_printBuf, sizeof(s_printBuf), fmt, ap));
+    Com_PrintMessage(CON_DEST_ERR, 
+        Com_VFormat(s_printBuf, sizeof(s_printBuf), fmt, ap));
 #if _DEBUG
     assert(false);
 #endif // _DEBUG
@@ -76,7 +81,8 @@ A_NO_RETURN Com_Error(int ec, const char* fmt, ...) {
 void Com_Errorln(int ec, const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    Com_PrintMessage(CON_DEST_ERR, Com_VFormat(s_printBuf, sizeof(s_printBuf), fmt, ap));
+    Com_PrintMessage(CON_DEST_ERR, 
+        Com_VFormat(s_printBuf, sizeof(s_printBuf), fmt, ap));
     Com_PrintMessage(CON_DEST_ERR, "\n");
 #if _DEBUG
     assert(false);

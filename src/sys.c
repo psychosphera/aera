@@ -76,19 +76,24 @@ bool Sys_HandleEvent(void) {
     if (SDL_PollEvent(&ev)) {
         switch (ev.type) {
         case SDL_EVENT_KEY_DOWN:
-            if (ev.key.keysym.sym == SDLK_ESCAPE)
+            if (ev.key.keysym.sym == SDLK_ESCAPE) {
                 Sys_NormalExit(1);
-            else
-                IN_Key_Down(CL_ClientWithKbmFocus(), IN_Key_SDLKToKeycode(ev.key.keysym.sym));
+            } else {
+                IN_Key_Down(CL_ClientWithKbmFocus(),
+                    IN_Key_SDLKToKeycode(ev.key.keysym.sym));
+            }
             break;
         case SDL_EVENT_KEY_UP:
-            IN_Key_Up(CL_ClientWithKbmFocus(), IN_Key_SDLKToKeycode(ev.key.keysym.sym));
+            IN_Key_Up(CL_ClientWithKbmFocus(), 
+                      IN_Key_SDLKToKeycode(ev.key.keysym.sym));
             break;
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
-            IN_Mouse_Down(CL_ClientWithKbmFocus(), IN_Key_SDLKToKeycode(ev.button.button));
+            IN_Mouse_Down(CL_ClientWithKbmFocus(), 
+                          IN_Key_SDLKToKeycode(ev.button.button));
             break;
         case SDL_EVENT_MOUSE_BUTTON_UP:
-            IN_Mouse_Up(CL_ClientWithKbmFocus(), IN_Key_SDLKToKeycode(ev.button.button));
+            IN_Mouse_Up(CL_ClientWithKbmFocus(), 
+                        IN_Key_SDLKToKeycode(ev.button.button));
             break;
         case SDL_EVENT_MOUSE_MOTION:
             IN_Mouse_Move(

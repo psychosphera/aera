@@ -9,7 +9,9 @@
 
 #include "z_mem.h"
 
-bool A_memcmp(const void* A_RESTRICT a, const void* A_RESTRICT b, size_t n) {
+A_NO_DISCARD bool A_memcmp(const void* A_RESTRICT a, 
+                           const void* A_RESTRICT b, size_t n
+) {
     for(size_t i = 0; i < n; i++) {
         if(((char* A_RESTRICT)a)[i] != ((char* A_RESTRICT)b)[i])
             return false;
@@ -23,7 +25,7 @@ void A_memcpy(void* A_RESTRICT dest, const void* A_RESTRICT src, size_t n) {
         ((char* A_RESTRICT)dest)[i] = ((char* A_RESTRICT)src)[i];
 }
 
-void* A_memchr(const void* A_RESTRICT p, char c, size_t n) {
+A_NO_DISCARD void* A_memchr(const void* A_RESTRICT p, char c, size_t n) {
     for(size_t i = 0; i < n; i++) {
         if(((char* A_RESTRICT)p)[i] == c)
             return (void* A_RESTRICT)((const char*)p + i);
@@ -32,7 +34,7 @@ void* A_memchr(const void* A_RESTRICT p, char c, size_t n) {
     return NULL;
 }
 
-void* A_memrchr(const void* A_RESTRICT p, char c, size_t n) {
+A_NO_DISCARD void* A_memrchr(const void* A_RESTRICT p, char c, size_t n) {
     for(size_t i = n; i > 0; i--) {
         if(((char* A_RESTRICT)p)[i] == c)
             return (void* A_RESTRICT)((const char*)p + i);
@@ -46,14 +48,14 @@ void A_memset(void* A_RESTRICT p, char c, size_t n) {
         ((char* A_RESTRICT)p)[i] = c;
 }
 
-bool A_cstrcmp(const char* A_RESTRICT a,
-               const char* A_RESTRICT b
+A_NO_DISCARD bool A_cstrcmp(const char* A_RESTRICT a,
+                            const char* A_RESTRICT b
 ) {
     return strcmp(a, b) == 0;
 }
 
-bool A_cstricmp(const char* A_RESTRICT a, 
-                const char* A_RESTRICT b
+A_NO_DISCARD bool A_cstricmp(const char* A_RESTRICT a, 
+                             const char* A_RESTRICT b
 ) {
     size_t a_len = A_cstrlen(a);
     size_t b_len = A_cstrlen(b);
@@ -69,11 +71,11 @@ bool A_cstricmp(const char* A_RESTRICT a,
     return true;
 }
 
-size_t A_cstrlen(const char* A_RESTRICT s) {
+A_NO_DISCARD size_t A_cstrlen(const char* A_RESTRICT s) {
     return strlen(s);
 }
 
-char* A_cstrdup(const char* A_RESTRICT s) {
+A_NO_DISCARD char* A_cstrdup(const char* A_RESTRICT s) {
     size_t len = A_cstrlen(s);
     char* t = Z_Alloc(len);
     A_memcpy(t, s, len);
@@ -97,7 +99,7 @@ void A_cstrncpyz(char* A_RESTRICT dest, const char* A_RESTRICT src, size_t n) {
         dest[n - 1] = '\0';
 }
 
-size_t A_cstrchr(const char* A_RESTRICT s, char c) {
+A_NO_DISCARD size_t A_cstrchr(const char* A_RESTRICT s, char c) {
     const char* A_RESTRICT p = memchr(s, c, A_cstrlen(s));
     return p == NULL ? A_NPOS : p - s;
 }
@@ -798,16 +800,4 @@ bool A_atof(const char* A_RESTRICT s, A_OUT float* f) {
 
 // void A_strdrop(string_t* A_RESTRICT s) {
 //     A_strshrnk(s, A_strlen(s) + 1);
-// }
-
-// int A_vsnprintf(string_t* dest, const str_t* fmt, va_list va) {
-//     return vsnprintf(A_cstr(dest), A_strlen(dest), A_cstr(fmt), va);
-// }
-
-// int A_snprintf(string_t* dest, const str_t* fmt, ...) {
-//     va_list va;
-//     va_start(va, fmt);
-//     int i = A_vsnprintf(dest, fmt, va);
-//     va_end(va);
-//     return i;
 // }

@@ -26,7 +26,8 @@ typedef struct GfxVertexBuffer {
     size_t bytes, capacity;
 } GfxVertexBuffer;
 
-A_EXTERN_C bool R_CreateVertexBuffer(const void* data, size_t n, size_t capacity,
+A_EXTERN_C bool R_CreateVertexBuffer(const void* data, 
+                                     size_t n, size_t capacity,
                                      size_t off, A_OUT GfxVertexBuffer* vb);
 A_EXTERN_C bool R_UploadVertexData  (A_INOUT GfxVertexBuffer* vb,
                                      size_t off, const void* data, size_t n);
@@ -95,9 +96,9 @@ typedef struct GfxTextDraw {
     bool         right;
 } GfxTextDraw;
 
-A_EXTERN_C A_NO_DISCARD GLenum R_ImageFormatToGl(ImageFormat format);
+A_EXTERN_C A_NO_DISCARD GLenum      R_ImageFormatToGl  (ImageFormat format);
 A_EXTERN_C A_NO_DISCARD ImageFormat R_ImageFormatFromGl(GLenum format);
-A_EXTERN_C A_NO_DISCARD bool R_CreateImage2D(
+A_EXTERN_C A_NO_DISCARD bool        R_CreateImage2D(
     int width, int height,
     ImageFormat format,
     ImageFormat internal_format,
@@ -114,6 +115,7 @@ A_EXTERN_C GLenum R_GlCheckError(int line, const char* file);
     func(__VA_ARGS__);                                                \
     R_GlCheckError(__LINE__, __FILE__);
 
-A_EXTERN_C A_NO_DISCARD float R_FovHorzToVertical(float fovx, float aspect_inv);
-A_EXTERN_C A_NO_DISCARD float R_VidAspect        (void);
-A_EXTERN_C A_NO_DISCARD float R_VidAspectInv     (void);
+A_EXTERN_C A_NO_DISCARD float R_FovHorzToVertical(float fovx, 
+                                                  float aspect_inv);
+A_EXTERN_C A_NO_DISCARD float R_VidAspect   (void);
+A_EXTERN_C A_NO_DISCARD float R_VidAspectInv(void);

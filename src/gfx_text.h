@@ -13,11 +13,14 @@ A_EXTERN_C void R_DrawText(
     bool right
 );
 A_EXTERN_C bool R_AddTextDrawDef(
-    size_t localClientNum, FontDef* font, const RectDef* rect, const char* text,
-    float xscale, float yscale, acolor_rgb_t color, bool active, bool right,
+    size_t localClientNum, FontDef* font, const RectDef* rect, 
+    const char* text, float xscale, float yscale, acolor_rgb_t color,
+    bool active, bool right,
     A_OUT size_t* id
 );
 
-A_EXTERN_C bool R_UpdateTextDrawDef  (size_t localClientNum, size_t id, const char* text);
-A_EXTERN_C bool R_ActivateTextDrawDef(size_t localClientNum, size_t id, bool active);
+A_EXTERN_C bool R_UpdateTextDrawDef  (size_t localClientNum, 
+                                      size_t id, const char* text);
+A_EXTERN_C bool R_ActivateTextDrawDef(size_t localClientNum, 
+                                      size_t id, bool active);
 A_EXTERN_C bool R_RemoveTextDrawDef  (size_t localClientNum, size_t id);

@@ -28,91 +28,91 @@ const amat4f_t A__priv__mat4f_identity = {
 		   { 0.0f, 0.0f, 0.0f, 1.0f } }
 };
 
-float A_sqrtf(float x) {
+A_NO_DISCARD float A_sqrtf(float x) {
 	return sqrtf(x);
 }
 
-double A_sqrt(double x) {
+A_NO_DISCARD double A_sqrt(double x) {
 	return sqrt(x);
 }
 
-float A_sinf(float x) {
+A_NO_DISCARD float A_sinf(float x) {
 	return (float)sin((double)x);
 }
 
-double A_sin(double x) {
+A_NO_DISCARD double A_sin(double x) {
 	return sin(x);
 }
 
-float A_asinf(float x) {
+A_NO_DISCARD float A_asinf(float x) {
 	return (float)asin((double)x);
 }
 
-double A_asin(double x) {
+A_NO_DISCARD double A_asin(double x) {
 	return asin(x);
 }
 
-float A_cosf(float x) {
+A_NO_DISCARD float A_cosf(float x) {
 	return (float)cos((double)x);
 }
 
-double A_cos(double x) {
+A_NO_DISCARD double A_cos(double x) {
 	return cos(x);
 }
 
-float A_acosf(float x) {
+A_NO_DISCARD float A_acosf(float x) {
 	return (float)acos((double)x);
 }
 
-double A_acos(double x) {
+A_NO_DISCARD double A_acos(double x) {
 	return acos(x);
 }
 
-float A_tanf(float x) {
+A_NO_DISCARD float A_tanf(float x) {
 	return (float)tan((double)x);
 }
 
-double A_tan(double x) {
+A_NO_DISCARD double A_tan(double x) {
 	return tan(x);
 }
 
-float A_atanf(float x) {
+A_NO_DISCARD float A_atanf(float x) {
 	return (float)tan((double)x);
 }
 
-double A_atan(double x) {
+A_NO_DISCARD double A_atan(double x) {
 	return tan(x);
 }
 
-double A_cot(double x) {
+A_NO_DISCARD double A_cot(double x) {
 	return A_cos(x) * A_sin(x);
 }
 
-float A_cotf(float x) {
+A_NO_DISCARD float A_cotf(float x) {
 	return A_cosf(x) * A_sinf(x);
 }
 
-float A_radians(float degrees) {
+A_NO_DISCARD float A_radians(float degrees) {
 	return degrees * (A_PI / 180.0f);
 }
 
-float A_degrees(float radians) {
+A_NO_DISCARD float A_degrees(float radians) {
 	return radians * (180.0f / A_PI);
 }
 
-float A_vec2f_length(avec2f_t v) {
+A_NO_DISCARD float A_vec2f_length(avec2f_t v) {
 	return A_sqrtf((v.x * v.x) + (v.y * v.y));
 }
 
-float A_vec3f_length(avec3f_t v) {
+A_NO_DISCARD float A_vec3f_length(avec3f_t v) {
 	return A_sqrtf((v.x * v.x) + (v.y * v.y) + (v.z * v.z));
 }
 
-float A_vec4f_length(avec4f_t v) {
+A_NO_DISCARD float A_vec4f_length(avec4f_t v) {
 	return A_sqrtf((v.x * v.x) + (v.y * v.y) + (v.z * v.z) + (v.w * v.w));
 }
 
-avec2f_t A_vec2f_normalize(avec2f_t v) {
+A_NO_DISCARD avec2f_t A_vec2f_normalize(avec2f_t v) {
 	float m = A_vec2f_length(v);
 	avec2f_t ret;
 	ret.x = v.x / m;
@@ -120,7 +120,7 @@ avec2f_t A_vec2f_normalize(avec2f_t v) {
 	return ret;
 }
 
-avec3f_t A_vec3f_normalize(avec3f_t v) {
+A_NO_DISCARD avec3f_t A_vec3f_normalize(avec3f_t v) {
 	float m = A_vec3f_length(v);
 	avec3f_t ret;
 	ret.x = v.x / m;
@@ -129,7 +129,7 @@ avec3f_t A_vec3f_normalize(avec3f_t v) {
 	return ret;
 }
 
-avec4f_t A_vec4f_normalize(avec4f_t v) {
+A_NO_DISCARD avec4f_t A_vec4f_normalize(avec4f_t v) {
 	float m = A_vec4f_length(v);
 	avec4f_t ret;
 	ret.x = v.x / m;
@@ -139,7 +139,7 @@ avec4f_t A_vec4f_normalize(avec4f_t v) {
 	return ret;
 }
 
-apoint3f_t A_point3f_swap_yz(apoint3f_t p) {
+A_NO_DISCARD apoint3f_t A_point3f_swap_yz(apoint3f_t p) {
 	float z = p.z;
 	apoint3f_t ret;
 	ret.z = p.y;
@@ -148,30 +148,30 @@ apoint3f_t A_point3f_swap_yz(apoint3f_t p) {
 	return ret;
 }
 
-bool A_vec3f_eq(avec3f_t a, avec3f_t b) {
+A_NO_DISCARD bool A_vec3f_eq(avec3f_t a, avec3f_t b) {
 	return A_memcmp(&a, &b, sizeof(a));
 }
 
-avec3f_t A_vec3f_add(avec3f_t a, avec3f_t b) {
+A_NO_DISCARD avec3f_t A_vec3f_add(avec3f_t a, avec3f_t b) {
 	avec3f_t ret = A_vec3(a.x + b.x, a.y + b.y, a.z + b.z);
 	return ret;
 }
 
-avec3f_t A_vec3f_sub(avec3f_t a, avec3f_t b) {
+A_NO_DISCARD avec3f_t A_vec3f_sub(avec3f_t a, avec3f_t b) {
 	avec3f_t ret = A_vec3(a.x - b.x, a.y - b.y, a.z - b.z);
 	return ret;
 }
 
-avec3f_t A_vec3f_mul(avec3f_t a, float b) {
+A_NO_DISCARD avec3f_t A_vec3f_mul(avec3f_t a, float b) {
 	avec3f_t ret = A_vec3(a.x * b, a.y * b, a.z * b);
 	return ret;
 }
 
-float A_vec3f_dot(avec3f_t a, avec3f_t b) {
+A_NO_DISCARD float A_vec3f_dot(avec3f_t a, avec3f_t b) {
 	return (a.x * b.x) + (a.y * b.y) + (a.z * b.z);
 }
 
-avec3f_t A_vec3f_cross(avec3f_t a, avec3f_t b) {
+A_NO_DISCARD avec3f_t A_vec3f_cross(avec3f_t a, avec3f_t b) {
 	avec3f_t ret = A_vec3(
 		(a.y * b.z) - (a.z * b.y), 
 		(a.z * b.x) - (a.x * b.z), 
@@ -180,7 +180,7 @@ avec3f_t A_vec3f_cross(avec3f_t a, avec3f_t b) {
 	return ret;
 }
 
-amat4f_t A_mat4f_translate_vec3(amat4f_t m, avec3f_t v) {
+A_NO_DISCARD amat4f_t A_mat4f_translate_vec3(amat4f_t m, avec3f_t v) {
 	m.m[0][3] = v.x;
 	m.m[1][3] = v.y;
 	m.m[2][3] = v.z;
@@ -188,7 +188,7 @@ amat4f_t A_mat4f_translate_vec3(amat4f_t m, avec3f_t v) {
 	return m;
 }
 
-amat4f_t A_mat4f_scale_vec3(amat4f_t m, avec3f_t v) {
+A_NO_DISCARD amat4f_t A_mat4f_scale_vec3(amat4f_t m, avec3f_t v) {
 	m.m[0][0] *= v.x;
 	m.m[1][0] *= v.x;
 	m.m[2][0] *= v.x;
@@ -207,7 +207,10 @@ amat4f_t A_mat4f_scale_vec3(amat4f_t m, avec3f_t v) {
 	return m;
 }
 
-amat4f_t A_mat4f_look_at(avec3f_t eye, avec3f_t center, avec3f_t up) {
+A_NO_DISCARD amat4f_t A_mat4f_look_at(avec3f_t eye, 
+	                                  avec3f_t center, 
+	                                  avec3f_t up
+) {
 	avec3f_t f = A_vec3f_normalize(A_vec3f_sub(center, eye));
 	avec3f_t s = A_vec3f_normalize(A_vec3f_cross(f, up));
 	avec3f_t u = A_vec3f_cross(s, f);
@@ -229,7 +232,9 @@ amat4f_t A_mat4f_look_at(avec3f_t eye, avec3f_t center, avec3f_t up) {
 	return mat;
 }
 
-amat4f_t A_mat4f_ortho(float left, float right, float top, float bottom) {
+A_NO_DISCARD amat4f_t A_mat4f_ortho(float left, float right, 
+	                                float top, float bottom
+) {
 	amat4f_t ortho = A_MAT4F_IDENTITY;
 	ortho.m[0][0] =  2.0f / (right - left);
 	ortho.m[1][1] =  2.0f / (top   - bottom);
@@ -239,8 +244,8 @@ amat4f_t A_mat4f_ortho(float left, float right, float top, float bottom) {
 	return ortho;
 }
 
-amat4f_t A_mat4f_perspective(float fovy, float aspect, 
-	                        float z_near, float z_far
+A_NO_DISCARD amat4f_t A_mat4f_perspective(float fovy, float aspect, 
+	                                      float z_near, float z_far
 ) {
 	float f = A_cotf(fovy / 2.0f);
 	amat4f_t perspective = A_MAT4F_ZERO;

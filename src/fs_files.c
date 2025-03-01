@@ -1,8 +1,8 @@
 #include "fs_files.h"
 
 #include <assert.h>
-#include <stdio.h>
 
+#include "acommon/a_string.h"
 #include "acommon/z_mem.h"
 
 #include "com_defs.h"
@@ -47,7 +47,9 @@ void FS_FreeFile(void* p) {
 	Z_Free(p);
 }
 
-A_NO_DISCARD char* FS_ReadFileText(const char* path, A_OPTIONAL_OUT size_t* sz) {
+A_NO_DISCARD char* FS_ReadFileText(const char* path, 
+	                               A_OPTIONAL_OUT size_t* sz
+) {
 	if (sz)
 		*sz = 0;
 
@@ -125,7 +127,11 @@ A_NO_DISCARD size_t FS_StreamPos(A_INOUT StreamFile* file) {
 
 long long FS_SeekStream(A_INOUT StreamFile* file, SeekFrom from, size_t off) {
 	if (off > file->size) {
-		Com_DPrintln(CON_DEST_CLIENT, "FS_SeekStream: attempted to seek beyond bounds of file (off=%zu, expected <%zu)", off, file->size);
+		Com_DPrintln(
+			CON_DEST_CLIENT, 
+			"FS_SeekStream: attempted to seek beyond bounds of file (off=%zu, expected <%zu)", 
+			off, file->size
+		);
 		assert(false && "Attempted to seek beyond bounds of file");
 	}
 	assert(off <= file->size);
@@ -162,21 +168,33 @@ A_NO_DISCARD size_t FS_FileSize(A_INOUT StreamFile* file) {
 	return size;
 }
 
-A_NO_DISCARD bool FS_ReadStream(A_INOUT StreamFile* file, void* dst, size_t count) {
+A_NO_DISCARD bool FS_ReadStream(A_INOUT StreamFile* file, 
+	                            void* dst, size_t count
+) {
 	size_t sz = SDL_RWread(file->f, dst, count);
 	if (sz <= 0) {
-		Com_DPrintln(CON_DEST_CLIENT, "FS_ReadStream: failed to read %zu bytes (read %zu): %s", count, sz, SDL_GetError());
+		Com_DPrintln(
+			CON_DEST_CLIENT, 
+			"FS_ReadStream: failed to read %zu bytes (read %zu): %s", 
+			count, sz, SDL_GetError()
+		);
 		assert(false && "Failed to read all bytes");
 	}
 	return sz > 0;
 }
 
-A_NO_DISCARD bool FS_WriteStream(A_INOUT StreamFile* file, const void* src, size_t count) {
+A_NO_DISCARD bool FS_WriteStream(A_INOUT StreamFile* file, 
+	                             const void* src, size_t count
+) {
 	size_t sz = SDL_RWwrite(file->f, src, count);
 	if(sz > 0)
 		file->size += sz;
 	if (sz != count) {
-		Com_DPrintln(CON_DEST_CLIENT, "FS_WriteStream: failed to write %zu bytes (wrote %zu): %s", count, sz, SDL_GetError());
+		Com_DPrintln(
+			CON_DEST_CLIENT, 
+			"FS_WriteStream: failed to write %zu bytes (wrote %zu): %s", 
+			count, sz, SDL_GetError()
+		);
 		assert(false && "Failed to write all bytes");
 	}
 	return sz == count;
@@ -209,7 +227,10 @@ char* FS_BuildOsPath(const char* gamedir, const char* subdir,
 	if (ext == NULL)
 		ext = "";
 
-	if (snprintf(s_osPathBuf, sizeof(s_osPathBuf), "%s/%s/%s%s%s", gamedir, subdir, file, ext ? "." : "", ext) < 1)
+	if (A_snprintf(s_osPathBuf, sizeof(s_osPathBuf), "%s/%s/%s%s%s",
+		           gamedir, subdir, file, ext ? "." : "", ext) < 1
+	) {
 		return NULL;
+	}
 	return s_osPathBuf;
 }

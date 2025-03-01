@@ -35,7 +35,8 @@ static void PM_Accelerate(
 	if (accelspeed > addspeed)
 		accelspeed = addspeed;
 
-	pm->ps->velocity = A_vec3f_add(pm->ps->velocity, A_vec3f_mul(wishdir, accelspeed));
+	pm->ps->velocity = A_vec3f_add(pm->ps->velocity, 
+		                           A_vec3f_mul(wishdir, accelspeed));
 }
 
 static void PM_NoclipMove(A_INOUT pmove_t* pm, const pml_t* pml) {

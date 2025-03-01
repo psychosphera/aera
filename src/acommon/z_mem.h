@@ -23,22 +23,14 @@ typedef struct FileMapping {
 #endif // _WIN32
 } FileMapping;
 
-#ifdef __cplusplus
-extern "C" {
-#endif // __cplusplus
+A_EXTERN_C A_NO_DISCARD void* Z_Alloc   (size_t n);
+A_EXTERN_C A_NO_DISCARD void* Z_Zalloc  (size_t n);
+A_EXTERN_C A_NO_DISCARD void* Z_Realloc (void* p, size_t n); 
+A_EXTERN_C              void  Z_Free    (void* p);
 
-void* Z_Alloc   (size_t n);
-void* Z_Zalloc  (size_t n);
-void* Z_Realloc (void* p, size_t n); 
-void  Z_Free    (void* p);
+A_EXTERN_C A_NO_DISCARD void* Z_AllocAt (const void* p, size_t n);
+A_EXTERN_C A_NO_DISCARD void* Z_ZallocAt(const void* p, size_t n);
+A_EXTERN_C              bool  Z_FreeAt  (const void* p, size_t n);
 
-void* Z_AllocAt (const void* p, size_t n);
-void* Z_ZallocAt(const void* p, size_t n);
-bool  Z_FreeAt  (const void* p, size_t n);
-
-FileMapping Z_MapFile  (const char* filename);
-bool        Z_UnmapFile(A_INOUT FileMapping* f);
-
-#ifdef __cplusplus
-}
-#endif // __cplusplus
+A_EXTERN_C A_NO_DISCARD FileMapping Z_MapFile  (const char* filename);
+A_EXTERN_C              bool        Z_UnmapFile(A_INOUT FileMapping* f);

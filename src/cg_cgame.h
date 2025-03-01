@@ -29,7 +29,8 @@ typedef struct cg_t {
 
 A_EXTERN_C void       CG_Init(void);
 A_EXTERN_C cg_t*      CG_GetLocalClientGlobals(size_t localClientNum);
-A_EXTERN_C void       CG_Teleport             (size_t localClientNum, apoint3f_t pos);
+A_EXTERN_C void       CG_Teleport             (size_t localClientNum, 
+	                                           apoint3f_t pos);
 A_EXTERN_C void       CG_SetSpawn             (size_t localClientNum, 
                  							   apoint3f_t spawn, float facing);
 A_EXTERN_C apoint3f_t CG_GetSpawnPos          (size_t localClientNum);
