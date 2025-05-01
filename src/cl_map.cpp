@@ -617,6 +617,7 @@ static bool CL_LoadMap_Decompress(
 		size_t decompressed_map_size =
 			(size_t)header->decompressed_file_size;
 		void* decompressed = Z_Zalloc(decompressed_map_size);
+		A_memcpy(decompressed, header, sizeof(*header));
 
 		z_stream stream;
 		stream.zalloc    = Z_NULL;
@@ -627,7 +628,7 @@ static bool CL_LoadMap_Decompress(
 		stream.avail_out = decompressed_map_size - sizeof(*header);
 		stream.next_out  = (Bytef*)decompressed + sizeof(*header);
 
-		int ret = inflateInit2(&stream, -MAX_WBITS);
+		int ret = inflateInit(&stream);
 		assert(ret == Z_OK);
 		ret = inflate(&stream, Z_FINISH);
 		assert(ret == Z_STREAM_END);
@@ -643,10 +644,8 @@ static bool CL_LoadMap_Decompress(
 			FS_STREAM_READ_WRITE_NEW, 0
 		);
 		assert(decompressed_map.f);
-		bool b = FS_WriteStream(&decompressed_map, &header, sizeof(header));
-		assert(b);
-		(void)b;
-		b = FS_WriteStream(&decompressed_map, decompressed, decompressed_map_size - sizeof(header));
+		
+		bool b = FS_WriteStream(&decompressed_map, decompressed, decompressed_map_size);
 		assert(b);
 		FS_CloseStream(&g_load.f);
 		g_load.f = decompressed_map;

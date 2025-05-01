@@ -148,38 +148,38 @@ A_NO_DISCARD apoint3f_t A_point3f_swap_yz(apoint3f_t p) {
 	return ret;
 }
 
-A_NO_DISCARD bool A_vec3f_eq(avec3f_t a, avec3f_t b) {
-	return A_memcmp(&a, &b, sizeof(a));
-}
-
-A_NO_DISCARD avec3f_t A_vec3f_add(avec3f_t a, avec3f_t b) {
-	avec3f_t ret = A_vec3(a.x + b.x, a.y + b.y, a.z + b.z);
-	return ret;
-}
-
-A_NO_DISCARD avec3f_t A_vec3f_sub(avec3f_t a, avec3f_t b) {
-	avec3f_t ret = A_vec3(a.x - b.x, a.y - b.y, a.z - b.z);
-	return ret;
-}
-
-A_NO_DISCARD avec3f_t A_vec3f_mul(avec3f_t a, float b) {
-	avec3f_t ret = A_vec3(a.x * b, a.y * b, a.z * b);
-	return ret;
-}
-
-A_NO_DISCARD float A_vec3f_dot(avec3f_t a, avec3f_t b) {
-	return (a.x * b.x) + (a.y * b.y) + (a.z * b.z);
-}
-
-A_NO_DISCARD avec3f_t A_vec3f_cross(avec3f_t a, avec3f_t b) {
-	avec3f_t ret = A_vec3(
-		(a.y * b.z) - (a.z * b.y), 
-		(a.z * b.x) - (a.x * b.z), 
-		(a.x * b.y) * (a.y * b.z)
-	);
-	return ret;
-}
-
+//A_NO_DISCARD bool A_vec3f_eq(avec3f_t a, avec3f_t b) {
+//	return A_memcmp(&a, &b, sizeof(a));
+//}
+//
+//A_NO_DISCARD avec3f_t A_vec3f_add(avec3f_t a, avec3f_t b) {
+//	avec3f_t ret = A_vec3(a.x + b.x, a.y + b.y, a.z + b.z);
+//	return ret;
+//}
+//
+//A_NO_DISCARD avec3f_t A_vec3f_sub(avec3f_t a, avec3f_t b) {
+//	avec3f_t ret = A_vec3(a.x - b.x, a.y - b.y, a.z - b.z);
+//	return ret;
+//}
+//
+//A_NO_DISCARD avec3f_t A_vec3f_mul(avec3f_t a, float b) {
+//	avec3f_t ret = A_vec3(a.x * b, a.y * b, a.z * b);
+//	return ret;
+//}
+//
+//A_NO_DISCARD float A_vec3f_dot(avec3f_t a, avec3f_t b) {
+//	return (a.x * b.x) + (a.y * b.y) + (a.z * b.z);
+//}
+//
+//A_NO_DISCARD avec3f_t A_vec3f_cross(avec3f_t a, avec3f_t b) {
+//	avec3f_t ret = A_vec3(
+//		(a.y * b.z) - (a.z * b.y), 
+//		(a.z * b.x) - (a.x * b.z), 
+//		(a.x * b.y) * (a.y * b.z)
+//	);
+//	return ret;
+//}
+//
 A_NO_DISCARD amat4f_t A_mat4f_translate_vec3(amat4f_t m, avec3f_t v) {
 	m.m[0][3] = v.x;
 	m.m[1][3] = v.y;
@@ -207,52 +207,52 @@ A_NO_DISCARD amat4f_t A_mat4f_scale_vec3(amat4f_t m, avec3f_t v) {
 	return m;
 }
 
-A_NO_DISCARD amat4f_t A_mat4f_look_at(avec3f_t eye, 
-	                                  avec3f_t center, 
-	                                  avec3f_t up
-) {
-	avec3f_t f = A_vec3f_normalize(A_vec3f_sub(center, eye));
-	avec3f_t s = A_vec3f_normalize(A_vec3f_cross(f, up));
-	avec3f_t u = A_vec3f_cross(s, f);
-
-	amat4f_t mat = A_MAT4F_IDENTITY;
-	mat.m[0][0] =  s.x;
-	mat.m[0][1] =  s.y;
-	mat.m[0][2] =  s.z;
-	mat.m[1][0] =  u.x;
-	mat.m[1][1] =  u.y;
-	mat.m[1][2] =  u.z;
-	mat.m[2][0] = -f.x;
-	mat.m[2][1] = -f.y;
-	mat.m[2][2] = -f.z;
-	mat.m[0][3] = -A_vec3f_dot(s, eye);
-	mat.m[1][3] = -A_vec3f_dot(u, eye);
-	mat.m[2][3] =  A_vec3f_dot(f, eye);
-
-	return mat;
-}
-
-A_NO_DISCARD amat4f_t A_mat4f_ortho(float left, float right, 
-	                                float top, float bottom
-) {
-	amat4f_t ortho = A_MAT4F_IDENTITY;
-	ortho.m[0][0] =  2.0f / (right - left);
-	ortho.m[1][1] =  2.0f / (top   - bottom);
-	ortho.m[2][2] = -1.0f;
-	ortho.m[0][3] = -(right + left) / (right - left);
-	ortho.m[1][3] = -(top + bottom) / (top - bottom);
-	return ortho;
-}
-
-A_NO_DISCARD amat4f_t A_mat4f_perspective(float fovy, float aspect, 
-	                                      float z_near, float z_far
-) {
-	float f = A_cotf(fovy / 2.0f);
-	amat4f_t perspective = A_MAT4F_ZERO;
-	perspective.m[0][0] = f / aspect;
-	perspective.m[1][1] = f;
-	perspective.m[2][2] = (z_far + z_near) / (z_near - z_far);
-	perspective.m[2][3] = (2.0f * z_far * z_near) / (z_near - z_far);
-	perspective.m[3][2] = -1.0f;
-	return perspective;
-}
+//A_NO_DISCARD amat4f_t A_mat4f_look_at(avec3f_t eye, 
+//	                                  avec3f_t center, 
+//	                                  avec3f_t up
+//) {
+//	avec3f_t f = A_vec3f_normalize(A_vec3f_sub(center, eye));
+//	avec3f_t s = A_vec3f_normalize(A_vec3f_cross(f, up));
+//	avec3f_t u = A_vec3f_cross(s, f);
+//
+//	amat4f_t mat = A_MAT4F_IDENTITY;
+//	mat.m[0][0] =  s.x;
+//	mat.m[0][1] =  s.y;
+//	mat.m[0][2] =  s.z;
+//	mat.m[1][0] =  u.x;
+//	mat.m[1][1] =  u.y;
+//	mat.m[1][2] =  u.z;
+//	mat.m[2][0] = -f.x;
+//	mat.m[2][1] = -f.y;
+//	mat.m[2][2] = -f.z;
+//	mat.m[0][3] = -A_vec3f_dot(s, eye);
+//	mat.m[1][3] = -A_vec3f_dot(u, eye);
+//	mat.m[2][3] =  A_vec3f_dot(f, eye);
+//
+//	return mat;
+//}
+//
+//A_NO_DISCARD amat4f_t A_mat4f_ortho(float left, float right, 
+//	                                float top, float bottom
+//) {
+//	amat4f_t ortho = A_MAT4F_IDENTITY;
+//	ortho.m[0][0] =  2.0f / (right - left);
+//	ortho.m[1][1] =  2.0f / (top   - bottom);
+//	ortho.m[2][2] = -1.0f;
+//	ortho.m[0][3] = -(right + left) / (right - left);
+//	ortho.m[1][3] = -(top + bottom) / (top - bottom);
+//	return ortho;
+//}
+//
+//A_NO_DISCARD amat4f_t A_mat4f_perspective(float fovy, float aspect, 
+//	                                      float z_near, float z_far
+//) {
+//	float f = A_cotf(fovy / 2.0f);
+//	amat4f_t perspective = A_MAT4F_ZERO;
+//	perspective.m[0][0] = f / aspect;
+//	perspective.m[1][1] = f;
+//	perspective.m[2][2] = (z_far + z_near) / (z_near - z_far);
+//	perspective.m[2][3] = (2.0f * z_far * z_near) / (z_near - z_far);
+//	perspective.m[3][2] = -1.0f;
+//	return perspective;
+//}

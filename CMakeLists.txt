@@ -23,22 +23,24 @@ if (MSVC)
 endif()
 #endif()
 
+find_package(cglm     REQUIRED)
 find_package(Freetype REQUIRED)
 find_package(GLEW     REQUIRED)
 find_package(OpenGL   REQUIRED)
 find_package(ZLIB     REQUIRED)
 
 add_executable(h1_map_viewer
-    src/acommon/a_common.c src/acommon/a_math.c src/acommon/a_string.c
-    src/acommon/a_type.c  src/acommon/z_mem.c
+    src/acommon/a_common.c src/acommon/a_io.c src/acommon/a_math.c 
+	src/acommon/a_string.c src/acommon/a_type.c 
+	
+	src/acommon/z_mem.c
 
 	src/cg_cgame.c src/cl_client.c src/cl_map.cpp src/cmd_commands.c src/com.c
 	src/com_print.c src/con_console.c src/db_files.c src/devcon.c 
 	src/devgui.c src/dvar.c src/font.c src/fs_files.c src/gfx.c 
 	src/gfx_backend.c src/gfx_defs.c src/gfx_shader.c src/gfx_text.c 
 	src/gfx_uniform.c  src/in_input.c src/main.c src/m_math.c src/pm_pmove.c 
-	src/sys.c
-)
+	src/sys.c)
 
 
 # SDL3 and SDL3_image aren't available from vcpkg. SDL_image contains SDL as a
@@ -56,6 +58,7 @@ add_subdirectory(
 
 target_link_libraries(h1_map_viewer PRIVATE SDL3::SDL3)
 target_link_libraries(h1_map_viewer PRIVATE SDL3_image::SDL3_image)
+target_link_libraries(h1_map_viewer PRIVATE cglm::cglm)
 target_link_libraries(h1_map_viewer PRIVATE Freetype::Freetype)
 target_link_libraries(h1_map_viewer PRIVATE GLEW::GLEW)
 target_link_libraries(h1_map_viewer PRIVATE OpenGL::GL)
@@ -79,7 +82,7 @@ endif()
 
 if(MSVC)
 	target_compile_options(h1_map_viewer PRIVATE 
-		"/permissive-" "/W4" "/bigobj" "/WX" 
+		"/permissive-" "/W4" "/bigobj" 
 	)
 
 	if (CMAKE_BUILD_TYPE STREQUAL "Debug")

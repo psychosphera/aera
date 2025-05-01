@@ -88,12 +88,10 @@ bool Sys_HandleEvent(void) {
                       IN_Key_SDLKToKeycode(ev.key.keysym.sym));
             break;
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
-            IN_Mouse_Down(CL_ClientWithKbmFocus(), 
-                          IN_Key_SDLKToKeycode(ev.button.button));
+            IN_Mouse_Down(CL_ClientWithKbmFocus(), ev.button.button);
             break;
         case SDL_EVENT_MOUSE_BUTTON_UP:
-            IN_Mouse_Up(CL_ClientWithKbmFocus(), 
-                        IN_Key_SDLKToKeycode(ev.button.button));
+            IN_Mouse_Up(CL_ClientWithKbmFocus(), ev.button.button);
             break;
         case SDL_EVENT_MOUSE_MOTION:
             IN_Mouse_Move(

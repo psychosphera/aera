@@ -2,6 +2,7 @@
 
 #include <assert.h>
 
+#include "acommon/a_io.h"
 #include "acommon/a_string.h"
 #include "acommon/z_mem.h"
 
@@ -207,7 +208,7 @@ void FS_CloseStream(A_INOUT StreamFile* file) {
 }
 
 bool FS_DeleteFile(const char* filename) {
-	return remove(filename) == 0;
+	return A_remove(filename) == 0;
 }
 
 bool FS_FileExists(const char* filename) {

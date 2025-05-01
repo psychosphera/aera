@@ -2,6 +2,8 @@
 
 #include <assert.h>
 
+#include <cglm/cglm.h>
+
 #include "acommon/a_string.h"
 #include "acommon/a_math.h"
 
@@ -25,7 +27,7 @@ static void PM_Accelerate(
 	A_INOUT pmove_t* pm, const pml_t* pml,
 	avec3f_t wishdir, float wishspeed, float accel
 ) {
-	float currentspeed = A_vec3f_dot(pm->ps->velocity, wishdir);
+	float currentspeed = glm_vec3_dot(pm->ps->velocity.array, wishdir.array);
 	float addspeed = wishspeed - currentspeed;
 
 	if (addspeed <= 0)
@@ -35,12 +37,13 @@ static void PM_Accelerate(
 	if (accelspeed > addspeed)
 		accelspeed = addspeed;
 
-	pm->ps->velocity = A_vec3f_add(pm->ps->velocity, 
-		                           A_vec3f_mul(wishdir, accelspeed));
+	vec3 velocity;
+	glm_vec3_scale(wishdir.array, accelspeed, velocity);
+	glm_vec3_add(pm->ps->velocity.array, velocity, pm->ps->velocity.array);
 }
 
 static void PM_NoclipMove(A_INOUT pmove_t* pm, const pml_t* pml) {
-	float speed = A_vec3f_length(pm->ps->velocity);
+	float speed = glm_vec3_norm(pm->ps->velocity.array);
 	if (speed < 1.0f) {
 		pm->ps->velocity = A_VEC3F_ZERO;
 	} else {
@@ -53,18 +56,23 @@ static void PM_NoclipMove(A_INOUT pmove_t* pm, const pml_t* pml) {
 			newspeed = 0;
 		newspeed /= speed;
 
-		pm->ps->velocity = A_vec3f_mul(pm->ps->velocity, newspeed);
+		vec3 velocity;
+		glm_vec3_scale(pm->ps->velocity.array, newspeed, velocity);
+		pm->ps->velocity = *(avec3f_t*)&velocity;
 	}
 
-	avec3f_t wishvel = A_vec3f_sub(
-		A_vec3f_mul(pml->forward, pm->cmd.vel.z),
-		A_vec3f_mul(pml->right,   pm->cmd.vel.x)
-	);
+	vec3 forward, right;
+	glm_vec3_scale(pml->forward.array, pm->cmd.vel.z, forward);
+	glm_vec3_scale(pml->right.array, pm->cmd.vel.x, right);
+	avec3f_t wishvel;
+	glm_vec3_sub(forward, right, wishvel.array);
+
 	wishvel.y += pm->cmd.vel.y;
 
-	avec3f_t wishdir = A_vec3f_normalize(wishvel);
-	float wishspeed  = A_vec3f_length(wishvel);
-	if (A_vec3f_eq(wishvel, A_VEC3F_ZERO)) {
+	avec3f_t wishdir = wishvel;
+	glm_vec3_normalize(wishdir.array);
+	float wishspeed = glm_vec3_norm(wishvel.array);
+	if (A_memcmp(&wishvel, &A_VEC3F_ZERO, sizeof(wishvel))) {
 		wishdir   = A_VEC3F_ZERO;
 		wishspeed = 0;
 	}
@@ -72,7 +80,9 @@ static void PM_NoclipMove(A_INOUT pmove_t* pm, const pml_t* pml) {
 	PM_Accelerate(pm, pml, wishdir, wishspeed, PM_ACCELERATE);
 
 	avec3f_t pos = A_vec3(pm->ps->origin.x, pm->ps->origin.y, pm->ps->origin.z);
-	pos = A_vec3f_add(pos, A_vec3f_mul(pm->ps->velocity, pml->frametime));
+	vec3 velocity;
+	glm_vec3_scale(pm->ps->velocity.array, pml->frametime, velocity);
+	glm_vec3_add(pos.array, velocity, pos.array);
 	pm->ps->origin.x = pos.x;
 	pm->ps->origin.y = pos.y;
 	pm->ps->origin.z = pos.z;

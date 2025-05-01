@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stddef.h>
 
+#include <cglm/cglm.h>
 #include <GL/glew.h>
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
@@ -229,7 +230,9 @@ static void R_UpdateOrtho(size_t localClientNum) {
     float right  = cg->viewport.w * Dvar_GetInt(vid_width)  + left;
     float bottom = cg->viewport.y * Dvar_GetInt(vid_height);
     float top    = cg->viewport.h * Dvar_GetInt(vid_height) + bottom;
-    cg->camera.orthoProjection = A_mat4f_ortho(left, right, bottom, top);
+    mat4 ortho;
+    glm_ortho(left, right, bottom, top, cg->nearPlane, cg->farPlane, ortho);
+    cg->camera.orthoProjection = *(amat4f_t*)&ortho;
 }
 
 void R_UpdateProjection(size_t localClientNum) {
@@ -237,9 +240,10 @@ void R_UpdateProjection(size_t localClientNum) {
 
     float w = cg->viewport.w * Dvar_GetInt(vid_width);
     float h = cg->viewport.h * Dvar_GetInt(vid_height);
-    cg->camera.perspectiveProjection = A_mat4f_perspective(
-        A_radians(cg->fovy), w / h, cg->nearPlane, cg->farPlane
-    );
+
+    mat4 perspective;
+    glm_perspective(A_radians(cg->fovy), w / h, cg->nearPlane, cg->farPlane, perspective);
+    cg->camera.perspectiveProjection = *(amat4f_t*)&perspective;
 }
 
 static void R_UpdateLocalClientView(size_t localClientNum) {
@@ -970,11 +974,13 @@ static void R_DrawFrameInternal(size_t localClientNum) {
     avec3f_t front = A_vec3(cg->camera.front.x, 
                             cg->camera.front.y, 
                             cg->camera.front.z);
-    avec3f_t center = A_vec3f_add(pos, front);
-    amat4f_t view   = A_mat4f_look_at(pos, center, cg->camera.up);
+    avec3f_t center;
+    glm_vec3_add(pos.array, front.array, center.array);
+    mat4 view;
+    glm_lookat(pos.array, center.array, cg->camera.up.array, view);
     
     GL_CALL(glUseProgram, r_mapGlob.prog.program);
-    R_SetUniformMat4f(r_mapGlob.prog.program, "uView", view);
+    R_SetUniformMat4f(r_mapGlob.prog.program, "uView", *(amat4f_t*)&view);
     R_SetUniformMat4f(
         r_mapGlob.prog.program, "uPerspectiveProjection",
         cg->camera.perspectiveProjection

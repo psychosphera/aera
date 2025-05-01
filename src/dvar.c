@@ -1,3 +1,5 @@
+#include "dvar.h"
+
 #include <assert.h>
 #include <float.h>
 #include <limits.h>
@@ -5,7 +7,7 @@
 #include "acommon/a_string.h"
 #include "acommon/z_mem.h"
 
-#include "dvar.h"
+#include "cl_client.h"
 #include "cmd_commands.h"
 #include "com_print.h"
 
@@ -166,7 +168,7 @@ dvar_t Dvar_CreateBool(const char* name, int flags, bool value) {
 		A_cstrncpyz(e[0], "false", 6);
 	dvar_t d = {
 		.name = (char*)name,
-		.name_hash = Dvar_HashString(name),
+		.name_hash = Dvar_HashName(name),
 		.type = DVAR_TYPE_BOOL,
 		.value = { .b = value },
 		.flags = flags,
@@ -187,7 +189,7 @@ dvar_t Dvar_CreateInt(const char* name, int flags,
 
 	dvar_t d = {
 		.name = (char*)name,
-		.name_hash = Dvar_HashString(name),
+		.name_hash = Dvar_HashName(name),
 		.type = DVAR_TYPE_INT,
 		.domain = { .i = {.min = min, .max = max } },
 		.value = { .i = value },
@@ -209,7 +211,7 @@ dvar_t Dvar_CreateFloat(const char* name, int flags,
 
 	dvar_t d = {
 		.name = (char*)name,
-		.name_hash = Dvar_HashString(name),
+		.name_hash = Dvar_HashName(name),
 		.type = DVAR_TYPE_FLOAT,
 		.domain = {.f = {.min = min, .max = max } },
 		.value = {.f = value },
@@ -228,7 +230,7 @@ dvar_t Dvar_CreateString(const char* name, int flags, const char* value) {
 
 	dvar_t d = {
 		.name = (char*)name,
-		.name_hash = Dvar_HashString(name),
+		.name_hash = Dvar_HashName(name),
 		.type = DVAR_TYPE_STRING,
 		.flags = flags,
 		.e = e,
@@ -249,7 +251,7 @@ dvar_t Dvar_CreateEnum(
 
 	dvar_t d = {
 		.name = (char*)name,
-		.name_hash = Dvar_HashString(name),
+		.name_hash = Dvar_HashName(name),
 		.type = DVAR_TYPE_ENUM,
 		.domain = {.e = (int)domain_count },
 		.flags = flags,
@@ -273,7 +275,7 @@ dvar_t Dvar_CreateVec2(const char* name, int flags,
 
 	dvar_t d = {
 		.name = (char*)name,
-		.name_hash = Dvar_HashString(name),
+		.name_hash = Dvar_HashName(name),
 		.type = DVAR_TYPE_VEC2,
 		.domain = { .f = {.min = min, .max = max } },
 		.value = { .v2 = value },
@@ -299,7 +301,7 @@ dvar_t Dvar_CreateVec3(const char* name, int flags,
 
 	dvar_t d = {
 		.name = (char*)name,
-		.name_hash = Dvar_HashString(name),
+		.name_hash = Dvar_HashName(name),
 		.type = DVAR_TYPE_VEC3,
 		.domain = {.f = {.min = min, .max = max } },
 		.value = {.v3 = value },
@@ -327,7 +329,7 @@ dvar_t Dvar_CreateVec4(const char* name, int flags,
 
 	dvar_t d = {
 		.name = (char*)name,
-		.name_hash = Dvar_HashString(name),
+		.name_hash = Dvar_HashName(name),
 		.type = DVAR_TYPE_VEC4,
 		.domain = {.f = {.min = min, .max = max } },
 		.value = {.v4 = value },
@@ -1241,6 +1243,110 @@ dvar_t* Dvar_RegisterFromString(const char* name, int flags,
 	return Dvar_RegisterNewFromString(name, flags, argc, argv);
 }
 
+dvar_t* Dvar_RegisterNewLocalFromString(int localClientNum, const char* name, 
+	                               int flags, int argc, const char** argv
+) {
+	assert(argc > 0);
+	assert(argv);
+	assert(name);
+	if (argc == 4) {
+		avec4f_t v;
+		A_atof(argv[0], &v.x);
+		A_atof(argv[1], &v.y);
+		A_atof(argv[2], &v.z);
+		A_atof(argv[3], &v.w);
+		return Dvar_RegisterNewLocalVec4(localClientNum, name, flags,
+			                             v, FLT_MIN, FLT_MAX);
+	}
+
+	if (argc == 3) {
+		avec3f_t v;
+		A_atof(argv[0], &v.x);
+		A_atof(argv[1], &v.y);
+		A_atof(argv[2], &v.z);
+		return Dvar_RegisterNewLocalVec3(localClientNum, name, flags,
+			                             v, FLT_MIN, FLT_MAX);
+	}
+
+	if (argc == 2) {
+		avec2f_t v;
+		A_atof(argv[0], &v.x);
+		A_atof(argv[1], &v.y);
+		return Dvar_RegisterNewLocalVec2(localClientNum, name, flags, 
+			                             v, FLT_MIN, FLT_MAX);
+	}
+
+	int i = 0;
+	if (A_atoi(argv[0], &i))
+		return Dvar_RegisterNewLocalInt(localClientNum, name, flags, 
+			                            i, INT_MIN, INT_MAX);
+	bool b = false;
+	if (A_atob(argv[0], &b))
+		return Dvar_RegisterNewLocalBool(localClientNum, name, flags, b);
+	float f = 0.0f;
+	if (A_atof(name, &f))
+		return Dvar_RegisterNewLocalFloat(localClientNum, name, flags, 
+			                              f, FLT_MIN, FLT_MAX);
+
+	return NULL;
+}
+
+dvar_t* Dvar_ReregisterLocalFromString(int localClientNum, const char* name,
+	                                   int flags, int argc, const char** argv
+) {
+	assert(argc > 0);
+	assert(argv);
+	assert(name);
+	if (argc == 4) {
+		avec4f_t v;
+		A_atof(argv[0], &v.x);
+		A_atof(argv[1], &v.y);
+		A_atof(argv[2], &v.z);
+		A_atof(argv[3], &v.w);
+		return Dvar_ReregisterLocalVec4(localClientNum, name, flags, 
+			                            v, FLT_MIN, FLT_MAX);
+	}
+
+	if (argc == 3) {
+		avec3f_t v;
+		A_atof(argv[0], &v.x);
+		A_atof(argv[1], &v.y);
+		A_atof(argv[2], &v.z);
+		return Dvar_ReregisterLocalVec3(localClientNum, name, flags, 
+			                            v, FLT_MIN, FLT_MAX);
+	}
+
+	if (argc == 2) {
+		avec2f_t v;
+		A_atof(argv[0], &v.x);
+		A_atof(argv[1], &v.y);
+		return Dvar_ReregisterLocalVec2(localClientNum, name, flags, 
+			                            v, FLT_MIN, FLT_MAX);
+	}
+
+	int i = 0;
+	if (A_atoi(argv[0], &i))
+		return Dvar_ReregisterLocalInt(localClientNum, name, flags, 
+			                           i, INT_MIN, INT_MAX);
+	bool b = false;
+	if (A_atob(argv[0], &b))
+		return Dvar_ReregisterLocalBool(localClientNum, name, flags, b);
+	float f = 0.0f;
+	if (A_atof(name, &f))
+		return Dvar_ReregisterLocalFloat(localClientNum, name, flags, 
+			                             f, FLT_MIN, FLT_MAX);
+
+	return NULL;
+}
+
+dvar_t* Dvar_RegisterLocalFromString(int localClientNum, const char* name,
+	                                 int flags, int argc, const char** argv
+) {
+	if (Dvar_LocalExists(localClientNum, name))
+		return Dvar_ReregisterLocalFromString(localClientNum, name, flags, argc, argv);
+	return Dvar_RegisterNewLocalFromString(localClientNum, name, flags, argc, argv);
+}
+
 void Dvar_Set_f(void) {
 	int argc = Cmd_Argc();
 	if (argc < 3) {
@@ -1303,13 +1409,14 @@ void Dvar_SetL_f(void) {
 	if (argc <= 6)
 		argv[3] = Cmd_Argv(5);
 
-	dvar_t* d = Dvar_FindLocal(name);
+	int activeLocalClient = CL_ClientWithKbmFocus();
+	dvar_t* d = Dvar_FindLocal(CL_ClientWithKbmFocus(), name);
 	if (d) {
 		if (!Dvar_SetFromString(d, A_MIN(argc - 2, 4), argv))
-			Dvar_ReregisterLocalFromString(
+			Dvar_ReregisterLocalFromString(activeLocalClient,
 				name, DVAR_FLAG_NONE, A_MIN(argc - 2, 4), argv);
 	} else {
-		Dvar_RegisterNewLocalFromString(
+		Dvar_RegisterNewLocalFromString(activeLocalClient,
 			name, DVAR_FLAG_NONE, A_MIN(argc - 2, 4), argv);
 	}
 }
@@ -1323,7 +1430,7 @@ void Dvar_SetLA_f(void) {
 
 	Dvar_SetL_f();
 	const char* name = Cmd_Argv(1);
-	dvar_t* d = Dvar_FindLocal(name);
+	dvar_t* d = Dvar_FindLocal(CL_ClientWithKbmFocus(), name);
 	Dvar_AddFlags(d, DVAR_FLAG_ARCHIVE);
 }
 
