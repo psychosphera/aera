@@ -198,22 +198,22 @@ A_EXTERN_C A_NO_DISCARD double     A_atan (double x);
 A_EXTERN_C A_NO_DISCARD float      A_radians(float degrees);
 A_EXTERN_C A_NO_DISCARD float      A_degrees(float radians);
           
-//A_EXTERN_C A_NO_DISCARD float      A_vec2f_length   (avec2f_t v);
-//A_EXTERN_C A_NO_DISCARD float      A_vec3f_length   (avec3f_t v);
-//A_EXTERN_C A_NO_DISCARD float      A_vec4f_length   (avec4f_t v);
+A_EXTERN_C A_NO_DISCARD float      A_vec2f_length   (avec2f_t v);
+A_EXTERN_C A_NO_DISCARD float      A_vec3f_length   (avec3f_t v);
+A_EXTERN_C A_NO_DISCARD float      A_vec4f_length   (avec4f_t v);
 A_EXTERN_C A_NO_DISCARD avec2f_t   A_vec2f_normalize(avec2f_t v);
 A_EXTERN_C A_NO_DISCARD avec3f_t   A_vec3f_normalize(avec3f_t v);
 A_EXTERN_C A_NO_DISCARD avec4f_t   A_vec4f_normalize(avec4f_t v);
 
 A_EXTERN_C A_NO_DISCARD apoint3f_t A_point3f_swap_yz(apoint3f_t p);
 
-//A_EXTERN_C A_NO_DISCARD bool       A_vec3f_eq   (avec3f_t a, avec3f_t b);
-//A_EXTERN_C A_NO_DISCARD avec3f_t   A_vec3f_add  (avec3f_t a, avec3f_t b);
-//A_EXTERN_C A_NO_DISCARD avec3f_t   A_vec3f_sub  (avec3f_t a, avec3f_t b);
-//A_EXTERN_C A_NO_DISCARD float      A_vec3f_dot  (avec3f_t a, avec3f_t b);
-//A_EXTERN_C A_NO_DISCARD avec3f_t   A_vec3f_cross(avec3f_t a, avec3f_t b);
-//A_EXTERN_C A_NO_DISCARD avec3f_t   A_vec3f_mul  (avec3f_t a, float b);
-//
+A_EXTERN_C A_NO_DISCARD bool       A_vec3f_eq   (avec3f_t a, avec3f_t b);
+A_EXTERN_C A_NO_DISCARD avec3f_t   A_vec3f_add  (avec3f_t a, avec3f_t b);
+A_EXTERN_C A_NO_DISCARD avec3f_t   A_vec3f_sub  (avec3f_t a, avec3f_t b);
+A_EXTERN_C A_NO_DISCARD float      A_vec3f_dot  (avec3f_t a, avec3f_t b);
+A_EXTERN_C A_NO_DISCARD avec3f_t   A_vec3f_cross(avec3f_t a, avec3f_t b);
+A_EXTERN_C A_NO_DISCARD avec3f_t   A_vec3f_mul  (avec3f_t a, float b);
+
 A_EXTERN_C A_NO_DISCARD amat4f_t   A_mat4f_translate_vec3(amat4f_t m,   
                                                           avec3f_t v);
 A_EXTERN_C A_NO_DISCARD amat4f_t   A_mat4f_scale_vec3    (amat4f_t m,   

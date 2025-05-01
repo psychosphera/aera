@@ -95,19 +95,19 @@ void R_SetUniformMat2f(
     shader_program_t program, const char* name, const amat2f_t value
 ) {
     int location = glGetUniformLocation(program, name);
-    glUniformMatrix2fv(location, 1, GL_TRUE, value.array);
+    glUniformMatrix2fv(location, 1, GL_FALSE, value.array);
 }
 
 void R_SetUniformMat3f(
     shader_program_t program, const char* name, amat3f_t value
 ) {
     int location = glGetUniformLocation(program, name);
-    glUniformMatrix3fv(location, 1, GL_TRUE, value.array);
+    glUniformMatrix3fv(location, 1, GL_FALSE, value.array);
 }
 
 void R_SetUniformMat4f(
     shader_program_t program, const char* name, amat4f_t value
 ) {
     int location = glGetUniformLocation(program, name);
-    glUniformMatrix4fv(location, 1, GL_TRUE, value.array);
+    glUniformMatrix4fv(location, 1, GL_FALSE, value.array);
 }

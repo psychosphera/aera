@@ -148,38 +148,38 @@ A_NO_DISCARD apoint3f_t A_point3f_swap_yz(apoint3f_t p) {
 	return ret;
 }
 
-//A_NO_DISCARD bool A_vec3f_eq(avec3f_t a, avec3f_t b) {
-//	return A_memcmp(&a, &b, sizeof(a));
-//}
-//
-//A_NO_DISCARD avec3f_t A_vec3f_add(avec3f_t a, avec3f_t b) {
-//	avec3f_t ret = A_vec3(a.x + b.x, a.y + b.y, a.z + b.z);
-//	return ret;
-//}
-//
-//A_NO_DISCARD avec3f_t A_vec3f_sub(avec3f_t a, avec3f_t b) {
-//	avec3f_t ret = A_vec3(a.x - b.x, a.y - b.y, a.z - b.z);
-//	return ret;
-//}
-//
-//A_NO_DISCARD avec3f_t A_vec3f_mul(avec3f_t a, float b) {
-//	avec3f_t ret = A_vec3(a.x * b, a.y * b, a.z * b);
-//	return ret;
-//}
-//
-//A_NO_DISCARD float A_vec3f_dot(avec3f_t a, avec3f_t b) {
-//	return (a.x * b.x) + (a.y * b.y) + (a.z * b.z);
-//}
-//
-//A_NO_DISCARD avec3f_t A_vec3f_cross(avec3f_t a, avec3f_t b) {
-//	avec3f_t ret = A_vec3(
-//		(a.y * b.z) - (a.z * b.y), 
-//		(a.z * b.x) - (a.x * b.z), 
-//		(a.x * b.y) * (a.y * b.z)
-//	);
-//	return ret;
-//}
-//
+A_NO_DISCARD bool A_vec3f_eq(avec3f_t a, avec3f_t b) {
+	return A_memcmp(&a, &b, sizeof(a));
+}
+
+A_NO_DISCARD avec3f_t A_vec3f_add(avec3f_t a, avec3f_t b) {
+	avec3f_t ret = A_vec3(a.x + b.x, a.y + b.y, a.z + b.z);
+	return ret;
+}
+
+A_NO_DISCARD avec3f_t A_vec3f_sub(avec3f_t a, avec3f_t b) {
+	avec3f_t ret = A_vec3(a.x - b.x, a.y - b.y, a.z - b.z);
+	return ret;
+}
+
+A_NO_DISCARD avec3f_t A_vec3f_mul(avec3f_t a, float b) {
+	avec3f_t ret = A_vec3(a.x * b, a.y * b, a.z * b);
+	return ret;
+}
+
+A_NO_DISCARD float A_vec3f_dot(avec3f_t a, avec3f_t b) {
+	return (a.x * b.x) + (a.y * b.y) + (a.z * b.z);
+}
+
+A_NO_DISCARD avec3f_t A_vec3f_cross(avec3f_t a, avec3f_t b) {
+	avec3f_t ret = A_vec3(
+		(a.y * b.z) - (a.z * b.y), 
+		(a.z * b.x) - (a.x * b.z), 
+		(a.x * b.y) * (a.y * b.z)
+	);
+	return ret;
+}
+
 A_NO_DISCARD amat4f_t A_mat4f_translate_vec3(amat4f_t m, avec3f_t v) {
 	m.m[0][3] = v.x;
 	m.m[1][3] = v.y;
