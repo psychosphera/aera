@@ -168,7 +168,7 @@ bool CL_LoadMap(const char* map_name) {
 	g_load.lightmap_vertices = (BSPLightmapVertex*)bsp_header->lightmap_vertices;
 
 	Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian>* bsp = NULL;
-	if (!CL_LoadMap_BSP(&sbsps[0], bsp_header, &bsp)) return false;
+	if (!CL_LoadMap_BSP(&sbsps[spawns[0].bsp_index], bsp_header, &bsp)) return false;
 	assert(bsp);
 	g_load.bsp_ptr = bsp;
 	g_load.surfs = (BSPSurf*)(uint32_t)bsp->surfaces.pointer.read();

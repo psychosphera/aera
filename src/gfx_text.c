@@ -30,6 +30,7 @@ static const GfxSubTexDef s_subTexDefs[6] = {
 // DON'T TOUCH ANY OF THIS. DON'T EVEN LOOK AT IT THE WRONG WAY. LEAVE IT ALONE
 // AND BE HAPPY YOU DIDN'T SPEND TEN HOURS GETTING IT TO WORK.
 A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
+#if A_RENDER_BACKEND_GL
     char* vertSource = DB_LoadShader("text.vs.glsl");
     char* fragSource = DB_LoadShader("text.fs.glsl");
 
@@ -114,6 +115,7 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
 
     GL_CALL(glPixelStorei, GL_UNPACK_ALIGNMENT, unpackAlign);
     GL_CALL(glBindTexture, GL_TEXTURE_2D, 0);
+#endif // A_RENDER_BACKEND_GL
 
     return true;
 }
@@ -131,6 +133,7 @@ void R_DrawText(
     float xscale, float yscale, acolor_rgb_t color,
     bool right
 ) {
+#if A_RENDER_BACKEND_GL
     if (font == NULL)
         font = &r_defaultFont;
 
@@ -280,6 +283,7 @@ void R_DrawText(
     GL_CALL(glBindVertexArray, 0);
     GL_CALL(glUseProgram, 0);
     GL_CALL(glDisable, GL_BLEND);
+#endif // A_RENDER_BACKEND_GL
 }
 
 GfxTextDraw r_textDraws[MAX_LOCAL_CLIENTS][256];

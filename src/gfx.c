@@ -5,9 +5,15 @@
 #include <stddef.h>
 
 #include <cglm/cglm.h>
-#include <GL/glew.h>
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_syswm.h>
 #include <SDL3_image/SDL_image.h>
+
+#if A_RENDER_BACKEND_GL
+#include <GL/glew.h>
+#elif A_RENDER_BACKEND_D3D9
+#include <d3d9.h>
+#endif // A_RENDER_BACKEND_GL
 
 #include "acommon/a_string.h"
 
@@ -25,9 +31,11 @@
 #include "m_math.h"
 #include "sys.h"
 
-A_EXTERN_C dvar_t* vid_width;
-A_EXTERN_C dvar_t* vid_height;
+extern dvar_t*     vid_width;
+extern dvar_t*     vid_height;
+extern SDL_Window* g_sdlWindow;
 
+#if A_RENDER_BACKEND_GL
 A_NO_DISCARD const char* R_GlDebugErrorString(GLenum err) {
     switch (err) {
     case GL_NO_ERROR:
@@ -138,6 +146,7 @@ static void GLAPIENTRY R_GlDebugOutput(
         i, src, t, sev, message
     );
 }
+#endif // A_RENDER_BACKEND_GL
 
 static void R_RegisterDvars        ();
 static void R_InitMap              ();
@@ -158,13 +167,17 @@ extern FontDef r_defaultFont;
 
 size_t r_testDrawId = 0;
 
-A_EXTERN_C void R_Init(void) {
-    RB_Init();
+#if A_RENDER_BACKEND_D3D9
+typedef struct D3D9RenderGlob {
+    HWND hWnd;
+    IDirect3D9* d3d9;
+    IDirect3DDevice9* d3ddev;
+} D3D9RenderGlob;
+D3D9RenderGlob r_d3d9Glob;
+#endif // A_RENDER_BACKEND_D3D9
 
-    int imgInitFlags = IMG_INIT_JPG | IMG_INIT_PNG;
-    if ((IMG_Init(imgInitFlags) & imgInitFlags) != imgInitFlags)
-        Com_Errorln(-1, "SDL_image init failed.");
-
+#if A_RENDER_BACKEND_GL
+static void R_InitGL(void) {
 #if _DEBUG
     //GLint flags = 0;
     //GL_CALL(glGetIntegerv, GL_CONTEXT_FLAGS, &flags);
@@ -186,11 +199,94 @@ A_EXTERN_C void R_Init(void) {
     GL_CALL(glEnable, GL_DEBUG_OUTPUT);
     GL_CALL(glEnable, GL_DEBUG_OUTPUT_SYNCHRONOUS);
     GL_CALL(glDebugMessageCallback, R_GlDebugOutput, NULL);
-    GL_CALL(glDebugMessageControl, GL_DONT_CARE, GL_DONT_CARE, 
-            GL_DONT_CARE, 0, NULL, (GLboolean)GL_TRUE);
+    GL_CALL(glDebugMessageControl, GL_DONT_CARE, GL_DONT_CARE,
+        GL_DONT_CARE, 0, NULL, (GLboolean)GL_TRUE);
 #endif // _DEBUG
 
     GL_CALL(glClearColor, 0.2f, 0.3f, 0.3f, 1.0f);
+}
+#elif A_RENDER_BACKEND_D3D9
+static HWND R_GetHwnd(void) {
+    SDL_SysWMinfo info;
+    int res = SDL_GetWindowWMInfo(g_sdlWindow, &info, SDL_SYSWM_CURRENT_VERSION);
+    assert(res == 0);
+    HWND hWnd = info.info.win.window;
+    return hWnd;
+}
+
+static UINT R_ChooseAdapter(IDirect3D9* d3d9) {
+    (void)d3d9;
+    return 0;
+}
+
+static IDirect3DDevice9* R_CreateDevice(HWND hWnd, 
+                                        IDirect3D9* d3d9, 
+                                        UINT adapter
+) {
+    DWORD flags = D3DCREATE_HARDWARE_VERTEXPROCESSING;
+
+    UINT interval = Dvar_GetBool(r_vsync) ?
+        D3DPRESENT_INTERVAL_ONE :
+        D3DPRESENT_INTERVAL_IMMEDIATE;
+
+    D3DPRESENT_PARAMETERS d3dpp = {
+        .Windowed = TRUE,
+        .hDeviceWindow = hWnd,
+        .BackBufferWidth = 0,
+        .BackBufferHeight = 0,
+        .BackBufferFormat = D3DFMT_UNKNOWN,
+        .BackBufferCount = 1,
+        .SwapEffect = D3DSWAPEFFECT_DISCARD,
+        .MultiSampleType = D3DMULTISAMPLE_NONE,
+        .MultiSampleQuality = 0,
+        .EnableAutoDepthStencil = TRUE,
+        .AutoDepthStencilFormat = D3DFMT_D32,
+        .FullScreen_RefreshRateInHz = 0,
+        .Flags = 0,
+        .PresentationInterval = interval
+    };
+    IDirect3DDevice9* d3ddev = NULL;
+    HRESULT hr = d3d9->lpVtbl->CreateDevice(d3d9, adapter, D3DDEVTYPE_HAL,
+                                            hWnd, flags, &d3dpp, &d3ddev);
+    assert(hr == D3D_OK);
+
+    if (hr == D3D_OK)
+        assert(d3ddev);
+
+    return d3ddev;
+}
+
+static void R_InitD3D9(void) {
+    A_memset(&r_d3d9Glob, 0, sizeof(r_d3d9Glob));
+
+    HWND hWnd = R_GetHwnd();
+    r_d3d9Glob.hWnd = hWnd;
+
+    IDirect3D9* d3d9 = Direct3DCreate9(D3D_SDK_VERSION);
+    assert(d3d9);
+    r_d3d9Glob.d3d9 = d3d9;
+
+    assert(d3d9->lpVtbl->GetAdapterCount(d3d9) > 0);
+    UINT adapter = R_ChooseAdapter(d3d9); 
+
+    IDirect3DDevice9* d3ddev = R_CreateDevice(hWnd, d3d9, adapter);
+    assert(d3ddev);
+    r_d3d9Glob.d3ddev = d3ddev;
+}
+#endif // A_RENDER_BACKEND_GL
+
+A_EXTERN_C void R_Init(void) {
+    RB_Init();
+
+    int imgInitFlags = IMG_INIT_JPG | IMG_INIT_PNG;
+    if ((IMG_Init(imgInitFlags) & imgInitFlags) != imgInitFlags)
+        Com_Errorln(-1, "SDL_image init failed.");
+
+#if A_RENDER_BACKEND_GL
+    R_InitGL();
+#elif A_RENDER_BACKEND_D3D9
+    R_InitD3D9();
+#endif // A_RENDER_BACKEND_GL
     
     for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
         R_InitLocalClient(i);
@@ -267,21 +363,24 @@ A_EXTERN_C void R_DrawFrame(size_t localClientNum) {
 
 A_EXTERN_C void R_Frame(void) {
     RB_BeginFrame();
+#if A_RENDER_BACKEND_GL
     GL_CALL(glEnable, GL_SCISSOR_TEST);
+#endif // A_RENDER_BACKEND_GL
     for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
         if (!CG_LocalClientIsActive(i))
             continue;
 
         R_DrawFrame(i);
     }
+#if A_RENDER_BACKEND_GL
     GL_CALL(glDisable, GL_SCISSOR_TEST);
+#endif // A_RENDER_BACKEND_GL
     RB_EndFrame();
 }
 
 A_EXTERN_C void R_WindowResized(void) {
     for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++)
         R_UpdateLocalClientView(i);
-    
 }
 
 A_NO_DISCARD bool R_CreateSdlImage(const char* image_name, 
@@ -297,6 +396,7 @@ A_NO_DISCARD bool R_CreateSdlImage(const char* image_name,
 
     A_memset(image, 0, sizeof(*image));
 
+#if A_RENDER_BACKEND_GL
     texture_t tex;
     GL_CALL(glActiveTexture, GL_TEXTURE0);
     GL_CALL(glGenTextures,   1, &tex);
@@ -306,6 +406,7 @@ A_NO_DISCARD bool R_CreateSdlImage(const char* image_name,
     GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_REPEAT);
     GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+#endif // A_RENDER_BACKEND_GL
 
     const char* image_path = DB_ImagePath(image_name);
     SDL_Surface* surf = IMG_Load(image_path);
@@ -335,11 +436,13 @@ A_NO_DISCARD bool R_CreateSdlImage(const char* image_name,
         return false;
     }
 
+#if A_RENDER_BACKEND_GL
     GL_CALL(glTexImage2D,
         GL_TEXTURE_2D, 0, GL_RGB, surf->w, surf->h, 
         0, format, GL_UNSIGNED_BYTE, surf->pixels
     );
     GL_CALL(glGenerateMipmap, GL_TEXTURE_2D);
+#endif // A_RENDER_BACKEND_GL
 
     SDL_DestroySurface(surf);
 
@@ -349,7 +452,9 @@ A_NO_DISCARD bool R_CreateSdlImage(const char* image_name,
     image->type            = R_IMAGE_TYPE_2D_TEXTURE;
     image->format          = format;
     image->internal_format = R_IMAGE_FORMAT_RGB888;
+#if A_RENDER_BACKEND_GL
     image->tex             = tex;
+#endif // A_RENDER_BACKEND_GL
 
     return true;
 }
@@ -415,6 +520,7 @@ A_NO_DISCARD bool R_CreateBSPImage(
     assert(type == BSP_BITMAP_DATA_TYPE_2D_TEXTURE ||
            type == BSP_BITMAP_DATA_TYPE_3D_TEXTURE);
 
+#if A_RENDER_BACKEND_GL
     GLenum target = 0;
     if (type == BSP_BITMAP_DATA_TYPE_2D_TEXTURE) {
         target = GL_TEXTURE_2D;
@@ -461,6 +567,7 @@ A_NO_DISCARD bool R_CreateBSPImage(
     GL_CALL(glGenerateMipmap, target);
 
     image->tex             = tex;
+#endif // A_RENDER_BACKEND_GL
     image->pixels          = pixels;
     image->pixels_size     = pixels_size;
     image->width           = width;
@@ -468,13 +575,15 @@ A_NO_DISCARD bool R_CreateBSPImage(
     image->depth           = depth;
     image->type            = R_BSPGetImageType(type);
     image->internal_format = R_BSPGetImageFormat(bsp_format);
+#if A_RENDER_BACKEND_GL
     image->format          = format;
+#endif // A_RENDER_BACKEND_GL
     return true;
 }
 
 typedef struct GfxMaterial {
     GfxVertexBuffer         vb;
-    GLsizei                 vertices_count;
+    size_t                  vertices_count;
     bool                    alpha_tested;
     GfxImage                map, base_map, primary_detail_map;
     GfxImage                secondary_detail_map, micro_detail_map, bump_map;
@@ -499,6 +608,7 @@ struct MapRenderGlob {
 } r_mapGlob;
 
 A_EXTERN_C void R_InitMap(void) {
+#if A_RENDER_BACKEND_GL
     char* vertSource = DB_LoadShader("bsp.vs.glsl");
     char* fragSource = DB_LoadShader("bsp.fs.glsl");
 
@@ -511,6 +621,7 @@ A_EXTERN_C void R_InitMap(void) {
     A_cstrfree(errorLog);
     DB_UnloadShader(vertSource);
     DB_UnloadShader(fragSource);
+#endif // A_RENDER_BACKEND_GL
 }
 
 static void R_SwapYZPoint3(A_INOUT apoint3f_t* p) {
@@ -591,6 +702,7 @@ A_EXTERN_C void R_LoadMap(void) {
         const BSPMaterial* materials = 
             (const BSPMaterial*)lightmap->materials.pointer;
         for (uint32_t j = 0; j < lightmap->materials.count; j++) {
+#if A_RENDER_BACKEND_GL
             GL_CALL(glGenVertexArrays,
                 1, &r_mapGlob.lightmaps[i].materials[j].vb.vao);
             GL_CALL(glGenBuffers,
@@ -600,6 +712,7 @@ A_EXTERN_C void R_LoadMap(void) {
                 r_mapGlob.lightmaps[i].materials[j].vb.vao);
             GL_CALL(glBindBuffer,
                 GL_ARRAY_BUFFER, r_mapGlob.lightmaps[i].materials[j].vb.vbo);
+#endif // A_RENDER_BACKEND_GL
 
             const BSPMaterial* material = &materials[j];
             uint32_t start_surf = material->surfaces;
@@ -635,13 +748,13 @@ A_EXTERN_C void R_LoadMap(void) {
             r_mapGlob.lightmaps[i].materials[j].vertices_count =
                 surf_count * 3;
 
-            GLsizei rendered_vertices_size =
+            size_t rendered_vertices_size =
                 r_mapGlob.lightmaps[i].materials[j].vertices_count *
                 sizeof(BSPRenderedVertex);
-            GLsizei lightmap_vertices_size =
+            size_t lightmap_vertices_size =
                 r_mapGlob.lightmaps[i].materials[j].vertices_count *
                 sizeof(BSPLightmapVertex);
-            GLsizei vertices_size =
+            size_t vertices_size =
                 rendered_vertices_size + lightmap_vertices_size;
 
             r_mapGlob.lightmaps[i].materials[j].color =
@@ -734,7 +847,7 @@ A_EXTERN_C void R_LoadMap(void) {
                     shader_path, (uint32_t)shader_tag->primary_class
                 );
             }
-
+#if A_RENDER_BACKEND_GL
             GL_CALL(glBufferData,
                 GL_ARRAY_BUFFER, vertices_size, NULL, GL_STATIC_DRAW
             );
@@ -748,10 +861,12 @@ A_EXTERN_C void R_LoadMap(void) {
                 rendered_vertices_size, lightmap_vertices_size,
                 (const void*)lightmap_vertices
             );
+#endif // A_RENDER_BACKEND_GL
 
             Z_Free(rendered_vertices);
             Z_Free(lightmap_vertices);
 
+#if A_RENDER_BACKEND_GL
             GL_CALL(glVertexAttribPointer,
                 0, 3, GL_FLOAT, GL_FALSE, sizeof(BSPRenderedVertex),
                 (const void*)offsetof(BSPRenderedVertex, pos)
@@ -790,11 +905,13 @@ A_EXTERN_C void R_LoadMap(void) {
             GL_CALL(glEnableVertexAttribArray, 4);
             GL_CALL(glEnableVertexAttribArray, 5);
             GL_CALL(glEnableVertexAttribArray, 6);
+#endif // A_RENDER_BACKEND_GL
         }
     }
 }
 
 A_EXTERN_C void R_RenderMapInternal(void) {
+#if A_RENDER_BACKEND_GL
     GL_CALL(glEnable,     GL_DEPTH_TEST);
     GL_CALL(glEnable,     GL_CULL_FACE);
     GL_CALL(glUseProgram, r_mapGlob.prog.program);
@@ -930,6 +1047,7 @@ A_EXTERN_C void R_RenderMapInternal(void) {
     GL_CALL(glUseProgram, 0);
     GL_CALL(glDisable, GL_CULL_FACE);
     GL_CALL(glDisable, GL_DEPTH_TEST);
+#endif // A_RENDER_BACKEND_GL
 }
 
 A_EXTERN_C void R_RenderMap(void) {
@@ -942,19 +1060,21 @@ A_EXTERN_C void R_RenderMap(void) {
 static void R_DrawFrameInternal(size_t localClientNum) {
     cg_t* cg = CG_GetLocalClientGlobals(localClientNum);
 
-    GLint   x = (GLint)  (cg->viewport.x * Dvar_GetInt(vid_width));
-    GLint   y = (GLint)  (cg->viewport.y * Dvar_GetInt(vid_height));
-    GLsizei w = (GLsizei)(cg->viewport.w * Dvar_GetInt(vid_width));
-    GLsizei h = (GLsizei)(cg->viewport.h * Dvar_GetInt(vid_height));
+    int x = (cg->viewport.x * Dvar_GetInt(vid_width));
+    int y = (cg->viewport.y * Dvar_GetInt(vid_height));
+    int w = (cg->viewport.w * Dvar_GetInt(vid_width));
+    int h = (cg->viewport.h * Dvar_GetInt(vid_height));
 
     if (Dvar_WasModified(cg->fov)) {
         R_UpdateProjection(localClientNum);
         Dvar_ClearModified(cg->fov);
     }
 
+#if A_RENDER_BACKEND_GL
     GL_CALL(glViewport, x, y, w, h);
     GL_CALL(glScissor,  x, y, w, h);
     GL_CALL(glClear, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+#endif // A_RENDER_BACKEND_GL
 
     const RectDef rect = {
         .x = x,
@@ -979,14 +1099,16 @@ static void R_DrawFrameInternal(size_t localClientNum) {
     mat4 view;
     glm_lookat(pos.array, center.array, cg->camera.up.array, view);
     
+#if A_RENDER_BACKEND_GL
     GL_CALL(glUseProgram, r_mapGlob.prog.program);
     R_SetUniformMat4f(r_mapGlob.prog.program, "uView", *(amat4f_t*)&view);
     R_SetUniformMat4f(
         r_mapGlob.prog.program, "uPerspectiveProjection",
         cg->camera.perspectiveProjection
-    );;
+    );
 
     GL_CALL(glUseProgram, 0);
+#endif // A_RENDER_BACKEND_GL
 
     R_RenderMap();
     

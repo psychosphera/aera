@@ -2,7 +2,9 @@
 
 #include <stdio.h>
 
+#if A_RENDER_BACKEND_GL
 #include <GL/glew.h>
+#endif // A_RENDER_BACKEND_GL
 #include <SDL3/SDL.h>
 
 #include "com_print.h"
@@ -18,6 +20,7 @@ A_EXTERN_C dvar_t* r_noBorder;
 static SDL_GLContext s_glContext;
 
 A_EXTERN_C void RB_Init(void) {
+#if A_RENDER_BACKEND_GL
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, 
@@ -39,6 +42,7 @@ A_EXTERN_C void RB_Init(void) {
         printf("GLEW init failed: %s", glewGetErrorString(err));
         Sys_NormalExit(-2);
     }
+#endif // A_RENDER_BACKEND_GL
 }
 
 extern dvar_t* vid_width;
@@ -47,7 +51,11 @@ extern dvar_t* vid_xpos;
 extern dvar_t* vid_ypos;
 
 A_EXTERN_C bool RB_EnableVsync(bool enable) {
+#if A_RENDER_BACKEND_GL
     return SDL_GL_SetSwapInterval((int)enable) == 0;
+#else
+    return false;
+#endif // A_RENDER_BACKEND_GL
 }
 
 A_EXTERN_C void RB_BeginFrame(void) {
@@ -107,9 +115,13 @@ A_EXTERN_C void RB_BeginFrame(void) {
 }
 
 A_EXTERN_C void RB_EndFrame(void) {
+#if A_RENDER_BACKEND_GL
     SDL_GL_SwapWindow(g_sdlWindow);
+#endif // A_RENDER_BACKEND_GL
 }
 
 A_EXTERN_C void RB_Shutdown(void) {
+#if A_RENDER_BACKEND_GL
     SDL_GL_DeleteContext(s_glContext);
+#endif // A_RENDER_BACKEND_GL
 }

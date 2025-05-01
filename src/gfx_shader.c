@@ -3,6 +3,7 @@
 #include "acommon/a_string.h"
 #include "acommon/z_mem.h"
 
+#if A_RENDER_BACKEND_GL
 A_NO_DISCARD bool R_CompileShader(
     const char* shaderSource, int type,
     A_OPTIONAL_OUT char** log, A_OUT unsigned int* shader
@@ -25,7 +26,9 @@ A_NO_DISCARD bool R_CompileShader(
 
     return success == GL_TRUE;
 }
+#endif // A_RENDER_BACKEND_GL
 
+#if A_RENDER_BACKEND_GL
 A_NO_DISCARD bool R_LinkShaders(
     vertex_shader_t vertShader, fragment_shader_t fragShader,
     A_OPTIONAL_OUT char** log, A_OUT shader_program_t* program
@@ -51,7 +54,9 @@ A_NO_DISCARD bool R_LinkShaders(
 
     return success == GL_TRUE;
 }
+#endif // A_RENDER_BACKEND_GL
 
+#if A_RENDER_BACKEND_GL
 A_NO_DISCARD bool R_CreateShaderProgram(
     const char* vertexSource, const char* fragmentSource,
     A_OPTIONAL_OUT char** log, A_OUT GfxShaderProgram* prog
@@ -75,13 +80,18 @@ A_NO_DISCARD bool R_CreateShaderProgram(
     prog->program         = p;
     return true;
 }
+#endif // A_RENDER_BACKEND_GL
 
 bool R_DeleteShaderProgram(
     A_INOUT GfxShaderProgram* prog
 ) {
+#if A_RENDER_BACKEND_GL
     GL_CALL(glDeleteProgram, prog->program);
     prog->vertex_shader   = 0;
     prog->fragment_shader = 0;
     prog->program         = 0;
+#else
+    (void)prog;
+#endif // A_RENDER_BACKEND_GL
     return true;
 }

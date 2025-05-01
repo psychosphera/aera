@@ -1,5 +1,6 @@
 #include "gfx_defs.h"
 
+#if A_RENDER_BACKEND_GL
 A_EXTERN_C void R_SetUniformBool(
     shader_program_t program, const char* name, bool value);
 A_EXTERN_C void R_SetUniformFloat(
@@ -33,3 +34,4 @@ A_EXTERN_C void R_SetUniformMat3f(
     shader_program_t program, const char* name, amat3f_t value);
 A_EXTERN_C void R_SetUniformMat4f(
     shader_program_t program, const char* name, amat4f_t value);
+#endif // A_RENDER_BACKEND_GL

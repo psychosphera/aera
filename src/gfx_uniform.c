@@ -1,5 +1,6 @@
 #include "gfx_uniform.h"
 
+#if A_RENDER_BACKEND_GL
 void R_SetUniformBool(shader_program_t program, const char* name, bool value) {
     R_SetUniformInt(program, name, (int)value);
 }
@@ -111,3 +112,4 @@ void R_SetUniformMat4f(
     int location = glGetUniformLocation(program, name);
     glUniformMatrix4fv(location, 1, GL_FALSE, value.array);
 }
+#endif // A_RENDER_BACKEND_GL

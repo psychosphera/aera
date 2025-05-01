@@ -23,6 +23,7 @@ A_NO_DISCARD float R_VidAspectInv(void) {
     return (float)Dvar_GetInt(vid_width) / (float)Dvar_GetInt(vid_width);
 }
 
+#if A_RENDER_BACKEND_GL
 GLenum R_GlCheckError(int line, const char* file) {
     GLenum err = glGetError();
     if (err != GL_NO_ERROR) {
@@ -34,6 +35,7 @@ GLenum R_GlCheckError(int line, const char* file) {
     }
     return err;
 }
+#endif // A_RENDER_BACKEND_GL
 
 bool R_CreateVertexBuffer(const void* data, size_t n, size_t capacity,
                           size_t off, A_OUT GfxVertexBuffer* vb
@@ -51,7 +53,7 @@ bool R_CreateVertexBuffer(const void* data, size_t n, size_t capacity,
     assert(capacity >= off + n && capacity > 0);
     if (capacity < off + n || capacity < 1)
         return false;
-
+#if A_RENDER_BACKEND_GL
     GL_CALL(glGenVertexArrays, 1, &vb->vao);
     GL_CALL(glGenBuffers,      1, &vb->vbo);
 
@@ -66,6 +68,7 @@ bool R_CreateVertexBuffer(const void* data, size_t n, size_t capacity,
         if (data)
             GL_CALL(glBufferSubData, GL_ARRAY_BUFFER, off, n, data);
     }
+#endif // A_RENDER_BACKEND_GL
 
     vb->bytes    = n;
     vb->capacity = capacity;
@@ -80,12 +83,14 @@ bool R_UploadVertexData(A_INOUT GfxVertexBuffer* vb,
     if (!vb)
         return false;
 
+#if A_RENDER_BACKEND_GL
     GL_CALL(glBindVertexArray, vb->vao);
     GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, vb->vbo);
     if (data && n > 0) {
         GL_CALL(glBufferSubData, GL_ARRAY_BUFFER, off, n, data);
         vb->bytes = A_MAX(vb->bytes, off + n);
     }
+#endif // A_RENDER_BACKEND_GL
 
     return true;
 }
@@ -109,9 +114,11 @@ bool R_AppendVertexData(A_INOUT GfxVertexBuffer* vb,
     if (vb->bytes + n > vb->capacity)
         return false;
 
+#if A_RENDER_BACKEND_GL
     GL_CALL(glBindVertexArray, vb->vao);
     GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, vb->vbo);
     GL_CALL(glBufferSubData, GL_ARRAY_BUFFER, vb->bytes, n, data);
+#endif // A_RENDER_BACKEND_GL
 
     return true;
 }
@@ -121,6 +128,7 @@ bool R_DeleteVertexBuffer(A_INOUT GfxVertexBuffer* vb) {
     if (!vb)
         return false;
 
+#if A_RENDER_BACKEND_GL
     GL_CALL(glBindVertexArray, vb->vao);
     GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, vb->vbo);
 
@@ -134,9 +142,11 @@ bool R_DeleteVertexBuffer(A_INOUT GfxVertexBuffer* vb) {
 
     vb->vao = 0;
     vb->vbo = 0;
+#endif // A_RENDER_BACKEND_GL
     return true;
 }
 
+#if A_RENDER_BACKEND_GL
 A_NO_DISCARD GLenum R_ImageFormatToGl(ImageFormat format) {
     GLenum gl_format = 0;
     switch (format) {
@@ -167,7 +177,9 @@ A_NO_DISCARD GLenum R_ImageFormatToGl(ImageFormat format) {
 
     return gl_format;
 }
+#endif // A_RENDER_BACKEND_GL
 
+#if A_RENDER_BACKEND_GL
 A_NO_DISCARD ImageFormat R_ImageFormatFromGl(GLenum format) {
     ImageFormat img_format = R_IMAGE_FORMAT_UNKNOWN;
     switch (format) {
@@ -202,6 +214,7 @@ A_NO_DISCARD ImageFormat R_ImageFormatFromGl(GLenum format) {
 
     return img_format;
 }
+#endif // A_RENDER_BACKEND_GL
 
 A_NO_DISCARD bool R_ImageFormatIsCompressed(ImageFormat format) {
     assert(format < R_IMAGE_FORMAT_COUNT);
@@ -249,6 +262,7 @@ A_NO_DISCARD bool R_CreateImage2D(int width, int height,
 
     A_memset(image, 0, sizeof(*image));
 
+#if A_RENDER_BACKEND_GL
     GLenum gl_format          = R_ImageFormatToGl(format);
     GLenum gl_internal_format = R_ImageFormatToGl(internal_format);
 
@@ -274,6 +288,7 @@ A_NO_DISCARD bool R_CreateImage2D(int width, int height,
         }
         GL_CALL(glGenerateMipmap, GL_TEXTURE_2D);
     }
+#endif // A_RENDER_BACKEND_GL
 
     image->width           = width;
     image->height          = height;
@@ -283,11 +298,15 @@ A_NO_DISCARD bool R_CreateImage2D(int width, int height,
     image->internal_format = internal_format;
     image->pixels          = pixels;
     image->pixels_size     = pixels_size;
+#if A_RENDER_BACKEND_GL
     image->tex             = tex;
+#endif // A_RENDER_BACKEND_GL
 
     return true;
 }
 
 void R_DeleteImage(A_INOUT GfxImage* image) {
+#if A_RENDER_BACKEND_GL
     GL_CALL(glDeleteTextures, 1, &image->tex);
+#endif // A_RENDER_BACKEND_GL
 }

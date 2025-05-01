@@ -1,11 +1,14 @@
 #pragma once
 
+#if A_RENDER_BACKEND_GL
 #include <GL/glew.h>
+#endif // A_RENDER_BACKEND_GL
 
 #include "acommon/a_math.h"
 
 #include "com_defs.h"
 
+#if A_RENDER_BACKEND_GL
 typedef unsigned int vbo_t;
 typedef unsigned int vao_t;
 typedef unsigned int ebo_t;
@@ -13,6 +16,7 @@ typedef unsigned int vertex_shader_t;
 typedef unsigned int fragment_shader_t;
 typedef unsigned int shader_program_t;
 typedef unsigned int texture_t;
+#endif // A_RENDER_BACKEND_GL
 
 #define R_VFOV_DEFAULT 74.0f
 
@@ -21,8 +25,10 @@ typedef struct GfxSubTexDef {
 } GfxSubTexDef;
 
 typedef struct GfxVertexBuffer {
+#if A_RENDER_BACKEND_GL
     vao_t  vao;
     vbo_t  vbo;
+#endif // A_RENDER_BACKEND_GL
     size_t bytes, capacity;
 } GfxVertexBuffer;
 
@@ -57,7 +63,9 @@ typedef enum ImageType {
 
 typedef struct GfxImage {
     ImageType   type;
+#if A_RENDER_BACKEND_GL
     texture_t   tex;
+#endif // A_RENDER_BACKEND_GL
     ImageFormat format, internal_format;
     const void* pixels;
     size_t      pixels_size;
@@ -77,9 +85,13 @@ typedef struct GfxCamera {
 } GfxCamera;
 
 typedef struct GfxShaderProgram {
+#if A_RENDER_BACKEND_GL
 	shader_program_t  program;
 	vertex_shader_t   vertex_shader;
 	fragment_shader_t fragment_shader;
+#else
+    char dummy;
+#endif // A_RENDER_BACKEND_GL
 } GfxShaderProgram;
 
 struct FontDef;
@@ -96,8 +108,10 @@ typedef struct GfxTextDraw {
     bool         right;
 } GfxTextDraw;
 
+#if A_RENDER_BACKEND_GL
 A_EXTERN_C A_NO_DISCARD GLenum      R_ImageFormatToGl  (ImageFormat format);
 A_EXTERN_C A_NO_DISCARD ImageFormat R_ImageFormatFromGl(GLenum format);
+#endif // A_RENDER_BACKEND_GL
 A_EXTERN_C A_NO_DISCARD bool        R_CreateImage2D(
     int width, int height,
     ImageFormat format,
@@ -108,12 +122,16 @@ A_EXTERN_C A_NO_DISCARD bool        R_CreateImage2D(
 );
 A_EXTERN_C void R_DeleteImage(A_INOUT GfxImage* image);
 
+#if A_RENDER_BACKEND_GL
 A_EXTERN_C A_NO_DISCARD const char* R_GlDebugErrorString(GLenum err);
 A_EXTERN_C GLenum R_GlCheckError(int line, const char* file);
+#endif // A_RENDER_BACKEND_GL
 
+#if A_RENDER_BACKEND_GL
 #define GL_CALL(func, ...)                                            \
     func(__VA_ARGS__);                                                \
     R_GlCheckError(__LINE__, __FILE__);
+#endif // A_RENDER_BACKEND_GL
 
 A_EXTERN_C A_NO_DISCARD float R_FovHorzToVertical(float fovx, 
                                                   float aspect_inv);
