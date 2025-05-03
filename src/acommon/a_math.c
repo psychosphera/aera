@@ -28,6 +28,18 @@ const amat4f_t A__priv__mat4f_identity = {
 		   { 0.0f, 0.0f, 0.0f, 1.0f } }
 };
 
+A_NO_DISCARD float A_ceilf(float a, float b) {
+	return (a + b - 1) / b;
+}
+
+A_NO_DISCARD double A_ceil(double a, double b) {
+	return (a + b - 1) / b;
+}
+
+A_NO_DISCARD int A_ceili(int a, int b) {
+	return (a + b - 1) / b;
+}
+
 A_NO_DISCARD float A_sqrtf(float x) {
 	return sqrtf(x);
 }

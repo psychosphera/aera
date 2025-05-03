@@ -2,16 +2,21 @@
 
 #include <assert.h>
 
+#if A_RENDER_BACKEND_D3D9
+#include <d3d9.h>
+#endif // A_RENDER_BACKEND_D3D9
+
 #include "acommon/a_math.h"
 #include "acommon/a_string.h"
 
 #include "com_print.h"
 #include "dvar.h"
+#include "gfx.h"
 
 extern dvar_t* vid_width;
 extern dvar_t* vid_height;
 
-float R_FovHorzToVertical(float fovx, float aspect_inv) {
+A_NO_DISCARD float R_FovHorzToVertical(float fovx, float aspect_inv) {
     return 2.0f * A_degrees(A_atanf(A_tanf(A_radians(fovx) / 2) * aspect_inv));
 }
 
@@ -38,11 +43,13 @@ GLenum R_GlCheckError(int line, const char* file) {
 #endif // A_RENDER_BACKEND_GL
 
 bool R_CreateVertexBuffer(const void* data, size_t n, size_t capacity,
-                          size_t off, A_OUT GfxVertexBuffer* vb
+                            size_t off, A_OUT GfxVertexBuffer* vb
 ) {
     assert(vb);
     if (!vb)
         return false;
+
+    A_memset(vb, 0, sizeof(*vb));
 
     if (data) {
         assert(capacity > 0);
@@ -68,12 +75,38 @@ bool R_CreateVertexBuffer(const void* data, size_t n, size_t capacity,
         if (data)
             GL_CALL(glBufferSubData, GL_ARRAY_BUFFER, off, n, data);
     }
-#endif // A_RENDER_BACKEND_GL
+    bool ret = true;
+#elif A_RENDER_BACKEND_D3D9
+    IDirect3DVertexBuffer9* buffer = NULL;
+    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->CreateVertexBuffer(
+        r_d3d9Glob.d3ddev, capacity, 0, 0,
+        D3DPOOL_DEFAULT, &buffer, NULL
+    );
+    assert(hr == D3D_OK);
+    bool ret = hr == D3D_OK;
+    assert(buffer);
 
+    vb->buffer = buffer;
+
+    if (hr == D3D_OK && data && n) {
+        void* p = NULL;
+        hr = buffer->lpVtbl->Lock(buffer, off, n, &p, D3DLOCK_DISCARD);
+        assert(hr == D3D_OK);
+        if (ret)
+            ret = hr == D3D_OK;
+        if (hr == D3D_OK)
+            A_memcpy(p, data, n);
+
+        hr = buffer->lpVtbl->Unlock(buffer);
+        assert(hr == D3D_OK);
+        if (ret)
+            ret = hr == D3D_OK;
+    }
+#endif
     vb->bytes    = n;
     vb->capacity = capacity;
 
-    return true;
+    return ret;
 }
 
 bool R_UploadVertexData(A_INOUT GfxVertexBuffer* vb,
@@ -83,6 +116,10 @@ bool R_UploadVertexData(A_INOUT GfxVertexBuffer* vb,
     if (!vb)
         return false;
 
+    assert(data);
+    assert(n);
+    assert(off + n < vb->capacity);
+
 #if A_RENDER_BACKEND_GL
     GL_CALL(glBindVertexArray, vb->vao);
     GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, vb->vbo);
@@ -90,9 +127,19 @@ bool R_UploadVertexData(A_INOUT GfxVertexBuffer* vb,
         GL_CALL(glBufferSubData, GL_ARRAY_BUFFER, off, n, data);
         vb->bytes = A_MAX(vb->bytes, off + n);
     }
-#endif // A_RENDER_BACKEND_GL
-
     return true;
+#elif A_RENDER_BACKEND_D3D9
+    void* p = NULL;
+    HRESULT hr = vb->buffer->lpVtbl->Lock(vb->buffer, off, n, &p, D3DLOCK_DISCARD);
+    assert(hr == D3D_OK);
+    bool ret = hr == D3D_OK;
+    if (hr == D3D_OK)
+        A_memcpy(p, data, n);
+    hr = vb->buffer->lpVtbl->Unlock(vb->buffer);
+    if (ret)
+        ret = hr == D3D_OK;
+    return ret;
+#endif // A_RENDER_BACKEND_GL
 }
 
 bool R_AppendVertexData(A_INOUT GfxVertexBuffer* vb,
@@ -118,8 +165,128 @@ bool R_AppendVertexData(A_INOUT GfxVertexBuffer* vb,
     GL_CALL(glBindVertexArray, vb->vao);
     GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, vb->vbo);
     GL_CALL(glBufferSubData, GL_ARRAY_BUFFER, vb->bytes, n, data);
+    bool ret = true;
+#elif A_RENDER_BACKEND_D3D9
+    void* p = NULL;
+    HRESULT hr = vb->buffer->lpVtbl->Lock(vb->buffer, vb->bytes, n, &p, D3DLOCK_DISCARD);
+    assert(hr == D3D_OK);
+    bool ret = hr == D3D_OK;
+    if (hr == D3D_OK)
+        A_memcpy(p, data, n);
+    hr = vb->buffer->lpVtbl->Unlock(vb->buffer);
+    if (ret)
+        ret = hr == D3D_OK;
 #endif // A_RENDER_BACKEND_GL
 
+    vb->bytes += n;
+    return ret;
+}
+
+int R_AddImageToMaterialPass(A_INOUT GfxMaterialPass* pass, A_IN GfxImage* image) {
+    assert(pass);
+    assert(image);
+    assert(pass->current_image < A_countof(pass->images));
+
+    pass->images[pass->current_image] = *image;
+    int ret = pass->current_image;
+    pass->current_image++;
+    A_memset(image, 0, sizeof(*image));
+    return ret;
+}
+
+int R_AddVertexBufferToMaterialPass(A_INOUT GfxMaterialPass* pass, 
+                                    A_IN GfxVertexBuffer* vb
+) {
+    assert(pass);
+    assert(vb);
+    assert(pass->vb_count < A_countof(pass->vbs));
+    pass->vbs[pass->vb_count] = *vb;
+    int ret = pass->vb_count;
+    pass->vb_count++;
+    A_memset(vb, 0, sizeof(*vb));
+    return ret;
+}
+
+bool R_RenderMaterialPass(const GfxMaterialPass* pass, 
+                          size_t vertices_count, size_t off, 
+                          GfxPolygonMode mode
+) {
+    assert(pass);
+    if (!pass)
+        return false;
+
+    assert(pass->vb_count > 0);
+    if (pass->vb_count < 1)
+        return false;
+    
+    assert(vertices_count > 0);
+
+#if A_RENDER_BACKEND_GL
+    assert(pass->vb_count == 1 && 
+           "R_RenderVertexBuffer: GL backend only supports one vertex buffer at a time");
+    GfxVertexBuffer* vb = &pass->vbs[0];
+    GL_CALL(glBindVertexArray, vb->vao);
+    GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, vb->vbo);
+
+    for (int i = 0; i < pass->current_image; i++) {
+        const GfxImage* image = &pass->images[i];
+        if (image->tex) {
+            GL_CALL(glActiveTexture, GL_TEXTURE0 + i);
+            GL_CALL(glBindTexture, GL_TEXTURE_2D, image->tex);
+        }
+    }
+
+    if (mode == R_POLYGON_MODE_LINE) 
+        GL_CALL(glPolygonMode, GL_FRONT_AND_BACK, GL_LINE);
+
+    GL_CALL(glDrawArrays, GL_TRIANGLES, off, vertices_count);
+
+    if (mode == R_POLYGON_MODE_LINE)
+        GL_CALL(glPolygonMode, GL_FRONT_AND_BACK, GL_FILL);
+#elif A_RENDER_BACKEND_D3D9
+    for (int i = 0; i < pass->vb_count; i++) {
+        HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetStreamSource(
+            r_d3d9Glob.d3ddev, 0, pass->vbs[i].buffer, 0, 
+            sizeof(GfxVertexBuffer)
+        );
+        assert(hr == D3D_OK);
+        if (hr != D3D_OK)
+            return false;
+    }
+    
+    
+    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetVertexDeclaration(
+        r_d3d9Glob.d3ddev, pass->decl
+    );
+    assert(hr == D3D_OK);
+    if (hr != D3D_OK)
+        return false;
+
+    if (mode == R_POLYGON_MODE_LINE) {
+        hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(r_d3d9Glob.d3ddev, 
+                                                       D3DRS_FILLMODE, 
+                                                       D3DFILL_WIREFRAME);
+        assert(hr == D3D_OK);
+        if (hr != D3D_OK)
+            return false;
+    }
+
+    hr = r_d3d9Glob.d3ddev->lpVtbl->DrawPrimitive(r_d3d9Glob.d3ddev, 
+                                                  D3DPT_TRIANGLELIST, off, 
+                                                  vertices_count / 3);
+    assert(hr == D3D_OK);
+    if (hr != D3D_OK)
+        return false;
+
+    if (mode == R_POLYGON_MODE_LINE) {
+        hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(r_d3d9Glob.d3ddev, 
+                                                       D3DRS_FILLMODE, 
+                                                       D3DFILL_SOLID);
+        assert(hr == D3D_OK);
+        if (hr != D3D_OK)
+            return false;
+    }
+#endif // A_RENDER_BACKEND_GL
     return true;
 }
 
@@ -142,7 +309,31 @@ bool R_DeleteVertexBuffer(A_INOUT GfxVertexBuffer* vb) {
 
     vb->vao = 0;
     vb->vbo = 0;
+#elif A_RENDER_BACKEND_D3D9
+    vb->buffer->lpVtbl->Release(vb->buffer);
+    vb->buffer = NULL;
 #endif // A_RENDER_BACKEND_GL
+    vb->bytes    = 0;
+    vb->capacity = 0;
+    return true;
+}
+
+bool R_DeleteMaterialPass(A_IN GfxMaterialPass* pass) {
+    assert(pass);
+    if (!pass)
+        return false;
+
+    for (int i = 0; i < pass->vb_count; i++) 
+        R_DeleteVertexBuffer(&pass->vbs[i]);    
+ 
+    for (int i = 0; i < pass->current_image; i++)
+        R_DeleteImage(&pass->images[i]);
+
+#if A_RENDER_BACKEND_D3D9
+    if (pass->decl)
+        pass->decl->lpVtbl->Release(pass->decl);
+#endif // A_RENDER_BACKEND_D3D9
+    A_memset(pass, 0, sizeof(*pass));
     return true;
 }
 
@@ -176,6 +367,34 @@ A_NO_DISCARD GLenum R_ImageFormatToGl(ImageFormat format) {
     };
 
     return gl_format;
+}
+#elif A_RENDER_BACKEND_D3D9
+A_NO_DISCARD D3DFORMAT R_ImageFormatToD3D(ImageFormat format) {
+    D3DFORMAT d3dfmt = 0;
+    switch (format) {
+    case R_IMAGE_FORMAT_A8:
+        d3dfmt = D3DFMT_A8;
+        break;
+    case R_IMAGE_FORMAT_RGB565:
+        d3dfmt = D3DFMT_R5G6B5;
+        break;
+    case R_IMAGE_FORMAT_DXT1:
+        d3dfmt = D3DFMT_DXT1;
+        break;
+    case R_IMAGE_FORMAT_DXT3:
+        d3dfmt = D3DFMT_DXT3;
+        break;
+    case R_IMAGE_FORMAT_DXT5:
+        d3dfmt = D3DFMT_DXT5;
+        break;
+    default:
+        Com_Errorln(
+            -1,
+            "R_ImageFormatToD3D: Unimplemented ImageFormat %d.",
+            (int)format);
+    };
+
+    return d3dfmt;
 }
 #endif // A_RENDER_BACKEND_GL
 
@@ -214,6 +433,38 @@ A_NO_DISCARD ImageFormat R_ImageFormatFromGl(GLenum format) {
 
     return img_format;
 }
+#elif A_RENDER_BACKEND_D3D9
+A_NO_DISCARD ImageFormat R_ImageFormatFromD3D(D3DFORMAT format) {
+    ImageFormat img_format = R_IMAGE_FORMAT_UNKNOWN;
+    switch (format) {
+    case D3DFMT_A8:
+        img_format = R_IMAGE_FORMAT_A8;
+        break;
+    case D3DFMT_R5G6B5:
+        img_format = R_IMAGE_FORMAT_RGB565;
+        break;
+    case D3DFMT_R8G8B8:
+        img_format = R_IMAGE_FORMAT_RGB888;
+        break;
+    case D3DFMT_DXT1:
+        img_format = R_IMAGE_FORMAT_DXT1;
+        break;
+    case D3DFMT_DXT3:
+        img_format = R_IMAGE_FORMAT_DXT3;
+        break;
+    case D3DFMT_DXT5:
+        img_format = R_IMAGE_FORMAT_DXT5;
+        break;
+    default:
+        assert(false && "Unimplemented D3D format");
+        Com_Errorln(
+            -1,
+            "R_ImageFormatToGL: Unimplemented GL format %d.",
+            format);
+    };
+
+    return img_format;
+}
 #endif // A_RENDER_BACKEND_GL
 
 A_NO_DISCARD bool R_ImageFormatIsCompressed(ImageFormat format) {
@@ -231,82 +482,60 @@ A_NO_DISCARD bool R_ImageFormatIsCompressed(ImageFormat format) {
     };
 }
 
-A_NO_DISCARD bool R_CreateImage2D(int width, int height,
-                                  ImageFormat       format,
-                                  ImageFormat       internal_format,
-                                  const void*       pixels,
-                                  size_t            pixels_size,
-                                  A_INOUT GfxImage* image
-) {
-    assert(image);
-    if (!image)
-        return false;
-
-    if (pixels) {
-        assert(pixels_size > 0);
-        if (pixels_size < 1)
-            return false;
-    } else {
-        assert(pixels_size == 0);
-        if (pixels_size != 0)
-            return false;
-
-        assert(width == 0);
-        if (width != 0)
-            return false;
-
-        assert(height == 0);
-        if (height != 0)
-            return false;
+A_NO_DISCARD int R_ImageFormatPixelSize(ImageFormat format) {
+    switch (format) {
+    case R_IMAGE_FORMAT_A8:
+    case R_IMAGE_FORMAT_R8:
+        return 1;
+    case R_IMAGE_FORMAT_RGB565:
+        return 2;
+    case R_IMAGE_FORMAT_RGB888: 
+        return 3;
+    case R_IMAGE_FORMAT_ARGB8888:
+    case R_IMAGE_FORMAT_RGBA8888:
+        return 4;
+    case R_IMAGE_FORMAT_DXT1:
+        return 8;
+    case R_IMAGE_FORMAT_DXT3:
+    case R_IMAGE_FORMAT_DXT5:
+        return 16;
+    default:
+        assert(false && "Unimplemented ImageFormat");
+        Com_Errorln(
+            -1,
+            "R_ImageFormatPixelSize: Unimplemented ImageFormat %d.",
+            format
+        );
     }
-
-    A_memset(image, 0, sizeof(*image));
-
-#if A_RENDER_BACKEND_GL
-    GLenum gl_format          = R_ImageFormatToGl(format);
-    GLenum gl_internal_format = R_ImageFormatToGl(internal_format);
-
-    texture_t tex;
-    GL_CALL(glActiveTexture, GL_TEXTURE0);
-    GL_CALL(glGenTextures, 1, &tex);
-    GL_CALL(glBindTexture, GL_TEXTURE_2D, tex);
-
-    GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    bool compressed = R_ImageFormatIsCompressed(format);
-    if (pixels) {
-        if (compressed) {
-            GL_CALL(glCompressedTexImage2D, GL_TEXTURE_2D, 0,
-                gl_internal_format, width, height, 0, pixels_size, pixels);
-        }
-        else {
-            GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, gl_internal_format,
-                width, height, 0, gl_format, GL_UNSIGNED_BYTE, pixels);
-        }
-        GL_CALL(glGenerateMipmap, GL_TEXTURE_2D);
-    }
-#endif // A_RENDER_BACKEND_GL
-
-    image->width           = width;
-    image->height          = height;
-    image->depth           = 1;
-    image->type            = R_IMAGE_TYPE_2D_TEXTURE;
-    image->format          = format;
-    image->internal_format = internal_format;
-    image->pixels          = pixels;
-    image->pixels_size     = pixels_size;
-#if A_RENDER_BACKEND_GL
-    image->tex             = tex;
-#endif // A_RENDER_BACKEND_GL
-
-    return true;
 }
 
-void R_DeleteImage(A_INOUT GfxImage* image) {
 #if A_RENDER_BACKEND_GL
-    GL_CALL(glDeleteTextures, 1, &image->tex);
-#endif // A_RENDER_BACKEND_GL
+A_NO_DISCARD GLint R_ImageFilterToGL(GfxFilter filter) {
+    switch (filter) {
+    case R_IMAGE_FILTER_LINEAR:
+        return GL_LINEAR;
+    default:
+        assert(false && "Unimplemented GfxFilter");
+    }
 }
+#elif A_RENDER_BACKEND_D3D9
+A_NO_DISCARD DWORD R_ImageFilterToD3D(GfxFilter filter) {
+    switch (filter) {
+    case R_IMAGE_FILTER_LINEAR:
+        return D3DTEXF_LINEAR;
+    default:
+        assert(false && "Unimplemented GfxFilter");
+    }
+    return -1;
+}
+#endif // A_RENDER_BACKEND_D3D9
+
+#if A_RENDER_BACKEND_D3D9
+A_NO_DISCARD D3DCOLOR R_ColorRGBAToD3DARGB(acolor_rgba_t rgba) {
+    DWORD r = rgba.r * 255;
+    DWORD g = rgba.g * 255;
+    DWORD b = rgba.b * 255;
+    DWORD a = rgba.a * 255;
+    return D3DCOLOR_ARGB(a, r, g, b);
+}
+#endif // A_RENDER_BACKEND_D3D9

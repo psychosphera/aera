@@ -389,6 +389,9 @@ A_NO_DISCARD avec4f_t Dvar_GetVec4(const dvar_t* d) {
 }
 
 void Dvar_SetBool(A_INOUT dvar_t* d, bool b) {
+	if (d->flags & DVAR_FLAG_READONLY)
+		return;
+
 	if (d->type == DVAR_TYPE_BOOL) {
 		d->value.b = b;
 		if (b)
@@ -400,6 +403,9 @@ void Dvar_SetBool(A_INOUT dvar_t* d, bool b) {
 }
 
 void Dvar_SetInt(A_INOUT dvar_t* d, int i) {
+	if (d->flags & DVAR_FLAG_READONLY)
+		return;
+
 	if (d->type == DVAR_TYPE_INT &&
 		(i <= d->domain.i.max && i >= d->domain.i.min)
 	) {
@@ -412,6 +418,9 @@ void Dvar_SetInt(A_INOUT dvar_t* d, int i) {
 }
 
 void Dvar_SetFloat(A_INOUT dvar_t* d, float f) {
+	if (d->flags & DVAR_FLAG_READONLY)
+		return;
+
 	if (d->type == DVAR_TYPE_FLOAT &&
 		(f <= d->domain.f.max && f >= d->domain.f.min)
 	) {
@@ -422,6 +431,9 @@ void Dvar_SetFloat(A_INOUT dvar_t* d, float f) {
 }
 
 void Dvar_SetString(A_INOUT dvar_t* d, const char* s) {
+	if (d->flags & DVAR_FLAG_READONLY)
+		return;
+
 	if (d->type == DVAR_TYPE_STRING) {
 		d->e[0] = A_cstrdup(s);
 		d->modified = true;
@@ -432,6 +444,9 @@ void Dvar_SetString(A_INOUT dvar_t* d, const char* s) {
 }
 
 void Dvar_SetVec2(A_INOUT dvar_t* d, avec2f_t v) {
+	if (d->flags & DVAR_FLAG_READONLY)
+		return;
+
 	if (d->type == DVAR_TYPE_VEC2 &&
 		(v.x <= d->domain.f.max && v.x >= d->domain.f.min) &&
 		(v.y <= d->domain.f.max && v.y >= d->domain.f.min)
@@ -445,6 +460,9 @@ void Dvar_SetVec2(A_INOUT dvar_t* d, avec2f_t v) {
 }
 
 void Dvar_SetVec3(A_INOUT dvar_t* d, avec3f_t v) {
+	if (d->flags & DVAR_FLAG_READONLY)
+		return;
+
 	if (d->type == DVAR_TYPE_VEC3 &&
 		(v.x <= d->domain.f.max && v.x >= d->domain.f.min) &&
 		(v.y <= d->domain.f.max && v.y >= d->domain.f.min) &&
@@ -462,6 +480,9 @@ void Dvar_SetVec3(A_INOUT dvar_t* d, avec3f_t v) {
 }
 
 void Dvar_SetVec4(A_INOUT dvar_t* d, avec4f_t v) {
+	if (d->flags & DVAR_FLAG_READONLY)
+		return;
+
 	if (d->type == DVAR_TYPE_VEC4 &&
 		(v.x <= d->domain.f.max && v.x >= d->domain.f.min) &&
 		(v.y <= d->domain.f.max && v.y >= d->domain.f.min) &&

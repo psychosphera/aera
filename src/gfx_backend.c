@@ -13,11 +13,39 @@
 #include "sys.h"
 
 extern SDL_Window* g_sdlWindow;
-A_EXTERN_C dvar_t* r_vsync;
-A_EXTERN_C dvar_t* r_fullscreen;
-A_EXTERN_C dvar_t* r_noBorder;
+extern dvar_t* r_vsync;
+extern dvar_t* r_fullscreen;
+extern dvar_t* r_noBorder;
+extern dvar_t* vid_width;
+extern dvar_t* vid_height;
+extern dvar_t* vid_xpos;
+extern dvar_t* vid_ypos;
+
 
 static SDL_GLContext s_glContext;
+static bool s_windowResizeable;
+
+bool RB_WindowResizeable() {
+    return s_windowResizeable;
+}
+
+void RB_EnableWindowResize(bool resizeable) {
+    if (resizeable == RB_WindowResizeable())
+        return;
+
+    SDL_SetWindowResizable(g_sdlWindow, resizeable);
+    s_windowResizeable = resizeable;
+    if (!resizeable) {
+        int w = Dvar_GetInt(vid_width);
+        int h = Dvar_GetInt(vid_height);
+        vid_width = Dvar_ReregisterInt("vid_width",
+            DVAR_FLAG_READONLY,
+            w, 0, INT_MAX);
+        vid_height = Dvar_ReregisterInt("vid_height",
+            DVAR_FLAG_READONLY,
+            h, 0, INT_MAX);
+    }
+}
 
 A_EXTERN_C void RB_Init(void) {
 #if A_RENDER_BACKEND_GL
@@ -42,13 +70,12 @@ A_EXTERN_C void RB_Init(void) {
         printf("GLEW init failed: %s", glewGetErrorString(err));
         Sys_NormalExit(-2);
     }
+    
+    RB_EnableWindowResize(true);
+#elif A_RENDER_BACKEND_D3D9
+    RB_EnableWindowResize(false);
 #endif // A_RENDER_BACKEND_GL
 }
-
-extern dvar_t* vid_width;
-extern dvar_t* vid_height;
-extern dvar_t* vid_xpos;
-extern dvar_t* vid_ypos;
 
 A_EXTERN_C bool RB_EnableVsync(bool enable) {
 #if A_RENDER_BACKEND_GL
@@ -69,7 +96,7 @@ A_EXTERN_C void RB_BeginFrame(void) {
         }
     }
 
-    if (Dvar_WasModified(r_fullscreen)) {
+    if (Dvar_WasModified(r_fullscreen) && RB_WindowResizeable()) {
         if (Dvar_GetBool(r_fullscreen)) {
             Dvar_LatchValue(vid_width);
             Dvar_LatchValue(vid_height);
@@ -78,7 +105,7 @@ A_EXTERN_C void RB_BeginFrame(void) {
             SDL_DisplayID d = SDL_GetDisplayForWindow(g_sdlWindow);
             const SDL_DisplayMode* mode = SDL_GetCurrentDisplayMode(d);
             SDL_SetWindowSize(g_sdlWindow, mode->w, mode->h + 1);
-            Dvar_SetInt(vid_width, mode->w);
+            Dvar_SetInt(vid_width,  mode->w);
             Dvar_SetInt(vid_height, mode->h);
             R_WindowResized();
             SDL_SetWindowPosition(g_sdlWindow, 0, 0);
@@ -102,6 +129,25 @@ A_EXTERN_C void RB_BeginFrame(void) {
         }
 
         Dvar_ClearModified(r_fullscreen);
+    } else {
+        if (Dvar_WasModified(vid_width) || Dvar_WasModified(vid_height)) {
+            SDL_SetWindowSize(g_sdlWindow, 
+                              Dvar_GetInt(vid_width), 
+                              Dvar_GetInt(vid_height));
+            Dvar_ClearModified(vid_width);
+            Dvar_ClearModified(vid_height);
+            R_WindowResized();
+        }
+    }
+
+    if (!Dvar_GetBool(r_fullscreen)) {
+        if (Dvar_WasModified(vid_xpos) || Dvar_WasModified(vid_ypos)) {
+            SDL_SetWindowPosition(g_sdlWindow, 
+                                  Dvar_GetInt(vid_xpos), 
+                                  Dvar_GetInt(vid_ypos));
+            Dvar_ClearModified(vid_xpos);
+            Dvar_ClearModified(vid_ypos);
+        }
     }
 
     if (Dvar_WasModified(r_noBorder)) {

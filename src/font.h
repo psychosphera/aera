@@ -5,6 +5,7 @@
 
 #include "com_defs.h"
 #include "gfx_defs.h"
+#include "gfx_shader.h"
 
 typedef struct GlyphDef {
 	char  c;

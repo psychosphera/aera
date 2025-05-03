@@ -12,8 +12,9 @@ void Dvar_Init(void);
 void Dvar_Shutdown(void);
 
 typedef enum dvarFlags_t {
-	DVAR_FLAG_NONE    = 0x00000000,
-	DVAR_FLAG_ARCHIVE = 0x00000001,
+	DVAR_FLAG_NONE     = 0x00000000,
+	DVAR_FLAG_ARCHIVE  = 0x00000001,
+	DVAR_FLAG_READONLY = 0x00000002,
 } dvarFlags_t;
 
 struct dvar_t;

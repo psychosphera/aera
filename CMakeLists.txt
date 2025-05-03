@@ -51,12 +51,13 @@ if (DEFINED RENDER_BACKEND_GL)
 		
 		src/acommon/z_mem.c
 	
-		src/cg_cgame.c src/cl_client.c src/cl_map.cpp src/cmd_commands.c src/com.c
-		src/com_print.c src/con_console.c src/db_files.c src/devcon.c 
-		src/devgui.c src/dvar.c src/font.c src/fs_files.c src/gfx.c 
-		src/gfx_backend.c src/gfx_defs.c src/gfx_shader.c src/gfx_text.c 
-		src/gfx_uniform.c  src/in_input.c src/main.c src/m_math.c src/pm_pmove.c 
-		src/sys.c)
+		src/cg_cgame.c src/cl_client.c src/cl_map.cpp src/cmd_commands.c 
+		src/com.c src/com_print.c src/con_console.c src/db_files.c 
+		src/devcon.c  src/devgui.c src/dvar.c src/font.c src/fs_files.c 
+		src/gfx.c src/gfx_backend.c src/gfx_defs.c src/gfx_map.c 
+		src/gfx_shader.c  src/gfx_text.c src/gfx_uniform.c  src/in_input.c
+		src/main.c src/m_math.c src/pm_pmove.c src/sys.c
+	)
 	
 	target_link_libraries(h1_map_viewer_gl PRIVATE 
 		SDL3::SDL3 SDL3_image::SDL3_image cglm::cglm Freetype::Freetype 
@@ -164,12 +165,13 @@ if (DEFINED RENDER_BACKEND_D3D9)
 		
 		src/acommon/z_mem.c
 	
-		src/cg_cgame.c src/cl_client.c src/cl_map.cpp src/cmd_commands.c src/com.c
-		src/com_print.c src/con_console.c src/db_files.c src/devcon.c 
-		src/devgui.c src/dvar.c src/font.c src/fs_files.c src/gfx.c 
-		src/gfx_backend.c src/gfx_defs.c src/gfx_shader.c src/gfx_text.c 
-		src/gfx_uniform.c  src/in_input.c src/main.c src/m_math.c src/pm_pmove.c 
-		src/sys.c)
+		src/cg_cgame.c src/cl_client.c src/cl_map.cpp src/cmd_commands.c 
+		src/com.c src/com_print.c src/con_console.c src/db_files.c 
+		src/devcon.c  src/devgui.c src/dvar.c src/font.c src/fs_files.c 
+		src/gfx.c  src/gfx_backend.c src/gfx_defs.c src/gfx_map.c 
+		src/gfx_shader.c  src/gfx_text.c src/gfx_uniform.c  src/in_input.c
+		src/main.c src/m_math.c src/pm_pmove.c src/sys.c
+	)
 	
 	target_link_libraries(h1_map_viewer_d3d9 PRIVATE 
 		SDL3::SDL3 SDL3_image::SDL3_image cglm::cglm Freetype::Freetype ZLIB::ZLIB

@@ -111,7 +111,7 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
         f->image.height = A_MAX(f->image.height, g->height);
     }
 
-    R_SetUniformInt(f->prog.program, "uTex", 0);
+    R_ShaderSetUniformIntByName(&f->prog, "uTex", 0);
 
     GL_CALL(glPixelStorei, GL_UNPACK_ALIGNMENT, unpackAlign);
     GL_CALL(glBindTexture, GL_TEXTURE_2D, 0);
@@ -159,10 +159,10 @@ void R_DrawText(
     GL_CALL(glBindTexture,     GL_TEXTURE_2D, font->image.tex);
 
     avec3f_t textColor = A_vec3(color.r, color.g, color.b);
-    R_SetUniformVec3f(font->prog.program, "uTextColor", textColor);
+    R_ShaderSetUniformVec3fByName(&font->prog, "uTextColor", textColor);
 
-    R_SetUniformMat4f(
-        font->prog.program, "uOrthoProjection", cg->camera.orthoProjection
+    R_ShaderSetUniformMat4fByName(
+        &font->prog, "uOrthoProjection", cg->camera.orthoProjection
     );
 
     char            last_c   = '\0';
@@ -256,7 +256,7 @@ void R_DrawText(
         model = A_mat4f_translate_vec3(model, pos);
         avec3f_t scale = A_vec3(w, h, 0.0f);
         model = A_mat4f_scale_vec3(model, scale);
-        R_SetUniformMat4f(font->prog.program, "uModel", model);
+        R_ShaderSetUniformMat4fByName(font->prog.program, "uModel", model);
 
         // If the same glyph is being rendered again, the coord uniform doesn't
         // need to be updated.
@@ -264,7 +264,7 @@ void R_DrawText(
             avec4f_t atlasCoord = A_vec4(g->atlas_x, g->atlas_y,
                 (float)g->width / (float)font->atlas_width,
                 (float)g->height / (float)font->atlas_height);
-            R_SetUniformVec4f(font->prog.program, "uAtlasCoord", atlasCoord);
+            R_ShaderSetUniformVec4fByName(font->prog.program, "uAtlasCoord", atlasCoord);
         }
 
         GL_CALL(glDrawArrays, GL_TRIANGLES, 0, 6);

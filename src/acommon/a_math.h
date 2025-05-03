@@ -141,12 +141,16 @@ typedef union acolor_rgba_t {
 } acolor_rgba_t;
 A_STATIC_ASSERT(sizeof(acolor_rgba_t) == 16);
 
+#define A_color_rgba(d, e, f, g) { .r = d, .g = e, .b = f, .a = g }
+
 typedef union acolor_argb_t {
     struct { float a, r, g, b; };
     float array[4];
     char  bytes[16];
 } acolor_argb_t;
 A_STATIC_ASSERT(sizeof(acolor_argb_t) == 16);
+
+#define A_color_argb(d, e, f, g) { .a = d, .r = e, .g = f, .b = g }
 
 typedef union aplane3f_t {
     struct { avec3f_t v; float w; } p;
@@ -179,6 +183,10 @@ A_STATIC_ASSERT(sizeof(amat4f_t) == 64);
 A_EXTERN_C const amat4f_t A__priv__mat4f_identity;
 #define A_MAT4F_ZERO      A__priv__mat4f_zero
 #define A_MAT4F_IDENTITY  A__priv__mat4f_identity
+
+A_EXTERN_C A_NO_DISCARD float  A_ceilf(float  a, float  b);
+A_EXTERN_C A_NO_DISCARD double A_ceil (double a, double b);
+A_EXTERN_C A_NO_DISCARD int    A_ceili(int    a, int    b);
 
 A_EXTERN_C A_NO_DISCARD float      A_sqrtf(float  x);
 A_EXTERN_C A_NO_DISCARD double     A_sqrt (double x);
