@@ -407,8 +407,29 @@ static bool R_DisableScissorTest(void) {
 #endif // A_RENDER_BACKEND_GL
 }
 
+static void R_BeginFrame(void) {
+    // intentionally a no-op for GL since there's nothing to do
+#if A_RENDER_BACKEND_D3D9
+    r_d3d9Glob.d3ddev->lpVtbl->BeginScene(r_d3d9Glob.d3ddev);
+#endif // A_RENDER_BACKEND_D3D9
+}
+
+static void R_EndFrame(void) {
+    // intentionally a no-op for GL since RB_EndFrame handles
+    // the equivalent operations
+    // (R_EndFrame and RB_EndFrame could probably be consolidated to simplify
+    // implementation, but semantically the backend handles the buffer swap
+    // for GL, whereas D3D handles the buffer swap on its own)
+#if A_RENDER_BACKEND_D3D9
+    r_d3d9Glob.d3ddev->lpVtbl->EndScene(r_d3d9Glob.d3ddev);
+    r_d3d9Glob.d3ddev->lpVtbl->Present(r_d3d9Glob.d3ddev,
+                                       NULL, NULL, NULL, NULL);
+#endif // A_RENDER_BACKEND_D3D9
+}
+
 void R_Frame(void) {
     RB_BeginFrame();
+    R_BeginFrame();
     R_EnableScissorTest();
     for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
         if (!CG_LocalClientIsActive(i))
@@ -417,6 +438,7 @@ void R_Frame(void) {
         R_DrawFrame(i);
     }
     R_DisableScissorTest();
+    R_EndFrame();
     RB_EndFrame();
 }
 
@@ -477,9 +499,9 @@ A_NO_DISCARD bool R_CreateImage2D(const void* pixels, size_t pixels_size,
     GL_CALL(glTexParameteri, target, GL_TEXTURE_MAG_FILTER, gl_magfilter);
                                                             
     bool compressed  = R_ImageFormatIsCompressed(format);
-    GLenum gl_format = R_ImageFormatToGl(format);
+    GLenum gl_format = R_ImageFormatToGL(format);
     ImageFormat internal_format = compressed ? format : R_IMAGE_FORMAT_RGB888;
-    GLenum gl_internal_format   = R_ImageFormatToGl(internal_format);
+    GLenum gl_internal_format   = R_ImageFormatToGL(internal_format);
    
     if (compressed) {
         GL_CALL(glCompressedTexImage2D, GL_TEXTURE_2D, 0,
@@ -759,7 +781,6 @@ static void R_DrawFrameInternal(size_t localClientNum) {
         &r_mapGlob.prog, "uPerspectiveProjection",
         cg->camera.perspectiveProjection
     );
-
     R_RenderMap();
     
     R_DrawTextDrawDefs(localClientNum);

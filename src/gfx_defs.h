@@ -164,7 +164,7 @@ typedef struct GfxTextDraw {
 } GfxTextDraw;
 
 #if A_RENDER_BACKEND_GL
-A_EXTERN_C A_NO_DISCARD GLenum      R_ImageFormatToGl     (ImageFormat format);
+A_EXTERN_C A_NO_DISCARD GLenum      R_ImageFormatToGL     (ImageFormat format);
 A_EXTERN_C A_NO_DISCARD ImageFormat R_ImageFormatFromGl   (GLenum      format);
 #elif A_RENDER_BACKEND_D3D9                               
 A_EXTERN_C A_NO_DISCARD D3DFORMAT   R_ImageFormatToD3D    (ImageFormat format);

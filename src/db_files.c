@@ -8,6 +8,12 @@
 #define A_PROJECT_ROOT ""
 #endif
 
+#if A_RENDER_BACKEND_GL
+#define DB_SHADER_EXT ".glsl"
+#elif A_RENDER_BACKEND_D3D9
+#define DB_SHADER_EXT ".hlsl"
+#endif // A_RENDER_BACKEND_GL
+
 typedef enum AssetType {
 	AT_SHADER,
 	AT_FONT,
@@ -29,23 +35,24 @@ A_NO_DISCARD static const char* DB_AssetDirForType(AssetType at) {
 static const char* s_assetsDir = A_PROJECT_ROOT "/assets";
 
 A_NO_DISCARD static const char* DB_AssetPath(
-	AssetType at, const char* assetName
+	AssetType at, const char* assetName, const char* ext
 ) {
-	return FS_BuildOsPath(s_assetsDir, DB_AssetDirForType(at), assetName, NULL);
+	return FS_BuildOsPath(s_assetsDir, DB_AssetDirForType(at), assetName, ext);
 }
 
 A_NO_DISCARD const char* DB_ImagePath(const char* image_name) {
-	return DB_AssetPath(AT_IMAGE, image_name);
+	return DB_AssetPath(AT_IMAGE, image_name, NULL);
 }
 
 A_NO_DISCARD static const char* DB_MapPath(const char* map_name) {
-	return DB_AssetPath(AT_MAP, map_name);
+	return DB_AssetPath(AT_MAP, map_name, NULL);
 }
 
 A_NO_DISCARD static char* DB_LoadAsset_Text(
-	AssetType assetType, const char* assetName, A_OPTIONAL_OUT size_t* sz
+	AssetType assetType, const char* assetName, 
+	const char* ext, A_OPTIONAL_OUT size_t* sz
 ) {
-	return FS_ReadFileText(DB_AssetPath(assetType, assetName), sz);
+	return FS_ReadFileText(DB_AssetPath(assetType, assetName, ext), sz);
 }
 
 static void DB_UnloadAsset_Text(char* text) {
@@ -53,9 +60,10 @@ static void DB_UnloadAsset_Text(char* text) {
 }
 
 A_NO_DISCARD static void* DB_LoadAsset_Binary(
-	AssetType assetType, const char* assetName, A_OPTIONAL_OUT size_t* sz
+	AssetType assetType, const char* assetName, 
+	const char* ext, A_OPTIONAL_OUT size_t* sz
 ) {
-	return FS_ReadFile(DB_AssetPath(assetType, assetName), sz);
+	return FS_ReadFile(DB_AssetPath(assetType, assetName, ext), sz);
 }
 
 static void DB_UnloadAsset_Binary(void* p) {
@@ -63,7 +71,7 @@ static void DB_UnloadAsset_Binary(void* p) {
 }
 
 A_NO_DISCARD char* DB_LoadShader(const char* shader_name) {
-	return DB_LoadAsset_Text(AT_SHADER, shader_name, NULL);
+	return DB_LoadAsset_Text(AT_SHADER, shader_name, DB_SHADER_EXT, NULL);
 }
 
 void DB_UnloadShader(char* shader) {
@@ -71,7 +79,7 @@ void DB_UnloadShader(char* shader) {
 }
 
 A_NO_DISCARD void* DB_LoadFont(const char* font_name, A_OUT size_t* sz) {
-	return DB_LoadAsset_Binary(AT_FONT, font_name, sz);
+	return DB_LoadAsset_Binary(AT_FONT, font_name, NULL, sz);
 }
 
 void DB_UnloadFont(void* font) {
@@ -79,7 +87,7 @@ void DB_UnloadFont(void* font) {
 }
 
 A_NO_DISCARD void* DB_LoadImage(const char* image_name) {
-	return DB_LoadAsset_Binary(AT_IMAGE, image_name, NULL);
+	return DB_LoadAsset_Binary(AT_IMAGE, image_name, NULL, NULL);
 }
 
 void DB_UnloadImage(void* image) {

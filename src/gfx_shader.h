@@ -1,39 +1,67 @@
 #pragma once
 
+#if A_RENDER_BACKEND_D3D9
+#include <d3dx9mesh.h>
+#include <d3dx9shader.h>
+#endif // A_RENDER_BACKEND_D3D9
+
 #include "com_defs.h"
 #include "gfx_defs.h"
 #include "gfx_uniform.h"
 
 #define R_SHADER_MAX_UNIFORM 16
 
+#if A_RENDER_BACKEND_GL
+typedef GLint GfxCompiledShader;
+#elif A_RENDER_BACKEND_D3D9
+typedef LPD3DXBUFFER GfxCompiledShader;
+#endif // A_RENDER_BACKEND_GL
+
+typedef struct GfxVertexShader {
+#if A_RENDER_BACKEND_D3D9
+    IDirect3DVertexShader9* vs;
+    ID3DXConstantTable*     constant_table;
+#endif // A_RENDER_BACKEND_D3D9
+    GfxCompiledShader       compiled_shader;
+} GfxVertexShader;
+
+typedef struct GfxPixelShader {
+#if A_RENDER_BACKEND_D3D9
+    IDirect3DPixelShader9* ps;
+    ID3DXConstantTable*    constant_table;
+#endif // A_RENDER_BACKEND_D3D9
+    GfxCompiledShader      compiled_shader;
+} GfxPixelShader;
+
 typedef struct GfxShaderProgram {
 #if A_RENDER_BACKEND_GL
-	shader_program_t  program;
-	vertex_shader_t   vertex_shader;
-	fragment_shader_t fragment_shader;
+	shader_program_t program;
 #elif A_RENDER_BACKEND_D3D9
-    IDirect3DVertexShader9* vertex_shader;
-    IDirect3DPixelShader9*  pixel_shader;
     int current_location;
 #endif // A_RENDER_BACKEND_GL
+    GfxVertexShader vertex_shader;
+    GfxPixelShader  pixel_shader;
     int current_uniform;
     GfxShaderUniformDef uniforms[R_SHADER_MAX_UNIFORM];
 } GfxShaderProgram;
 
-#if A_RENDER_BACKEND_GL
-A_EXTERN_C A_NO_DISCARD bool R_CompileShader(
-    const char* shaderSource, int type,
-    A_OPTIONAL_OUT char** log, A_OUT unsigned int* shader
+A_EXTERN_C A_NO_DISCARD bool R_CompileVertexShader(
+    A_INOUT GfxShaderProgram* prog,
+    const char* shaderSource,
+    A_OUT GfxVertexShader* shader
 );
-A_EXTERN_C A_NO_DISCARD bool R_LinkShaders(
-    vertex_shader_t vertShader, fragment_shader_t fragShader,
-    A_OPTIONAL_OUT char** log, A_OUT shader_program_t* program
+
+A_EXTERN_C A_NO_DISCARD bool R_CompilePixelShader(
+    A_INOUT GfxShaderProgram* prog,
+    const char* shaderSource,
+    A_OUT GfxPixelShader* shader
 );
+
 A_EXTERN_C A_NO_DISCARD bool R_CreateShaderProgram(
-    const char* vertexSource, const char* fragmentSource,
-    A_OPTIONAL_OUT char** log, A_OUT GfxShaderProgram* prog
+    const char* vertexSource,
+    const char* pixelSource,
+    A_OUT GfxShaderProgram* prog
 );
-#endif // A_RENDER_BACKEND_GL
 
 A_EXTERN_C int R_ShaderAddUniform(A_INOUT GfxShaderProgram* prog,
                                   A_IN GfxShaderUniformDef* uniform);

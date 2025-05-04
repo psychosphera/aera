@@ -8,6 +8,7 @@
 #include "db_files.h"
 #include "dvar.h"
 #include "font.h"
+#include "gfx.h"
 #include "gfx_defs.h"
 #include "gfx_shader.h"
 #include "gfx_uniform.h"
@@ -31,16 +32,12 @@ static const GfxSubTexDef s_subTexDefs[6] = {
 // AND BE HAPPY YOU DIDN'T SPEND TEN HOURS GETTING IT TO WORK.
 A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
 #if A_RENDER_BACKEND_GL
-    char* vertSource = DB_LoadShader("text.vs.glsl");
-    char* fragSource = DB_LoadShader("text.fs.glsl");
+    char* vertSource = DB_LoadShader("text.vs");
+    char* fragSource = DB_LoadShader("text.fs");
 
-    char* errorLog = NULL;
-    if (!R_CreateShaderProgram(vertSource,fragSource,
-                              &errorLog, &f->prog
-    )) {
+    if (!R_CreateShaderProgram(vertSource,fragSource, &f->prog)) {
         return false;
     }
-    A_cstrfree(errorLog);
     DB_UnloadShader(vertSource);
     DB_UnloadShader(fragSource);
 
@@ -77,7 +74,7 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
     ImageFormat format = R_IMAGE_FORMAT_R8;
     b = R_CreateImage2D(0, 0, format, format, NULL, 0, &f->image);
     assert(b);
-    GLenum gl_format = R_ImageFormatToGl(format);
+    GLenum gl_format = R_ImageFormatToGL(format);
 
     GLint unpackAlign = 0;
     GL_CALL(glGetIntegerv, GL_UNPACK_ALIGNMENT, &unpackAlign);

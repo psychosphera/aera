@@ -95,20 +95,13 @@ A_NO_DISCARD bool R_CreateBSPImage(
 }
 
 void R_InitMap(void) {
-#if A_RENDER_BACKEND_GL
-    char* vertSource = DB_LoadShader("bsp.vs.glsl");
-    char* fragSource = DB_LoadShader("bsp.fs.glsl");
+    char* vertSource = DB_LoadShader("bsp.vs");
+    char* fragSource = DB_LoadShader("bsp.fs");
 
-    char* errorLog = NULL;
-    if (!R_CreateShaderProgram(vertSource, fragSource,
-        &errorLog, &r_mapGlob.prog)
-        ) {
-        Com_Errorln(-1, errorLog);
-    }
-    A_cstrfree(errorLog);
+    bool b = R_CreateShaderProgram(vertSource, fragSource, &r_mapGlob.prog);
+    assert(b);
     DB_UnloadShader(vertSource);
     DB_UnloadShader(fragSource);
-#endif // A_RENDER_BACKEND_GL
 }
 
 static void R_SwapYZPoint3(A_INOUT apoint3f_t* p) {
@@ -303,10 +296,8 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
     assert(b);
 
 #if A_RENDER_BACKEND_GL
-    size_t vertices_size = rendered_vertices_size + lightmap_vertices_size;
-
     R_AppendVertexData(&material->pass.vbs[0],
-                       lightmap_vertices, rendered_vertices_size);
+                       lightmap_vertices, lightmap_vertices_size);
 
     GL_CALL(glVertexAttribPointer,
         0, 3, GL_FLOAT, GL_FALSE, sizeof(BSPRenderedVertex),

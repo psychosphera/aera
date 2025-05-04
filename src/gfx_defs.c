@@ -338,7 +338,7 @@ bool R_DeleteMaterialPass(A_IN GfxMaterialPass* pass) {
 }
 
 #if A_RENDER_BACKEND_GL
-A_NO_DISCARD GLenum R_ImageFormatToGl(ImageFormat format) {
+A_NO_DISCARD GLenum R_ImageFormatToGL(ImageFormat format) {
     GLenum gl_format = 0;
     switch (format) {
     case R_IMAGE_FORMAT_A8:

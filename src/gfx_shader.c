@@ -9,84 +9,182 @@
 #include "com_print.h"
 #include "gfx_uniform.h"
 
-#if A_RENDER_BACKEND_GL
-A_NO_DISCARD bool R_CompileShader(
-    const char* shaderSource, int type,
-    A_OPTIONAL_OUT char** log, A_OUT unsigned int* shader
-) {
-    *shader = GL_CALL(glCreateShader, type);
+#define R_MAX_SHADER_ERROR_LEN 1024
 
+static char s_lastShaderError[R_MAX_SHADER_ERROR_LEN];
+
+void R_SetLastShaderError(const char* error, size_t n) {
+    A_cstrncpyz(s_lastShaderError, error, n);
+}
+
+const char* R_GetLastShaderError(void) {
+    return s_lastShaderError;
+}
+
+#if A_RENDER_BACKEND_GL
+static bool R_CompileShaderGL(
+    const char* shaderSource, 
+    A_OUT GfxCompiledShader* shader
+) {
     GL_CALL(glShaderSource, *shader, 1, &shaderSource, NULL);
     GL_CALL(glCompileShader, *shader);
 
     int success = GL_FALSE;
     GL_CALL(glGetShaderiv, *shader, GL_COMPILE_STATUS, &success);
-    if (!success && log) {
-        GLint len = 0;
-        GL_CALL(glGetShaderiv, *shader, GL_INFO_LOG_LENGTH, &len);
-        *log = Z_Alloc(len);
-        GL_CALL(glGetShaderInfoLog, *shader, len, &len, *log);
-    } else if (log) {
-        *log = NULL;
+    if (!success) {
+        GL_CALL(glGetShaderInfoLog, *shader, sizeof(s_lastShaderError),
+                                    NULL, s_lastShaderError);
     }
 
     return success == GL_TRUE;
 }
-#endif // A_RENDER_BACKEND_GL
-
-#if A_RENDER_BACKEND_GL
-A_NO_DISCARD bool R_LinkShaders(
-    vertex_shader_t vertShader, fragment_shader_t fragShader,
-    A_OPTIONAL_OUT char** log, A_OUT shader_program_t* program
+#elif A_RENDER_BACKEND_D3D9
+static bool R_CompileShaderD3D9(
+    const char* shaderSource,
+    A_OUT LPD3DXBUFFER* shader,
+    A_OUT LPD3DXCONSTANTTABLE* constant_table
 ) {
-    *program = GL_CALL(glCreateProgram);
-    GL_CALL(glAttachShader, *program, vertShader);
-    GL_CALL(glAttachShader, *program, fragShader);
-    GL_CALL(glLinkProgram,  *program);
-
-    int success = GL_FALSE;
-    GL_CALL(glGetProgramiv, *program, GL_LINK_STATUS, &success);
-    if (!success && log) {
-        GLint len = 0;
-        GL_CALL(glGetProgramiv, *program, GL_INFO_LOG_LENGTH, &len);
-        *log = Z_Alloc(len);
-        GL_CALL(glGetProgramInfoLog, *program, len, NULL, *log);
-    } else if (log) {
-        *log = NULL;
+    assert(shader);
+    ID3DXBuffer* error = NULL;
+    HRESULT hr = D3DXCompileShader(
+        shaderSource, A_cstrlen(shaderSource), NULL, NULL,
+        "main", "vs_2_0", 0, shader, &error, constant_table
+    );
+    if (hr != D3D_OK) {
+        R_SetLastShaderError(error->lpVtbl->GetBufferPointer(error),
+                             error->lpVtbl->GetBufferSize(error));
+        Com_Errorln(-1,
+            "Failed to compile vertex shader: %s.",
+            R_GetLastShaderError());
+        return false;
     }
+    if (error)
+        error->lpVtbl->Release(error);
 
-    GL_CALL(glDeleteShader, vertShader);
-    GL_CALL(glDeleteShader, fragShader);
+    return hr == D3D_OK;
+}
+#endif // A_RENDER_BACKEND_GL
+
+A_NO_DISCARD bool R_CompileVertexShader(
+    A_INOUT GfxShaderProgram* prog,
+    const char* shaderSource,
+    A_OUT GfxVertexShader* shader
+) {
+    assert(prog);
+    assert(shader);
+    assert(shaderSource);
+#if A_RENDER_BACKEND_GL
+    shader->compiled_shader = GL_CALL(glCreateShader, GL_VERTEX_SHADER);
+    return R_CompileShaderGL(shaderSource, &shader->compiled_shader);
+#elif A_RENDER_BACKEND_D3D9
+    return R_CompileShaderD3D9(
+        shaderSource, &prog->vertex_shader.compiled_shader,
+        &prog->vertex_shader.constant_table
+    );
+#endif // A_RENDER_BACKEND_GL
+}
+
+A_NO_DISCARD bool R_CompilePixelShader(
+    A_INOUT GfxShaderProgram* prog,
+    const char* shaderSource,
+    A_OUT GfxPixelShader* shader
+) {
+    assert(prog);
+    assert(shader);
+    assert(shaderSource);
+#if A_RENDER_BACKEND_GL
+    shader->compiled_shader = GL_CALL(glCreateShader, GL_FRAGMENT_SHADER);
+    return R_CompileShaderGL(shaderSource, &shader->compiled_shader);
+#elif A_RENDER_BACKEND_D3D9
+    return R_CompileShaderD3D9(
+        shaderSource, &prog->pixel_shader.compiled_shader,
+        &prog->pixel_shader.constant_table
+    );
+#endif // A_RENDER_BACKEND_GL
+}
+
+#if A_RENDER_BACKEND_GL
+A_NO_DISCARD bool R_LinkShadersGL(
+    A_INOUT GfxCompiledShader* vertShader,
+    A_INOUT GfxCompiledShader* fragShader,
+    A_INOUT GfxShaderProgram*  prog
+) {
+    prog->program = GL_CALL(glCreateProgram);
+    GL_CALL(glAttachShader, prog->program, *vertShader);
+    GL_CALL(glAttachShader, prog->program, *fragShader);
+    GL_CALL(glLinkProgram,  prog->program);
+
+    GLint success = GL_FALSE;
+    GL_CALL(glGetProgramiv, prog->program, GL_LINK_STATUS, &success);
+    if (!success) {
+        GL_CALL(glGetProgramInfoLog, prog->program, A_countof(s_lastShaderError), 
+                                     NULL, s_lastShaderError);
+    }
+    GL_CALL(glDeleteShader, *vertShader);
+    GL_CALL(glDeleteShader, *fragShader);
+    *vertShader = 0;
+    *fragShader = 0;
 
     return success == GL_TRUE;
 }
 #endif // A_RENDER_BACKEND_GL
 
-#if A_RENDER_BACKEND_GL
+#if A_RENDER_BACKEND_D3D9
+static bool R_CreateVertexShaderD3D9(A_INOUT GfxShaderProgram*  prog, 
+                                     A_IN    GfxCompiledShader* compiled_shader
+) {
+    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->CreateVertexShader(
+        r_d3d9Glob.d3ddev, 
+        (*compiled_shader)->lpVtbl->GetBufferPointer(*compiled_shader),
+        &prog->vertex_shader.vs
+    );
+    assert(hr == D3D_OK);
+    (*compiled_shader)->lpVtbl->Release(*compiled_shader);
+    *compiled_shader = NULL;
+    return hr == D3D_OK;
+}
+
+static bool R_CreatePixelShaderD3D9(A_INOUT GfxShaderProgram*  prog,
+                                    A_IN    GfxCompiledShader* compiled_shader
+) {
+    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->CreatePixelShader(
+        r_d3d9Glob.d3ddev,
+        (*compiled_shader)->lpVtbl->GetBufferPointer(*compiled_shader),
+        &prog->pixel_shader.ps
+    );
+    assert(hr == D3D_OK);
+    (*compiled_shader)->lpVtbl->Release(*compiled_shader);
+    *compiled_shader = NULL;
+    return hr == D3D_OK;
+}
+#endif // A_RENDER_BACKEND_D3D9
+
 A_NO_DISCARD bool R_CreateShaderProgram(
-    const char* vertexSource, const char* fragmentSource,
-    A_OPTIONAL_OUT char** log, A_OUT GfxShaderProgram* prog
+    const char* vertexSource, 
+    const char* pixelSource,
+    A_OUT GfxShaderProgram* prog
 ) {
     A_memset(prog, 0, sizeof(*prog));
 
-    vertex_shader_t v = 0;
-    if (!R_CompileShader(vertexSource, GL_VERTEX_SHADER, log, &v))
+    if (!R_CompileVertexShader(prog, vertexSource, &prog->vertex_shader))
         return false;
 
-    fragment_shader_t f = 0;
-    if (!R_CompileShader(fragmentSource, GL_FRAGMENT_SHADER, log, &f))
+    if (!R_CompilePixelShader(prog, pixelSource, &prog->pixel_shader))
         return false;
 
-    shader_program_t p = 0;
-    if (!R_LinkShaders(v, f, log, &p))
+#if A_RENDER_BACKEND_GL
+    if (!R_LinkShadersGL(&prog->vertex_shader.compiled_shader, 
+                         &prog->pixel_shader.compiled_shader, prog
+    ))
         return false;
-
-    prog->vertex_shader   = v;
-    prog->fragment_shader = f;
-    prog->program         = p;
+#elif A_RENDER_BACKEND_D3D9
+    if (!R_CreateVertexShaderD3D9(prog, &prog->vertex_shader.compiled_shader))
+        return false;
+    if (!R_CreatePixelShaderD3D9(prog, &prog->pixel_shader.compiled_shader))
+        return false;
+#endif // A_RENDER_BACKEND_GL
     return true;
 }
-#endif // A_RENDER_BACKEND_GL
 
 static int R_UniformDataSize(const GfxShaderUniformDef* uniform) {
     switch (uniform->type) {
@@ -125,19 +223,22 @@ static int R_UniformDataSize(const GfxShaderUniformDef* uniform) {
 }
 
 #if A_RENDER_BACKEND_GL
-void R_SetUniformIntGL(shader_program_t program, int location, int value);
-void R_SetUniformBoolGL(shader_program_t program, int locaction, bool value) {
+static void R_SetUniformIntGL(shader_program_t program, 
+                              int location, int value);
+static void R_SetUniformBoolGL(shader_program_t program, 
+                               int locaction, bool value
+) {
     R_SetUniformIntGL(program, locaction, (int)value);
 }
 
-void R_SetUniformFloatGL(
+static void R_SetUniformFloatGL(
     shader_program_t program, int location, float value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform1f, location, value);
 }
 
-void R_SetUniformFloatArrayGL(
+static void R_SetUniformFloatArrayGL(
     shader_program_t program, int location,
     const float* value, int count
 ) {
@@ -145,35 +246,35 @@ void R_SetUniformFloatArrayGL(
     GL_CALL(glUniform1fv, location, count, value);
 }
 
-void R_SetUniformVec2fGL(
+static void R_SetUniformVec2fGL(
     shader_program_t program, int location, avec2f_t value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform2f, location, value.x, value.y);
 }
 
-void R_SetUniformVec3fGL(
+static void R_SetUniformVec3fGL(
     shader_program_t program, int location, avec3f_t value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform3f, location, value.x, value.y, value.z);
 }
 
-void R_SetUniformVec4fGL(
+static void R_SetUniformVec4fGL(
     shader_program_t program, int location, avec4f_t value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform4f, location, value.x, value.y, value.z, value.w);
 }
 
-void R_SetUniformIntGL(
+static void R_SetUniformIntGL(
     shader_program_t program, int location, int value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform1i, location, value);
 }
 
-void R_SetUniformIntArrayGL(
+static void R_SetUniformIntArrayGL(
     shader_program_t program, int location,
     const int* value, int count
 ) {
@@ -181,35 +282,35 @@ void R_SetUniformIntArrayGL(
     GL_CALL(glUniform1iv, location, count, value);
 }
 
-void R_SetUniformVec2iGL(
+static void R_SetUniformVec2iGL(
     shader_program_t program, int location, avec2i_t value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform2i, location, value.x, value.y);
 }
 
-void R_SetUniformVec3iGL(
+static void R_SetUniformVec3iGL(
     shader_program_t program, int location, avec3i_t value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform3i, location, value.x, value.y, value.z);
 }
 
-void R_SetUniformVec4iGL(
+static void R_SetUniformVec4iGL(
     shader_program_t program, int location, avec4i_t value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform4i, location, value.x, value.y, value.z, value.w);
 }
 
-void R_SetUniformUintGL(
+static void R_SetUniformUintGL(
     shader_program_t program, int location, unsigned int value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform1ui, location, value);
 }
 
-void R_SetUniformUintArrayGL(
+static void R_SetUniformUintArrayGL(
     shader_program_t program, int location,
     const unsigned int* value, int count
 ) {
@@ -217,28 +318,30 @@ void R_SetUniformUintArrayGL(
     GL_CALL(glUniform1uiv, location, count, value);
 }
 
-void R_SetUniformMat2fGL(
+static void R_SetUniformMat2fGL(
     shader_program_t program, int location, const amat2f_t value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniformMatrix2fv, location, 1, GL_FALSE, value.array);
 }
 
-void R_SetUniformMat3fGL(
+static void R_SetUniformMat3fGL(
     shader_program_t program, int location, amat3f_t value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniformMatrix3fv, location, 1, GL_FALSE, value.array);
 }
 
-void R_SetUniformMat4fGL(
+static void R_SetUniformMat4fGL(
     shader_program_t program, int location, amat4f_t value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniformMatrix4fv, location, 1, GL_FALSE, value.array);
 }
 
-void R_SetUniformGL(shader_program_t program, int location, GfxShaderUniformDef* uniform) {
+static void R_SetUniformGL(shader_program_t program, int location, 
+                           GfxShaderUniformDef* uniform
+) {
     switch (uniform->type) {
     case UNIFORM_TYPE_BOOL:
         R_SetUniformBoolGL(program, location, uniform->value.b);
@@ -298,6 +401,113 @@ void R_SetUniformGL(shader_program_t program, int location, GfxShaderUniformDef*
         break;
     }
 }
+#elif A_RENDER_BACKEND_D3D9
+static bool R_SetUniformBoolD3D9(ID3DXConstantTable* constant_table, 
+                                 int location, bool value
+) {
+    D3DXHANDLE handle = constant_table->lpVtbl->GetConstant(
+        constant_table, NULL, location
+    );
+    HRESULT hr = constant_table->lpVtbl->SetBool(constant_table, 
+                                                 r_d3d9Glob.d3ddev, 
+                                                 handle, value);
+    return hr == D3D_OK;
+}
+
+static bool R_SetUniformFloatD3D9(ID3DXConstantTable* constant_table,
+    int location, float value
+) {
+    D3DXHANDLE handle = constant_table->lpVtbl->GetConstant(
+        constant_table, NULL, location
+    );
+    HRESULT hr = constant_table->lpVtbl->SetFloat(constant_table,
+                                                  r_d3d9Glob.d3ddev,
+                                                  handle, value);
+    return hr == D3D_OK;
+}
+
+static bool R_SetUniformFloatArrayD3D9(ID3DXConstantTable* constant_table,
+    int location, const float* value, int count
+) {
+    D3DXHANDLE handle = constant_table->lpVtbl->GetConstant(
+        constant_table, NULL, location
+    );
+    HRESULT hr = constant_table->lpVtbl->SetFloatArray(constant_table,
+                                                       r_d3d9Glob.d3ddev,
+                                                       handle, value, count);
+    return hr == D3D_OK;
+}
+
+static bool R_SetUniformVec4fD3D9(ID3DXConstantTable* constant_table,
+    int location, const avec4f_t value
+) {
+    D3DXHANDLE handle = constant_table->lpVtbl->GetConstant(
+        constant_table, NULL, location
+    );
+    HRESULT hr = constant_table->lpVtbl->SetVector(constant_table,
+                                                   r_d3d9Glob.d3ddev,
+                                                   handle, 
+                                                   (D3DXVECTOR4*)value.array);
+    return hr == D3D_OK;
+}
+
+static bool R_SetUniformIntD3D9(ID3DXConstantTable* constant_table,
+    int location, int value
+) {
+    D3DXHANDLE handle = constant_table->lpVtbl->GetConstant(
+        constant_table, NULL, location
+    );
+    HRESULT hr = constant_table->lpVtbl->SetInt(constant_table,
+                                                r_d3d9Glob.d3ddev,
+                                                handle, value);
+    return hr == D3D_OK;
+}
+
+static bool R_SetUniformMat4fD3D9(ID3DXConstantTable* constant_table,
+    int location, const amat4f_t value
+) {
+    D3DXHANDLE handle = constant_table->lpVtbl->GetConstant(
+        constant_table, NULL, location
+    );
+    HRESULT hr = constant_table->lpVtbl->SetMatrix(constant_table,
+        r_d3d9Glob.d3ddev,
+        handle,
+        (D3DXMATRIX*)value.array);
+    return hr == D3D_OK;
+}
+
+static bool R_SetUniformD3D9(ID3DXConstantTable* constant_table, int location,
+                             GfxShaderUniformDef* uniform
+) {
+    switch (uniform->type) {
+    case UNIFORM_TYPE_BOOL:
+        return R_SetUniformBoolD3D9(constant_table, 
+                                    location, uniform->value.b);
+    case UNIFORM_TYPE_FLOAT:
+        return R_SetUniformFloatD3D9(constant_table, location,
+                                     uniform->value.f);
+    case UNIFORM_TYPE_FLOAT_ARRAY:
+        return R_SetUniformFloatArrayD3D9(constant_table, location,
+                                          uniform->value.fa, 
+                                          uniform->value.fcount);
+    case UNIFORM_TYPE_VEC4F:
+        return R_SetUniformVec4fD3D9(constant_table, location, 
+                                     uniform->value.v4f);
+    case UNIFORM_TYPE_INT:
+        return R_SetUniformIntD3D9(constant_table, location, uniform->value.i);
+    case UNIFORM_TYPE_MAT4F:
+        return R_SetUniformMat4fD3D9(constant_table, location, 
+                                     uniform->value.m4f);
+    default:
+        assert(false && "R_SetUniformD3D9: Invalid uniform type.");
+        Com_Errorln(
+            -1,
+            "R_SetUniformD3D9: Invalid uniform type %d.",
+            uniform->type
+        );
+        return false;
+    }
+}
 #endif // A_RENDER_BACKEND_GL
 
 
@@ -314,11 +524,7 @@ int R_ShaderAddUniform(A_INOUT GfxShaderProgram* prog,
     }
     
     A_memcpy(&prog->uniforms[prog->current_uniform], uniform, sizeof(*uniform));
-#if A_RENDER_BACKEND_D3D9
-    prog->uniforms[prog->current_uniform].location = prog->current_location;
-    int ret = prog->current_uniform;
-    prog->current_location += R_UniformDataSize(uniform);
-#elif A_RENDER_BACKEND_GL
+#if A_RENDER_BACKEND_GL
     int ret = prog->current_uniform;
     prog->uniforms[prog->current_uniform].location = GL_CALL(
         glGetUniformLocation, prog->program, uniform->name
@@ -328,6 +534,29 @@ int R_ShaderAddUniform(A_INOUT GfxShaderProgram* prog,
         prog->uniforms[prog->current_uniform].location,
         &prog->uniforms[prog->current_uniform]
     );
+#elif A_RENDER_BACKEND_D3D9
+    int ret = prog->current_uniform;
+    D3DXHANDLE handle = 
+        prog->vertex_shader.constant_table->lpVtbl->GetConstantByName(
+            prog->vertex_shader.constant_table, NULL,
+            prog->uniforms[prog->current_uniform].name
+        );
+    assert(handle);
+    D3DXCONSTANT_DESC desc;
+    UINT count = 1;
+    HRESULT hr = prog->vertex_shader.constant_table->lpVtbl->GetConstantDesc(
+        prog->vertex_shader.constant_table, handle,
+        &desc, &count
+    );
+    assert(hr == D3D_OK);
+    assert(count > 0);
+    prog->uniforms[prog->current_uniform].location = desc.RegisterIndex;
+    bool b = R_SetUniformD3D9(
+        prog->vertex_shader.constant_table,
+        prog->uniforms[prog->current_uniform].location,
+        &prog->uniforms[prog->current_uniform]
+    );
+    assert(b);
 #endif // A_RENDER_BACKEND_D3D9
     prog->current_uniform++;
     
@@ -665,14 +894,12 @@ bool R_DeleteShaderProgram(
 ) {
 #if A_RENDER_BACKEND_GL
     GL_CALL(glDeleteProgram, prog->program);
-    prog->vertex_shader   = 0;
-    prog->fragment_shader = 0;
-    prog->program         = 0;
+    prog->program = 0;
 #elif A_RENDER_BACKEND_D3D9
-    prog->vertex_shader->lpVtbl->Release(prog->vertex_shader);
-    prog->pixel_shader->lpVtbl->Release(prog->pixel_shader);
-    prog->vertex_shader = NULL;
-    prog->pixel_shader  = NULL;
+    prog->vertex_shader.vs->lpVtbl->Release(prog->vertex_shader.vs);
+    prog->pixel_shader.ps->lpVtbl->Release(prog->pixel_shader.ps);
+    prog->vertex_shader.vs = NULL;
+    prog->pixel_shader.ps  = NULL;
 #else
     (void)prog;
 #endif // A_RENDER_BACKEND_GL

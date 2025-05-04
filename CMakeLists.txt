@@ -172,15 +172,27 @@ if (DEFINED RENDER_BACKEND_D3D9)
 		src/gfx_shader.c  src/gfx_text.c src/gfx_uniform.c  src/in_input.c
 		src/main.c src/m_math.c src/pm_pmove.c src/sys.c
 	)
+
+	if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+		target_link_directories(h1_map_viewer_d3d9 PRIVATE 
+			$ENV{DXSDK_DIR}lib\\x64
+		)
+	elseif (CMAKE_SIZEOF_VOID_P EQUAL 4)
+		target_link_directories(h1_map_viewer_d3d9 PRIVATE 
+			$ENV{DXSDK_DIR}lib\\x86
+		)
+	endif()
 	
 	target_link_libraries(h1_map_viewer_d3d9 PRIVATE 
-		SDL3::SDL3 SDL3_image::SDL3_image cglm::cglm Freetype::Freetype ZLIB::ZLIB
-		d3d9.lib
+		SDL3::SDL3 SDL3_image::SDL3_image cglm::cglm Freetype::Freetype 
+		ZLIB::ZLIB d3d9.lib d3dx9.lib
 	)
 	
-	target_include_directories(
-		h1_map_viewer_d3d9 PRIVATE ${CMAKE_SOURCE_DIR}/deps/invader/include
+	target_include_directories(h1_map_viewer_d3d9 PRIVATE 
+		${CMAKE_SOURCE_DIR}/deps/invader/include 
+		$ENV{DXSDK_DIR}Include
 	)
+	message(STATUS "$ENV{DXSDK_DIR}Include")
 	
 	set_target_properties(
 		h1_map_viewer_d3d9 PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/build
