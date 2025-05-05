@@ -476,8 +476,8 @@ static bool R_SetUniformD3D9(ID3DXConstantTable* constant_table, int location,
 
 
 
-int R_ShaderAddUniform(A_INOUT GfxShaderProgram* prog, 
-                       A_IN GfxShaderUniformDef* uniform
+GfxShaderUniformDef* R_ShaderAddUniform(A_INOUT GfxShaderProgram* prog,
+                                        A_IN GfxShaderUniformDef* uniform
 ) {
     assert(prog);
     assert(uniform);
@@ -488,8 +488,8 @@ int R_ShaderAddUniform(A_INOUT GfxShaderProgram* prog,
     }
     
     A_memcpy(&prog->uniforms[prog->current_uniform], uniform, sizeof(*uniform));
+    GfxShaderUniformDef* ret = &prog->uniforms[prog->current_uniform];
 #if A_RENDER_BACKEND_GL
-    int ret = prog->current_uniform;
     prog->uniforms[prog->current_uniform].location = GL_CALL(
         glGetUniformLocation, prog->program, uniform->name
     );
@@ -499,7 +499,6 @@ int R_ShaderAddUniform(A_INOUT GfxShaderProgram* prog,
         &prog->uniforms[prog->current_uniform]
     );
 #elif A_RENDER_BACKEND_D3D9
-    int ret = prog->current_uniform;
     D3DXHANDLE handle = 
         prog->vertex_shader.constant_table->lpVtbl->GetConstantByName(
             prog->vertex_shader.constant_table, NULL,

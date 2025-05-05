@@ -9,9 +9,9 @@
 #endif
 
 #if A_RENDER_BACKEND_GL
-#define DB_SHADER_EXT ".glsl"
+#define DB_SHADER_EXT "glsl"
 #elif A_RENDER_BACKEND_D3D9
-#define DB_SHADER_EXT ".hlsl"
+#define DB_SHADER_EXT "hlsl"
 #endif // A_RENDER_BACKEND_GL
 
 typedef enum AssetType {

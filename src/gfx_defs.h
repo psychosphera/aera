@@ -117,6 +117,10 @@ A_EXTERN_C bool      R_AppendVertexData(A_INOUT GfxVertexBuffer* vb,
                                         const void* data, size_t n);
 A_EXTERN_C GfxImage* R_AddImageToMaterialPass(A_INOUT GfxMaterialPass* pass,
                                               A_IN GfxImage* image);
+A_EXTERN_C GfxVertexBuffer* R_AddVertexBufferToMaterialPass(
+    A_INOUT GfxMaterialPass* pass,
+    A_IN GfxVertexBuffer* vb
+);
 A_EXTERN_C bool      R_RenderMaterialPass(const GfxMaterialPass* pass,
                                           size_t vertices_count, size_t off,
                                           GfxPolygonMode mode

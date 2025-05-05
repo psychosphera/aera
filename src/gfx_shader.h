@@ -9,7 +9,7 @@
 #include "gfx_defs.h"
 #include "gfx_uniform.h"
 
-#define R_SHADER_MAX_UNIFORM 16
+#define R_SHADER_MAX_UNIFORM 20
 
 #if A_RENDER_BACKEND_GL
 typedef GLint GfxCompiledShader;
@@ -63,8 +63,10 @@ A_EXTERN_C A_NO_DISCARD bool R_CreateShaderProgram(
     A_OUT GfxShaderProgram* prog
 );
 
-A_EXTERN_C int R_ShaderAddUniform(A_INOUT GfxShaderProgram* prog,
-                                  A_IN GfxShaderUniformDef* uniform);
+A_EXTERN_C GfxShaderUniformDef* R_ShaderAddUniform(
+    A_INOUT GfxShaderProgram* prog,
+    A_IN GfxShaderUniformDef* uniform
+);
 A_EXTERN_C GfxShaderUniformDef* R_ShaderGetUniform(
     A_INOUT GfxShaderProgram* prog, int i
 );

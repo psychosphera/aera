@@ -224,9 +224,9 @@ bool CL_LoadMap(const char* map_name) {
 			const BSPLightmapVertexCompressed* compressed_lightmap_vertices =
 				(const BSPLightmapVertexCompressed*)(
 					(const BSPRenderedVertexCompressed*)
-					material->compressed_vertices.pointer +
+						material->compressed_vertices.pointer +
 					(uint64_t)material->rendered_vertices_count
-					);
+				);
 
 			size_t decompressed_rendered_vertices_size =
 				rendered_vertices_count * sizeof(BSPRenderedVertex);
@@ -237,6 +237,7 @@ bool CL_LoadMap(const char* map_name) {
 
 			void* decompressed_vertices = Z_Alloc(decompressed_vertices_size);
 			material->uncompressed_vertices.pointer = decompressed_vertices;
+			material->uncompressed_vertices.size    = decompressed_vertices_size;
 			BSPRenderedVertex* rendered_vertices =
 				(BSPRenderedVertex*)decompressed_vertices;
 			for (uint32_t k = 0; k < rendered_vertices_count; k++)

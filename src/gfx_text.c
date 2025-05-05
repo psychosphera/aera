@@ -79,6 +79,29 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
     GfxImage* pImage = R_AddImageToMaterialPass(&f->pass, &image);
     assert(b);
     assert(pImage);
+    GfxShaderUniformDef uniform;
+
+    R_CreateUniformInt("uTex", 0, &uniform);
+    GfxShaderUniformDef* pUniform = R_ShaderAddUniform(&f->prog, &uniform);
+    assert(pUniform);
+
+    amat4f_t m = A_MAT4F_IDENTITY;
+    R_CreateUniformMat4f("uModel", m, &uniform);
+    pUniform = R_ShaderAddUniform(&f->prog, &uniform);
+    assert(pUniform);
+    
+    R_CreateUniformMat4f("uOrthoProjection", m, &uniform);
+    pUniform = R_ShaderAddUniform(&f->prog, &uniform);
+    assert(pUniform);
+    
+    R_CreateUniformVec4f("uAtlasCoord", A_VEC4F_ZERO, &uniform);
+    pUniform = R_ShaderAddUniform(&f->prog, &uniform);
+    assert(pUniform);
+
+    R_CreateUniformVec3f("uTextColor", A_VEC3F_ZERO, &uniform);
+    pUniform = R_ShaderAddUniform(&f->prog, &uniform);
+    assert(pUniform);
+
 #if A_RENDER_BACKEND_GL
     GL_CALL(glBindVertexArray, f->pass.vbs[0].vao);
     GL_CALL(glVertexAttribPointer,

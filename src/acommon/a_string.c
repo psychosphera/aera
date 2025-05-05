@@ -77,7 +77,7 @@ A_NO_DISCARD size_t A_cstrlen(const char* A_RESTRICT s) {
 
 A_NO_DISCARD char* A_cstrdup(const char* A_RESTRICT s) {
     size_t len = A_cstrlen(s);
-    char* t = Z_Alloc(len);
+    char* t = Z_Zalloc(len + 1);
     A_memcpy(t, s, len);
     return t;
 }

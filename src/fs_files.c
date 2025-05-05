@@ -225,11 +225,9 @@ char* FS_BuildOsPath(const char* gamedir, const char* subdir,
 		subdir = "";
 	if (file == NULL)
 		file = "";
-	if (ext == NULL)
-		ext = "";
 
 	if (A_snprintf(s_osPathBuf, sizeof(s_osPathBuf), "%s/%s/%s%s%s",
-		           gamedir, subdir, file, ext ? "." : "", ext) < 1
+		           gamedir, subdir, file, ext ? "." : "", ext ? ext : "") < 1
 	) {
 		return NULL;
 	}

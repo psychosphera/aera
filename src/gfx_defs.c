@@ -197,14 +197,14 @@ GfxImage* R_AddImageToMaterialPass(A_INOUT GfxMaterialPass* pass,
     return &pass->images[i];
 }
 
-int R_AddVertexBufferToMaterialPass(A_INOUT GfxMaterialPass* pass, 
-                                    A_IN GfxVertexBuffer* vb
+GfxVertexBuffer* R_AddVertexBufferToMaterialPass(A_INOUT GfxMaterialPass* pass,
+                                                 A_IN GfxVertexBuffer* vb
 ) {
     assert(pass);
     assert(vb);
     assert(pass->vb_count < A_countof(pass->vbs));
     pass->vbs[pass->vb_count] = *vb;
-    int ret = pass->vb_count;
+    GfxVertexBuffer* ret = &pass->vbs[pass->vb_count];
     pass->vb_count++;
     A_memset(vb, 0, sizeof(*vb));
     return ret;
@@ -327,6 +327,9 @@ A_NO_DISCARD GLenum R_ImageFormatToGL(ImageFormat format) {
         break;
     case R_IMAGE_FORMAT_RGB565:
         gl_format = GL_RGB565;
+        break;
+    case R_IMAGE_FORMAT_RGB888:
+        gl_format = GL_RGB;
         break;
     case R_IMAGE_FORMAT_DXT1:
         gl_format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;

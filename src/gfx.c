@@ -497,18 +497,9 @@ A_NO_DISCARD bool R_CreateImage2D(const void* pixels, size_t pixels_size,
         assert(pixels_size > 0);
         if (pixels_size < 1)
             return false;
-    }
-    else {
+    } else {
         assert(pixels_size == 0);
         if (pixels_size != 0)
-            return false;
-
-        assert(width == 0);
-        if (width != 0)
-            return false;
-
-        assert(height == 0);
-        if (height != 0)
             return false;
     }
 
