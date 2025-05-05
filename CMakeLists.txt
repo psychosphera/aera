@@ -40,244 +40,241 @@ add_subdirectory(
 	${CMAKE_SOURCE_DIR}/deps/SDL_image_build
 )
 
+set(COMMON_SRC 
+	src/acommon/a_common.c src/acommon/a_io.c src/acommon/a_math.c 
+	src/acommon/a_string.c src/acommon/a_type.c 
+	
+	src/acommon/z_mem.c
+	
+	src/cg_cgame.c src/cl_client.c src/cl_map.cpp src/cmd_commands.c 
+	src/com.c src/com_print.c src/con_console.c src/db_files.c 
+	src/devcon.c  src/devgui.c src/dvar.c src/font.c src/fs_files.c 
+	src/gfx.c src/gfx_backend.c src/gfx_defs.c src/gfx_map.c 
+	src/gfx_shader.c  src/gfx_text.c src/gfx_uniform.c  src/in_input.c
+	src/main.c src/m_math.c src/pm_pmove.c src/sys.c
+)
+
+set(COMMON_LIBS 
+	SDL3::SDL3 SDL3_image::SDL3_image cglm::cglm Freetype::Freetype ZLIB::ZLIB
+)
+
+set(COMMON_INCLUDE_DIRS       ${CMAKE_SOURCE_DIR}/deps/invader/include)
+set(COMMON_COMPILE_DEFS       A_PROJECT_ROOT="${CMAKE_SOURCE_DIR}")
+set(COMMON_DEBUG_COMPILE_DEFS _DEBUG=1)
+
+set(MSVC_COMPILE_OPTIONS       "/permissive-" "/W4" "/bigobj")
+set(MSVC_DEBUG_COMPILE_OPTIONS "/Od")
+set(MSVC_RELEASE_OPTIONS       "/O2")
+set(MSVC_NON_CLANG_OPTIONS 
+	"/Zc:preprocessor" "/Zc:__cplusplus" "/Zc:__STDC__" "/wd4005" "/wd4244"
+	"/wd4267" "/wd4311" "/wd4305" "/wd4312" "/wd4201" "/wd4018"
+)
+
+set(GCC_COMPILE_OPTIONS 
+	"-ftrack-macro-expansion=0" 
+	"-Wno-address-of-packed-member"
+	"-Wno-comment"
+)
+
+set(GCC_CLANG_NON_CL_OPTIONS 
+	"-Wall" "-Wextra" "-Werror" "-Wno-type-limits" "-Og"
+)
+
+set(CLANG_COMPILE_OPTIONS
+	"-Wno-gnu-zero-variadic-macro-arguments"
+	"-Wno-unreachable-code-generic-assoc"
+	"-Wno-sign-compare" "-Wno-macro-redefined"
+	"-Wno-pointer-to-int-cast" 
+	"-Wno-c99-designator" 
+	"-Wno-gnu-anonymous-struct"
+	"-Wno-address-of-packed-member"
+	"-Wno-sign-compare"
+	"-Wno-embedded-directive"
+	"-Wno-c23-extensions"
+	"-fmacro-backtrace-limit=1"
+)
+
+set(CLANG_NON_CL_COMMON_OPTIONS "-pedantic" "-pedantic-errors")
+
+set(CLANG_GCC_COMPILE_OPTIONS "-Wno-int-to-pointer-cast")
+
+set(APPLE_CLANG_COMPILE_OPTIONS "-Wno-undef-prefix")
+
 # =============================================================================
 if (DEFINED RENDER_BACKEND_GL)
-	find_package(GLEW     REQUIRED)
-	find_package(OpenGL   REQUIRED)
+	set(GL_LIBS GLEW::GLEW OpenGL::GL)
+	set(GL_COMPILE_DEFS A_RENDER_BACKEND_GL=1 A_RENDER_BACKEND_D3D9=0)
+
+	find_package(GLEW   REQUIRED)
+	find_package(OpenGL REQUIRED)
 	
-	add_executable(h1_map_viewer_gl
-	    src/acommon/a_common.c src/acommon/a_io.c src/acommon/a_math.c 
-		src/acommon/a_string.c src/acommon/a_type.c 
-		
-		src/acommon/z_mem.c
+	add_executable(h1_map_viewer_gl ${COMMON_SRC})
 	
-		src/cg_cgame.c src/cl_client.c src/cl_map.cpp src/cmd_commands.c 
-		src/com.c src/com_print.c src/con_console.c src/db_files.c 
-		src/devcon.c  src/devgui.c src/dvar.c src/font.c src/fs_files.c 
-		src/gfx.c src/gfx_backend.c src/gfx_defs.c src/gfx_map.c 
-		src/gfx_shader.c  src/gfx_text.c src/gfx_uniform.c  src/in_input.c
-		src/main.c src/m_math.c src/pm_pmove.c src/sys.c
-	)
-	
-	target_link_libraries(h1_map_viewer_gl PRIVATE 
-		SDL3::SDL3 SDL3_image::SDL3_image cglm::cglm Freetype::Freetype 
-		GLEW::GLEW OpenGL::GL ZLIB::ZLIB
-	)
-	
-	target_include_directories(
-		h1_map_viewer_gl PRIVATE ${CMAKE_SOURCE_DIR}/deps/invader/include
-	)
-	
-	set_target_properties(
-		h1_map_viewer_gl PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/build
-	)
-	
-	target_compile_definitions(
-	    h1_map_viewer_gl PRIVATE A_PROJECT_ROOT="${CMAKE_SOURCE_DIR}"
+	target_link_libraries(h1_map_viewer_gl PRIVATE ${COMMON_LIBS} ${GL_LIBS})
+	target_include_directories(h1_map_viewer_gl PRIVATE ${COMMON_INCLUDE_DIRS})
+	target_compile_definitions(h1_map_viewer_gl PRIVATE 
+		${COMMON_DEFS} ${GL_COMPILE_DEFS}
 	)
 	
 	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 		target_compile_definitions(h1_map_viewer_gl PRIVATE 
-			_DEBUG=1 A_RENDER_BACKEND_GL=1 A_RENDER_BACKEND_D3D9=0
+			${COMMON_DEBUG_DEFS}
 		)
 	endif()
 	
 	if(MSVC)
 		target_compile_options(h1_map_viewer_gl PRIVATE 
-			"/permissive-" "/W4" "/bigobj" 
+			${MSVC_COMPILE_OPTIONS}
 		)
 	
 		if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-			target_compile_options(h1_map_viewer_gl PRIVATE 
-			    "/Od"
-		    )
+			target_compile_options(h1_map_viewer_gl PRIVATE
+				${MSVC_DEBUG_COMPILE_OPTIONS}
+			)
 	    elseif (CMAKE_BUILD_TYPE STREQUAL "Release" OR 
 		        CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo"
 		)
 	        target_compile_options(h1_map_viewer_gl PRIVATE 
-			    "/O2"
-		    )
+				${MSVC_RELEASE_OPTIONS}
+			)
 	    endif()
 	endif()
 	
 	if(GCC)
-	    target_compile_options(h1_map_viewer_gl PRIVATE
-	        "-ftrack-macro-expansion=0" 
-			"-Wno-address-of-packed-member"
-			"-Wno-comment"
-	    ) 
+	    target_compile_options(h1_map_viewer_gl PRIVATE ${GCC_COMPILE_OPTIONS}) 
 	endif()
 	
 	if(CLANG)
-	    target_compile_options(h1_map_viewer_gl PRIVATE
-	        "-Wno-gnu-zero-variadic-macro-arguments"
-	        "-Wno-unreachable-code-generic-assoc"
-			"-Wno-sign-compare" "-Wno-macro-redefined"
-	    	"-Wno-pointer-to-int-cast" 
-			"-Wno-c99-designator" 
-			"-Wno-gnu-anonymous-struct"
-			"-Wno-address-of-packed-member"
-			"-Wno-sign-compare"
-			"-Wno-embedded-directive"
-			"-Wno-c23-extensions"
-			"-fmacro-backtrace-limit=1"
-	    ) 
+	    target_compile_options(h1_map_viewer_gl PRIVATE 
+			${CLANG_COMPILE_OPTIONS}
+		) 
 	endif()
 	
 	if(CLANG AND NOT MSVC)
 		target_compile_options(h1_map_viewer_gl PRIVATE
-			"-pedantic" "-pedantic-errors" 
+			${CLANG_NON_CL_COMMON_OPTIONS}
 		)
 	endif()
 	
 	if(CLANG OR GCC)
-	    target_compile_options(h1_map_viewer_gl PRIVATE
-			"-Wno-int-to-pointer-cast"
-	    )
+	    target_compile_options(h1_map_viewer_gl PRIVATE 
+			${CLANG_GCC_COMPILE_OPTIONS}
+		)
 	endif()
 	
 	if(MSVC AND NOT CLANG)
 		target_compile_options(h1_map_viewer_gl PRIVATE 
-			"/Zc:preprocessor" "/Zc:__cplusplus" "/Zc:__STDC__" "/wd4005" "/wd4244"
-			"/wd4267" "/wd4311" "/wd4305" "/wd4312" "/wd4201" "/wd4018"
+			${MSVC_NON_CLANG_OPTIONS}
 		)
 	endif()
 	
 	if(CLANG AND APPLE)
 	    target_compile_options(h1_map_viewer_gl PRIVATE 
-	        "-Wno-undef-prefix"
-	    )
+			${APPLE_CLANG_COMPILE_OPTIONS}
+		)
 	endif()
 	
 	if((CLANG AND NOT MSVC) OR GCC)
 	    target_compile_options(h1_map_viewer_gl PRIVATE 
-	        "-Wall" "-Wextra" "-Werror" "-Wno-type-limits" "-Og"
-	    ) 
+			${GCC_CLANG_NON_CL_OPTIONS}
+		)
 	endif()
 endif()
 # =============================================================================
 
 # =============================================================================
 if (DEFINED RENDER_BACKEND_D3D9)
-	add_executable(h1_map_viewer_d3d9
-	    src/acommon/a_common.c src/acommon/a_io.c src/acommon/a_math.c 
-		src/acommon/a_string.c src/acommon/a_type.c 
-		
-		src/acommon/z_mem.c
-	
-		src/cg_cgame.c src/cl_client.c src/cl_map.cpp src/cmd_commands.c 
-		src/com.c src/com_print.c src/con_console.c src/db_files.c 
-		src/devcon.c  src/devgui.c src/dvar.c src/font.c src/fs_files.c 
-		src/gfx.c  src/gfx_backend.c src/gfx_defs.c src/gfx_map.c 
-		src/gfx_shader.c  src/gfx_text.c src/gfx_uniform.c  src/in_input.c
-		src/main.c src/m_math.c src/pm_pmove.c src/sys.c
-	)
+	set(D3D9_LIBS d3d9.lib d3dx9.lib)
+	set(D3D9_INCLUDE_DIRS "$ENV{DXSDK_DIR}Include")
+	set(D3D9_COMPILE_DEFS A_RENDER_BACKEND_GL=0 A_RENDER_BACKEND_D3D9=1)
 
+	add_executable(h1_map_viewer_d3d9 ${COMMON_SRC})
+	
 	if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-		target_link_directories(h1_map_viewer_d3d9 PRIVATE 
-			$ENV{DXSDK_DIR}lib\\x64
-		)
+		set(DXSDK_LIB_DIR $ENV{DXSDK_DIR}lib\\x64)
 	elseif (CMAKE_SIZEOF_VOID_P EQUAL 4)
-		target_link_directories(h1_map_viewer_d3d9 PRIVATE 
-			$ENV{DXSDK_DIR}lib\\x86
-		)
+		set(DXSDK_LIB_DIR $ENV{DXSDK_DIR}lib\\x86)
 	endif()
+
+	set(D3D9_LIB_DIRS ${DXSDK_LIB_DIR})
+
+	target_link_directories(h1_map_viewer_d3d9 PRIVATE ${D3D9_LIB_DIRS})
 	
 	target_link_libraries(h1_map_viewer_d3d9 PRIVATE 
-		SDL3::SDL3 SDL3_image::SDL3_image cglm::cglm Freetype::Freetype 
-		ZLIB::ZLIB d3d9.lib d3dx9.lib
+		${COMMON_LIBS} ${D3D9_LIBS}
 	)
 	
 	target_include_directories(h1_map_viewer_d3d9 PRIVATE 
-		${CMAKE_SOURCE_DIR}/deps/invader/include 
-		$ENV{DXSDK_DIR}Include
-	)
-	message(STATUS "$ENV{DXSDK_DIR}Include")
-	
-	set_target_properties(
-		h1_map_viewer_d3d9 PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/build
+		${COMMON_INCLUDE_DIRS} ${D3D9_INCLUDE_DIRS}
 	)
 	
-	target_compile_definitions(
-	    h1_map_viewer_d3d9 PRIVATE A_PROJECT_ROOT="${CMAKE_SOURCE_DIR}"
+	target_compile_definitions(h1_map_viewer_d3d9 PRIVATE 
+		${COMMON_COMPILE_DEFS} ${D3D9_COMPILE_DEFS}
 	)
 	
 	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 		target_compile_definitions(h1_map_viewer_d3d9 PRIVATE 
-			_DEBUG=1 A_RENDER_BACKEND_GL=0 A_RENDER_BACKEND_D3D9=1
+			${COMMON_DEBUG_COMPILE_DEFS}
 		)
 	endif()
 	
 	if(MSVC)
 		target_compile_options(h1_map_viewer_d3d9 PRIVATE 
-			"/permissive-" "/W4" "/bigobj" 
+			${MSVC_COMPILE_OPTIONS}
 		)
 	
 		if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 			target_compile_options(h1_map_viewer_d3d9 PRIVATE 
-			    "/Od"
-		    )
+				${MSVC_DEBUG_COMPILE_OPTIONS}
+			)
 	    elseif (CMAKE_BUILD_TYPE STREQUAL "Release" OR 
 		        CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo"
 		)
 	        target_compile_options(h1_map_viewer_d3d9 PRIVATE 
-			    "/O2"
+			    ${MSVC_RELEASE_OPTIONS}
 		    )
 	    endif()
 	endif()
 	
 	if(GCC)
 	    target_compile_options(h1_map_viewer_d3d9 PRIVATE
-	        "-ftrack-macro-expansion=0" 
-			"-Wno-address-of-packed-member"
-			"-Wno-comment"
+	        ${GCC_COMPILE_OPTIONS}
 	    ) 
 	endif()
 	
 	if(CLANG)
 	    target_compile_options(h1_map_viewer_d3d9 PRIVATE
-	        "-Wno-gnu-zero-variadic-macro-arguments"
-	        "-Wno-unreachable-code-generic-assoc"
-			"-Wno-sign-compare" "-Wno-macro-redefined"
-	    	"-Wno-pointer-to-int-cast" 
-			"-Wno-c99-designator" 
-			"-Wno-gnu-anonymous-struct"
-			"-Wno-address-of-packed-member"
-			"-Wno-sign-compare"
-			"-Wno-embedded-directive"
-			"-Wno-c23-extensions"
-			"-fmacro-backtrace-limit=1"
+	        ${CLANG_COMPILE_OPTIONS}
 	    ) 
 	endif()
 	
 	if(CLANG AND NOT MSVC)
 		target_compile_options(h1_map_viewer_d3d9 PRIVATE
-			"-pedantic" "-pedantic-errors" 
+			${CLANG_NON_CL_COMMON_OPTIONS}
 		)
 	endif()
 	
 	if(CLANG OR GCC)
 	    target_compile_options(h1_map_viewer_d3d9 PRIVATE
-			"-Wno-int-to-pointer-cast"
+			${CLANG_GCC_COMPILE_OPTIONS}
 	    )
 	endif()
 	
 	if(MSVC AND NOT CLANG)
 		target_compile_options(h1_map_viewer_d3d9 PRIVATE 
-			"/Zc:preprocessor" "/Zc:__cplusplus" "/Zc:__STDC__" "/wd4005" "/wd4244"
-			"/wd4267" "/wd4311" "/wd4305" "/wd4312" "/wd4201" "/wd4018"
+			${MSVC_NON_CLANG_OPTIONS}
 		)
 	endif()
 	
 	if(CLANG AND APPLE)
 	    target_compile_options(h1_map_viewer_d3d9 PRIVATE 
-	        "-Wno-undef-prefix"
+	        ${APPLE_CLANG_COMPILE_OPTIONS}
 	    )
 	endif()
 	
 	if((CLANG AND NOT MSVC) OR GCC)
 	    target_compile_options(h1_map_viewer_d3d9 PRIVATE 
-	        "-Wall" "-Wextra" "-Werror" "-Wno-type-limits" "-Og"
+	        ${GCC_CLANG_NON_CL_OPTIONS}
 	    ) 
 	endif()
 endif()

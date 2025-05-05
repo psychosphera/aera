@@ -267,6 +267,7 @@ void R_SetUniformFloatArray(A_INOUT GfxShaderUniformDef* pUniform,
         );
     }
     pUniform->value.fa = value;
+    pUniform->value.fcount = count;
 }
 
 void R_SetUniformVec2f(A_INOUT GfxShaderUniformDef* pUniform, avec2f_t value) {
@@ -334,6 +335,7 @@ void R_SetUniformIntArray(A_INOUT GfxShaderUniformDef* pUniform,
         );
     }
     pUniform->value.ia = value;
+    pUniform->value.icount = count;
 }
 
 void R_SetUniformVec2i(A_INOUT GfxShaderUniformDef* pUniform, avec2i_t value) {
@@ -445,9 +447,9 @@ void R_SetUniformMat4f(A_INOUT GfxShaderUniformDef* pUniform, amat4f_t value) {
 void R_DeleteUniform(A_IN GfxShaderUniformDef* pUniform) {
     assert(pUniform);
     A_cstrfree(pUniform->name);
-    pUniform->name      = NULL;
+    pUniform->name      =  NULL;
     pUniform->location  = -1;
-    pUniform->type      = UNIFORM_TYPE_INVALID;
-    pUniform->value.i   = 0;
+    pUniform->type      =  UNIFORM_TYPE_INVALID;
+    pUniform->value.i   =  0;
     pUniform->name_hash = -1;
 }

@@ -2,7 +2,6 @@
 
 #include <stdio.h>
 
-#include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 
 #include "acommon/a_string.h"
@@ -13,7 +12,7 @@
 #include "gfx.h"
 #include "in_input.h"
 
-SDL_Window* g_sdlWindow;
+SDLGlob sys_sdlGlob;
 
 dvar_t* vid_xpos;
 dvar_t* vid_ypos;
@@ -44,7 +43,7 @@ void Sys_Init(const char** argv) {
         "vid_hight", DVAR_FLAG_NONE, VID_HEIGHT_DEFAULT, 1, INT_MAX
     );
 
-    g_sdlWindow = SDL_CreateWindow(
+    sys_sdlGlob.window = SDL_CreateWindow(
         "Halo 1 Map Viewer",
         Dvar_GetInt(vid_width),
         Dvar_GetInt(vid_height),
@@ -52,13 +51,13 @@ void Sys_Init(const char** argv) {
     );
 
     int x, y;
-    SDL_GetWindowPosition(g_sdlWindow, &x, &y);
+    SDL_GetWindowPosition(sys_sdlGlob.window, &x, &y);
     vid_xpos = Dvar_RegisterInt("vid_xpos", DVAR_FLAG_NONE, x, 0, INT_MAX);
     vid_ypos = Dvar_RegisterInt("vid_ypos", DVAR_FLAG_NONE, y, 0, INT_MAX);
     SDL_SetRelativeMouseMode(SDL_TRUE);
-    SDL_SetWindowFullscreenMode(g_sdlWindow, NULL);
+    SDL_SetWindowFullscreenMode(sys_sdlGlob.window, NULL);
 
-    if (g_sdlWindow == NULL) {
+    if (sys_sdlGlob.window == NULL) {
         printf("Could not create window: %s\n", SDL_GetError());
         Sys_NormalExit(-2);
     }
@@ -108,7 +107,7 @@ bool Sys_HandleEvent(void) {
             Dvar_SetInt(vid_ypos, ev.window.data2);
             break;
         case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-            SDL_DestroyWindow(g_sdlWindow);
+            SDL_DestroyWindow(sys_sdlGlob.window);
             break;
         case SDL_EVENT_WINDOW_DESTROYED:
             Sys_NormalExit(2);
@@ -205,7 +204,7 @@ void Sys_Shutdown(void) {
     Sys_ShutdownThreads();
     //Sys_ShutdownCmdline();
     IN_Shutdown();
-    SDL_DestroyWindow(g_sdlWindow);
+    SDL_DestroyWindow(sys_sdlGlob.window);
     SDL_Quit();
 }
 

@@ -12,17 +12,6 @@
 #include "gfx.h"
 #include "sys.h"
 
-extern SDL_Window* g_sdlWindow;
-extern dvar_t* r_vsync;
-extern dvar_t* r_fullscreen;
-extern dvar_t* r_noBorder;
-extern dvar_t* vid_width;
-extern dvar_t* vid_height;
-extern dvar_t* vid_xpos;
-extern dvar_t* vid_ypos;
-
-
-static SDL_GLContext s_glContext;
 static bool s_windowResizeable;
 
 bool RB_WindowResizeable() {
@@ -33,7 +22,7 @@ void RB_EnableWindowResize(bool resizeable) {
     if (resizeable == RB_WindowResizeable())
         return;
 
-    SDL_SetWindowResizable(g_sdlWindow, resizeable);
+    SDL_SetWindowResizable(sys_sdlGlob.window, resizeable);
     s_windowResizeable = resizeable;
     if (!resizeable) {
         int w = Dvar_GetInt(vid_width);
@@ -59,8 +48,8 @@ A_EXTERN_C void RB_Init(void) {
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-    s_glContext = SDL_GL_CreateContext(g_sdlWindow);
-    if (s_glContext == NULL) {
+    sys_sdlGlob.glContext = SDL_GL_CreateContext(sys_sdlGlob.window);
+    if (sys_sdlGlob.glContext == NULL) {
         printf("GL context creation failed: %s\n", SDL_GetError());
         Sys_NormalExit(-1);
     }
@@ -81,6 +70,7 @@ A_EXTERN_C bool RB_EnableVsync(bool enable) {
 #if A_RENDER_BACKEND_GL
     return SDL_GL_SetSwapInterval((int)enable) == 0;
 #else
+    (void)enable;
     return false;
 #endif // A_RENDER_BACKEND_GL
 }
@@ -102,27 +92,27 @@ A_EXTERN_C void RB_BeginFrame(void) {
             Dvar_LatchValue(vid_height);
             Dvar_LatchValue(vid_xpos);
             Dvar_LatchValue(vid_ypos);
-            SDL_DisplayID d = SDL_GetDisplayForWindow(g_sdlWindow);
+            SDL_DisplayID d = SDL_GetDisplayForWindow(sys_sdlGlob.window);
             const SDL_DisplayMode* mode = SDL_GetCurrentDisplayMode(d);
-            SDL_SetWindowSize(g_sdlWindow, mode->w, mode->h + 1);
+            SDL_SetWindowSize(sys_sdlGlob.window, mode->w, mode->h + 1);
             Dvar_SetInt(vid_width,  mode->w);
             Dvar_SetInt(vid_height, mode->h);
             R_WindowResized();
-            SDL_SetWindowPosition(g_sdlWindow, 0, 0);
-            SDL_SetWindowResizable(g_sdlWindow, SDL_FALSE);
+            SDL_SetWindowPosition(sys_sdlGlob.window, 0, 0);
+            SDL_SetWindowResizable(sys_sdlGlob.window, SDL_FALSE);
             Dvar_SetBool(r_fullscreen, true);
         }
         else {
             Dvar_SetBool(r_fullscreen, false);
-            SDL_SetWindowResizable(g_sdlWindow, SDL_TRUE);
+            SDL_SetWindowResizable(sys_sdlGlob.window, SDL_TRUE);
             Dvar_RestoreValue(vid_xpos);
             Dvar_RestoreValue(vid_ypos);
             Dvar_RestoreValue(vid_width);
             Dvar_RestoreValue(vid_height);
-            SDL_SetWindowPosition(g_sdlWindow, 
+            SDL_SetWindowPosition(sys_sdlGlob.window, 
                                   Dvar_GetInt(vid_xpos), 
                                   Dvar_GetInt(vid_ypos));
-            SDL_SetWindowSize(g_sdlWindow, 
+            SDL_SetWindowSize(sys_sdlGlob.window, 
                               Dvar_GetInt(vid_width), 
                               Dvar_GetInt(vid_height));
             R_WindowResized();
@@ -131,7 +121,7 @@ A_EXTERN_C void RB_BeginFrame(void) {
         Dvar_ClearModified(r_fullscreen);
     } else {
         if (Dvar_WasModified(vid_width) || Dvar_WasModified(vid_height)) {
-            SDL_SetWindowSize(g_sdlWindow, 
+            SDL_SetWindowSize(sys_sdlGlob.window, 
                               Dvar_GetInt(vid_width), 
                               Dvar_GetInt(vid_height));
             Dvar_ClearModified(vid_width);
@@ -142,7 +132,7 @@ A_EXTERN_C void RB_BeginFrame(void) {
 
     if (!Dvar_GetBool(r_fullscreen)) {
         if (Dvar_WasModified(vid_xpos) || Dvar_WasModified(vid_ypos)) {
-            SDL_SetWindowPosition(g_sdlWindow, 
+            SDL_SetWindowPosition(sys_sdlGlob.window, 
                                   Dvar_GetInt(vid_xpos), 
                                   Dvar_GetInt(vid_ypos));
             Dvar_ClearModified(vid_xpos);
@@ -152,9 +142,9 @@ A_EXTERN_C void RB_BeginFrame(void) {
 
     if (Dvar_WasModified(r_noBorder)) {
         if (Dvar_GetBool(r_noBorder))
-            SDL_SetWindowBordered(g_sdlWindow, SDL_FALSE);
+            SDL_SetWindowBordered(sys_sdlGlob.window, SDL_FALSE);
         else
-            SDL_SetWindowBordered(g_sdlWindow, SDL_TRUE);
+            SDL_SetWindowBordered(sys_sdlGlob.window, SDL_TRUE);
 
         Dvar_ClearModified(r_noBorder);
     }
@@ -162,12 +152,12 @@ A_EXTERN_C void RB_BeginFrame(void) {
 
 A_EXTERN_C void RB_EndFrame(void) {
 #if A_RENDER_BACKEND_GL
-    SDL_GL_SwapWindow(g_sdlWindow);
+    SDL_GL_SwapWindow(sys_sdlGlob.window);
 #endif // A_RENDER_BACKEND_GL
 }
 
 A_EXTERN_C void RB_Shutdown(void) {
 #if A_RENDER_BACKEND_GL
-    SDL_GL_DeleteContext(s_glContext);
+    SDL_GL_DeleteContext(sys_sdlGlob.glContext);
 #endif // A_RENDER_BACKEND_GL
 }

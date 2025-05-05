@@ -95,13 +95,13 @@ A_NO_DISCARD bool R_CreateBSPImage(
 }
 
 void R_InitMap(void) {
-    char* vertSource = DB_LoadShader("bsp.vs");
-    char* fragSource = DB_LoadShader("bsp.fs");
+    char* vertSource  = DB_LoadShader("bsp.vs");
+    char* pixelSource = DB_LoadShader("bsp.ps");
 
-    bool b = R_CreateShaderProgram(vertSource, fragSource, &r_mapGlob.prog);
+    bool b = R_CreateShaderProgram(vertSource, pixelSource, &r_mapGlob.prog);
     assert(b);
     DB_UnloadShader(vertSource);
-    DB_UnloadShader(fragSource);
+    DB_UnloadShader(pixelSource);
 }
 
 static void R_SwapYZPoint3(A_INOUT apoint3f_t* p) {
@@ -223,7 +223,7 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
         if (shader->map.id.index != 0xFFFF) {
             GfxImage map;
             b = R_LoadBitmap(shader->map.id, &map);
-            if (R_AddImageToMaterialPass(&material->pass, &map) < 0)
+            if (R_AddImageToMaterialPass(&material->pass, &map) == NULL)
                 b = false;
         }
         
@@ -232,7 +232,7 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
         if (shader->base_map.id.index != 0xFFFF) {
             GfxImage base_map;
             b = R_LoadBitmap(shader->map.id, &base_map);
-            if (R_AddImageToMaterialPass(&material->pass, &base_map) < 0)
+            if (R_AddImageToMaterialPass(&material->pass, &base_map) == NULL)
                 b = false;
         }
      
@@ -241,7 +241,7 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
         if (shader->primary_detail_map.id.index != 0xFFFF) {
             GfxImage primary_detail_map;
             b = R_LoadBitmap(shader->map.id, &primary_detail_map);
-            if (R_AddImageToMaterialPass(&material->pass, &primary_detail_map) < 0)
+            if (R_AddImageToMaterialPass(&material->pass, &primary_detail_map) == NULL)
                 b = false;
         }
         assert(b);
@@ -249,7 +249,7 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
         if (shader->secondary_detail_map.id.index != 0xFFFF) {
             GfxImage secondary_detail_map;
             b = R_LoadBitmap(shader->map.id, &secondary_detail_map);
-            if (R_AddImageToMaterialPass(&material->pass, &secondary_detail_map) < 0)
+            if (R_AddImageToMaterialPass(&material->pass, &secondary_detail_map) == NULL)
                 b = false;
         }
         assert(b);
@@ -257,7 +257,7 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
         if (shader->micro_detail_map.id.index != 0xFFFF) {
             GfxImage micro_detail_map;
             b = R_LoadBitmap(shader->map.id, &micro_detail_map);
-            if (R_AddImageToMaterialPass(&material->pass, &micro_detail_map) < 0)
+            if (R_AddImageToMaterialPass(&material->pass, &micro_detail_map) == NULL)
                 b = false;
         }
         assert(b);
@@ -265,7 +265,7 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
         if (shader->bump_map.id.index != 0xFFFF) {
             GfxImage bump_map;
             b = R_LoadBitmap(shader->map.id, &bump_map);
-            if (R_AddImageToMaterialPass(&material->pass, &bump_map) < 0)
+            if (R_AddImageToMaterialPass(&material->pass, &bump_map) == NULL)
                 b = false;
         }
        
@@ -292,13 +292,14 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
     bool b = R_CreateVertexBuffer(rendered_vertices,
                                   rendered_vertices_size,
                                   rendered_vertices_size, 0,
+                                  sizeof(BSPRenderedVertex),      
                                   &material->pass.vbs[0]);
     assert(b);
 
 #if A_RENDER_BACKEND_GL
     R_AppendVertexData(&material->pass.vbs[0],
                        lightmap_vertices, lightmap_vertices_size);
-
+    GL_CALL(glBindVertexArray, material->pass.vbs[0].vao);
     GL_CALL(glVertexAttribPointer,
         0, 3, GL_FLOAT, GL_FALSE, sizeof(BSPRenderedVertex),
         (const void*)offsetof(BSPRenderedVertex, pos)
@@ -341,6 +342,7 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
     b = R_CreateVertexBuffer(lightmap_vertices,
                              lightmap_vertices_size,
                              lightmap_vertices_size, 0,
+                             sizeof(BSPLightmapVertex),  
                              &material->pass.vbs[1]);
     assert(b);
     D3DVERTEXELEMENT9 vertex_elements[] = {

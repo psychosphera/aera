@@ -31,15 +31,14 @@ static const GfxSubTexDef s_subTexDefs[6] = {
 // DON'T TOUCH ANY OF THIS. DON'T EVEN LOOK AT IT THE WRONG WAY. LEAVE IT ALONE
 // AND BE HAPPY YOU DIDN'T SPEND TEN HOURS GETTING IT TO WORK.
 A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
-#if A_RENDER_BACKEND_GL
-    char* vertSource = DB_LoadShader("text.vs");
-    char* fragSource = DB_LoadShader("text.fs");
+    char* vertSource  = DB_LoadShader("text.vs");
+    char* pixelSource = DB_LoadShader("text.ps");
 
-    if (!R_CreateShaderProgram(vertSource,fragSource, &f->prog)) {
+    if (!R_CreateShaderProgram(vertSource, pixelSource, &f->prog)) {
         return false;
     }
     DB_UnloadShader(vertSource);
-    DB_UnloadShader(fragSource);
+    DB_UnloadShader(pixelSource);
 
     for (char i = ' '; i < Font_GlyphCount(f) + ' '; i++) {
         const GlyphDef* g = Font_GetGlyph(f, i);
@@ -47,19 +46,41 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
         f->atlas_height = A_MAX(f->atlas_height, g->height);
     }
 
-    GL_CALL(glUseProgram, r_defaultFont.prog.program);
-
     bool b = R_CreateVertexBuffer(
         s_subTexDefs,
         A_countof(s_subTexDefs),
         A_countof(s_subTexDefs),
         0,
-        &f->vb
+        sizeof(GfxSubTexDef),
+        &f->pass.vbs[0]
     );
     assert(b);
     if (!b)
         return false;
 
+    ImageFormat format    = R_IMAGE_FORMAT_R8;
+    ImageFilter minfilter = R_IMAGE_FILTER_LINEAR;
+    ImageFilter magfilter = R_IMAGE_FILTER_LINEAR;
+
+    int width = 0;
+    int height = 0;
+    for (char c = ' '; c < ' ' + Font_GlyphCount(f); c++) {
+        GlyphDef* g = Font_GetGlyph(f, c);
+        if (g->advance_x == 0)
+            continue;
+
+        width += g->width + 1;
+        height = A_MAX(height, g->height);
+    }
+
+    GfxImage image;
+    b = R_CreateImage2D(NULL, 0, width, height, 1, format, true, true, true,
+                        minfilter, magfilter, &image);
+    GfxImage* pImage = R_AddImageToMaterialPass(&f->pass, &image);
+    assert(b);
+    assert(pImage);
+#if A_RENDER_BACKEND_GL
+    GL_CALL(glBindVertexArray, f->pass.vbs[0].vao);
     GL_CALL(glVertexAttribPointer,
         0, 2, GL_FLOAT, (GLboolean)GL_FALSE,
         (GLsizei)sizeof(GfxSubTexDef), (void*)offsetof(GfxSubTexDef, x)
@@ -71,47 +92,64 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
     GL_CALL(glEnableVertexAttribArray, 0);
     GL_CALL(glEnableVertexAttribArray, 1);
 
-    ImageFormat format = R_IMAGE_FORMAT_R8;
-    b = R_CreateImage2D(0, 0, format, format, NULL, 0, &f->image);
-    assert(b);
-    GLenum gl_format = R_ImageFormatToGL(format);
 
     GLint unpackAlign = 0;
     GL_CALL(glGetIntegerv, GL_UNPACK_ALIGNMENT, &unpackAlign);
     GL_CALL(glPixelStorei, GL_UNPACK_ALIGNMENT, 1);
-
-    GL_CALL(glBindTexture, GL_TEXTURE_2D, f->image.tex);
-    GL_CALL(glTexParameteri,
-        GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE
+#elif A_RENDER_BACKEND_D3D9
+    D3DVERTEXELEMENT9 vertex_elements[] = {
+        {
+            .Stream     = 0,
+            .Offset     = offsetof(GfxSubTexDef, x),
+            .Type       = D3DDECLTYPE_FLOAT2,
+            .Method     = D3DDECLMETHOD_DEFAULT,
+            .Usage      = D3DDECLUSAGE_POSITION,
+            .UsageIndex = 0
+        },
+        {
+            .Stream     = 0,
+            .Offset     = offsetof(GfxSubTexDef, u),
+            .Type       = D3DDECLTYPE_FLOAT2,
+            .Method     = D3DDECLMETHOD_DEFAULT,
+            .Usage      = D3DDECLUSAGE_TEXCOORD,
+            .UsageIndex = 0
+        },
+        D3DDECL_END()
+    };
+    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->CreateVertexDeclaration(
+        r_d3d9Glob.d3ddev, vertex_elements, &f->pass.decl
     );
-    GL_CALL(glTexParameteri,
-        GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE
-    );
-    GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
+    assert(hr == D3D_OK);
+    assert(f->pass.decl);
+    if (hr != D3D_OK)
+        return false;
+    if (!f->pass.decl)
+        return false;
+#endif // A_RENDER_BACKEND_GL
+    int pixel_size = R_ImageFormatPixelSize(format);
+    width = 0;
+    height = 0;
     for (char c = ' '; c < ' ' + Font_GlyphCount(f); c++) {
         GlyphDef* g = Font_GetGlyph(f, c);
         if (g->advance_x == 0)
             continue;
 
-        if (g->width > 0 && g->height > 0)
-            GL_CALL(glTexSubImage2D,
-                GL_TEXTURE_2D, 0, f->image.width, 0, g->width, g->height,
-                gl_format, GL_UNSIGNED_BYTE, g->pixels
+        if (g->width > 0 && g->height > 0) {
+            b = R_ImageSubData(
+                pImage, g->pixels, g->width * g->height * pixel_size,
+                g->atlas_x, g->atlas_y,
+                g->width, g->height, format
             );
+            assert(b);
+        }
 
-        g->atlas_x = (float)f->image.width / (float)f->atlas_width;
+        g->atlas_x = (float)width / (float)f->atlas_width;
         g->atlas_y = 0.0f;
-
-        f->image.width += g->width + 1;
-        f->image.height = A_MAX(f->image.height, g->height);
     }
 
     R_ShaderSetUniformIntByName(&f->prog, "uTex", 0);
-
+#if A_RENDER_BACKEND_GL
     GL_CALL(glPixelStorei, GL_UNPACK_ALIGNMENT, unpackAlign);
-    GL_CALL(glBindTexture, GL_TEXTURE_2D, 0);
 #endif // A_RENDER_BACKEND_GL
 
     return true;
@@ -119,9 +157,8 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
 // ============================================================================
 
 void R_DeleteTextureAtlas(A_INOUT FontDef* f) {
-    R_DeleteVertexBuffer (&f->vb);
     R_DeleteShaderProgram(&f->prog);
-    R_DeleteImage        (&f->image);
+    R_DeleteMaterialPass(&f->pass);
 }
 
 void R_DrawText(
@@ -130,7 +167,6 @@ void R_DrawText(
     float xscale, float yscale, acolor_rgb_t color,
     bool right
 ) {
-#if A_RENDER_BACKEND_GL
     if (font == NULL)
         font = &r_defaultFont;
 
@@ -147,14 +183,18 @@ void R_DrawText(
     float x = min_x;
     float y = min_y;
 
-    GL_CALL(glUseProgram,      font->prog.program);
-    GL_CALL(glEnable,          GL_BLEND);
-    GL_CALL(glBlendFunc,       GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    GL_CALL(glBindVertexArray, font->vb.vao);
-    GL_CALL(glBindBuffer,      GL_ARRAY_BUFFER, font->vb.vbo);
-    GL_CALL(glActiveTexture,   GL_TEXTURE0);
-    GL_CALL(glBindTexture,     GL_TEXTURE_2D, font->image.tex);
-
+    bool b = R_EnableTransparencyBlending();
+    assert(b);
+    if (!b)
+        return;
+    b = R_BindVertexBuffer(&font->pass.vbs[0], 0);
+    assert(b);
+    if (!b)
+        return;
+    b = R_BindImage(&font->pass.images[0], 0);
+    assert(b);
+    if (!b)
+        return;
     avec3f_t textColor = A_vec3(color.r, color.g, color.b);
     R_ShaderSetUniformVec3fByName(&font->prog, "uTextColor", textColor);
 
@@ -253,7 +293,7 @@ void R_DrawText(
         model = A_mat4f_translate_vec3(model, pos);
         avec3f_t scale = A_vec3(w, h, 0.0f);
         model = A_mat4f_scale_vec3(model, scale);
-        R_ShaderSetUniformMat4fByName(font->prog.program, "uModel", model);
+        R_ShaderSetUniformMat4fByName(&font->prog, "uModel", model);
 
         // If the same glyph is being rendered again, the coord uniform doesn't
         // need to be updated.
@@ -261,10 +301,13 @@ void R_DrawText(
             avec4f_t atlasCoord = A_vec4(g->atlas_x, g->atlas_y,
                 (float)g->width / (float)font->atlas_width,
                 (float)g->height / (float)font->atlas_height);
-            R_ShaderSetUniformVec4fByName(font->prog.program, "uAtlasCoord", atlasCoord);
+            R_ShaderSetUniformVec4fByName(&font->prog, "uAtlasCoord", atlasCoord);
         }
 
-        GL_CALL(glDrawArrays, GL_TRIANGLES, 0, 6);
+        b = R_DrawTris(0, 2);
+        assert(b);
+        if (!b)
+            return;
 
         if (right)
             x -= g->advance_x * xscale;
@@ -274,13 +317,7 @@ void R_DrawText(
         last_g = g;
         right ? i-- : i++;
     }
-
-    GL_CALL(glBindTexture, GL_TEXTURE_2D, 0);
-    GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, 0);
-    GL_CALL(glBindVertexArray, 0);
-    GL_CALL(glUseProgram, 0);
-    GL_CALL(glDisable, GL_BLEND);
-#endif // A_RENDER_BACKEND_GL
+    R_DisableTransparencyBlending();
 }
 
 GfxTextDraw r_textDraws[MAX_LOCAL_CLIENTS][256];

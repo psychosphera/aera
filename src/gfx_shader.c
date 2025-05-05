@@ -186,42 +186,6 @@ A_NO_DISCARD bool R_CreateShaderProgram(
     return true;
 }
 
-static int R_UniformDataSize(const GfxShaderUniformDef* uniform) {
-    switch (uniform->type) {
-    case UNIFORM_TYPE_INT:
-    case UNIFORM_TYPE_UINT:
-    case UNIFORM_TYPE_FLOAT:
-    case UNIFORM_TYPE_BOOL:
-    case UNIFORM_TYPE_VEC2F:
-    case UNIFORM_TYPE_VEC2I:
-    case UNIFORM_TYPE_VEC3F:
-    case UNIFORM_TYPE_VEC3I:
-    case UNIFORM_TYPE_VEC4F:
-    case UNIFORM_TYPE_VEC4I:
-        return 1;
-    case UNIFORM_TYPE_MAT2F:
-        return 2;
-    case UNIFORM_TYPE_MAT3F:
-        return 3;
-    case UNIFORM_TYPE_MAT4F:   
-        return 4;
-    // TODO: integer ceil
-    case UNIFORM_TYPE_FLOAT_ARRAY:
-        return A_ceili(uniform->value.fcount, 4);
-    case UNIFORM_TYPE_INT_ARRAY:
-        return A_ceili(uniform->value.icount, 4);
-    case UNIFORM_TYPE_UINT_ARRAY:
-        return A_ceili(uniform->value.ucount, 4);
-    default:
-        assert(false && "R_UniformDataSize: Invalid uniform type.");
-        Com_Errorln(
-            -1,
-            "R_UniformDataSize: Invalid uniform type %d.",
-            uniform->type
-        );
-    }
-}
-
 #if A_RENDER_BACKEND_GL
 static void R_SetUniformIntGL(shader_program_t program, 
                               int location, int value);
@@ -900,8 +864,6 @@ bool R_DeleteShaderProgram(
     prog->pixel_shader.ps->lpVtbl->Release(prog->pixel_shader.ps);
     prog->vertex_shader.vs = NULL;
     prog->pixel_shader.ps  = NULL;
-#else
-    (void)prog;
 #endif // A_RENDER_BACKEND_GL
     for (int i = 0; i < A_countof(prog->uniforms); i++)
         R_DeleteUniform(&prog->uniforms[i]);

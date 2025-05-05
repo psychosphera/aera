@@ -68,13 +68,13 @@ typedef LPDIRECT3DTEXTURE9 GfxTexture;
 
 typedef enum GfxFilter {
     R_IMAGE_FILTER_LINEAR
-} GfxFilter;
+} ImageFilter;
 
 typedef struct GfxImage {
     ImageType          type;
     GfxTexture         tex;
     bool               wrap_s, wrap_t;
-    GfxFilter          minfilter, magfilter;
+    ImageFilter          minfilter, magfilter;
     ImageFormat        format, internal_format;
     const void*        pixels;
     size_t             pixels_size;
@@ -86,7 +86,8 @@ typedef struct GfxVertexBuffer {
     vao_t  vao;
     vbo_t  vbo;
 #elif A_RENDER_BACKEND_D3D9
-    IDirect3DVertexBuffer9*      buffer;
+    IDirect3DVertexBuffer9* buffer;
+    size_t stride;
 #endif // A_RENDER_BACKEND_GL
     size_t bytes, capacity;
 } GfxVertexBuffer;
@@ -106,18 +107,19 @@ typedef enum GfxPolygonMode {
     R_POLYGON_MODE_LINE
 } GfxPolygonMode;
 
-A_EXTERN_C bool R_CreateVertexBuffer(const void* data, 
-                                     size_t n, size_t capacity,
-                                     size_t off, A_OUT GfxVertexBuffer* vb);
-A_EXTERN_C bool R_UploadVertexData  (A_INOUT GfxVertexBuffer* vb,
-                                     size_t off, const void* data, size_t n);
-A_EXTERN_C bool R_AppendVertexData  (A_INOUT GfxVertexBuffer* vb,
-                                     const void* data, size_t n);
-A_EXTERN_C int  R_AddImageToMaterialPass(A_INOUT GfxMaterialPass* pass, 
-                                         A_IN GfxImage* image);
-A_EXTERN_C bool R_RenderMaterialPass(const GfxMaterialPass* pass,
-                                     size_t vertices_count, size_t off,
-                                     GfxPolygonMode mode
+A_EXTERN_C bool      R_CreateVertexBuffer(const void* data, 
+                                          size_t n, size_t capacity, 
+                                          size_t off, size_t stride, 
+                                          A_OUT GfxVertexBuffer* vb);
+A_EXTERN_C bool      R_UploadVertexData(A_INOUT GfxVertexBuffer* vb,
+                                        size_t off, const void* data, size_t n);
+A_EXTERN_C bool      R_AppendVertexData(A_INOUT GfxVertexBuffer* vb,
+                                        const void* data, size_t n);
+A_EXTERN_C GfxImage* R_AddImageToMaterialPass(A_INOUT GfxMaterialPass* pass,
+                                              A_IN GfxImage* image);
+A_EXTERN_C bool      R_RenderMaterialPass(const GfxMaterialPass* pass,
+                                          size_t vertices_count, size_t off,
+                                          GfxPolygonMode mode
 );
 A_EXTERN_C bool R_DeleteVertexBuffer(A_INOUT GfxVertexBuffer* vb);
 A_EXTERN_C bool R_DeleteMaterialPass(A_IN GfxMaterialPass* pass);
@@ -132,9 +134,9 @@ typedef LPDIRECT3DTEXTURE9 GfxTexture;
 #endif // A_RENDER_BACKEND_GL
 
 #if A_RENDER_BACKEND_GL
-A_NO_DISCARD GLint R_ImageFilterToGL(GfxFilter filter);
+A_NO_DISCARD GLint R_ImageFilterToGL(ImageFilter filter);
 #elif A_RENDER_BACKEND_D3D9
-A_NO_DISCARD DWORD R_ImageFilterToD3D(GfxFilter filter);
+A_NO_DISCARD DWORD R_ImageFilterToD3D(ImageFilter filter);
 #endif // A_RENDER_BACKEND_D3D9
 
 typedef struct GfxCamera {

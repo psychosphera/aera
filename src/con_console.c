@@ -85,7 +85,7 @@ bool Con_ProcessLocalInput(const char* input, size_t localClientNum) {
 
                 if (Dvar_IsVec4(d)) {
                     argv[3] = Cmd_Argv(4);
-                   argc++;
+                    argc++;
                 }
 
                 return Dvar_SetFromString(d, argc, argv);

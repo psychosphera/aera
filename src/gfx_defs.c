@@ -43,7 +43,7 @@ GLenum R_GlCheckError(int line, const char* file) {
 #endif // A_RENDER_BACKEND_GL
 
 bool R_CreateVertexBuffer(const void* data, size_t n, size_t capacity,
-                            size_t off, A_OUT GfxVertexBuffer* vb
+                          size_t off, size_t stride, A_OUT GfxVertexBuffer* vb
 ) {
     assert(vb);
     if (!vb)
@@ -102,6 +102,7 @@ bool R_CreateVertexBuffer(const void* data, size_t n, size_t capacity,
         if (ret)
             ret = hr == D3D_OK;
     }
+    vb->stride = stride;
 #endif
     vb->bytes    = n;
     vb->capacity = capacity;
@@ -182,16 +183,18 @@ bool R_AppendVertexData(A_INOUT GfxVertexBuffer* vb,
     return ret;
 }
 
-int R_AddImageToMaterialPass(A_INOUT GfxMaterialPass* pass, A_IN GfxImage* image) {
+GfxImage* R_AddImageToMaterialPass(A_INOUT GfxMaterialPass* pass, 
+                                   A_IN    GfxImage*        image
+) {
     assert(pass);
     assert(image);
     assert(pass->current_image < A_countof(pass->images));
 
     pass->images[pass->current_image] = *image;
-    int ret = pass->current_image;
+    int i = pass->current_image;
     pass->current_image++;
     A_memset(image, 0, sizeof(*image));
-    return ret;
+    return &pass->images[i];
 }
 
 int R_AddVertexBufferToMaterialPass(A_INOUT GfxMaterialPass* pass, 
@@ -220,74 +223,49 @@ bool R_RenderMaterialPass(const GfxMaterialPass* pass,
         return false;
     
     assert(vertices_count > 0);
-
 #if A_RENDER_BACKEND_GL
     assert(pass->vb_count == 1 && 
            "R_RenderVertexBuffer: GL backend only supports one vertex buffer at a time");
-    GfxVertexBuffer* vb = &pass->vbs[0];
-    GL_CALL(glBindVertexArray, vb->vao);
-    GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, vb->vbo);
-
-    for (int i = 0; i < pass->current_image; i++) {
-        const GfxImage* image = &pass->images[i];
-        if (image->tex) {
-            GL_CALL(glActiveTexture, GL_TEXTURE0 + i);
-            GL_CALL(glBindTexture, GL_TEXTURE_2D, image->tex);
-        }
-    }
-
-    if (mode == R_POLYGON_MODE_LINE) 
-        GL_CALL(glPolygonMode, GL_FRONT_AND_BACK, GL_LINE);
-
-    GL_CALL(glDrawArrays, GL_TRIANGLES, off, vertices_count);
-
-    if (mode == R_POLYGON_MODE_LINE)
-        GL_CALL(glPolygonMode, GL_FRONT_AND_BACK, GL_FILL);
 #elif A_RENDER_BACKEND_D3D9
-    for (int i = 0; i < pass->vb_count; i++) {
-        HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetStreamSource(
-            r_d3d9Glob.d3ddev, 0, pass->vbs[i].buffer, 0, 
-            sizeof(GfxVertexBuffer)
-        );
-        assert(hr == D3D_OK);
-        if (hr != D3D_OK)
-            return false;
-    }
-    
-    
     HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetVertexDeclaration(
         r_d3d9Glob.d3ddev, pass->decl
     );
     assert(hr == D3D_OK);
     if (hr != D3D_OK)
         return false;
+#endif
 
-    if (mode == R_POLYGON_MODE_LINE) {
-        hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(r_d3d9Glob.d3ddev, 
-                                                       D3DRS_FILLMODE, 
-                                                       D3DFILL_WIREFRAME);
-        assert(hr == D3D_OK);
-        if (hr != D3D_OK)
+    bool b = true;
+    for (int i = 0; i < pass->vb_count; i++) {
+        b = R_BindVertexBuffer(&pass->vbs[i], i);
+        assert(b);
+        if (!b)
             return false;
     }
 
-    hr = r_d3d9Glob.d3ddev->lpVtbl->DrawPrimitive(r_d3d9Glob.d3ddev, 
-                                                  D3DPT_TRIANGLELIST, off, 
-                                                  vertices_count / 3);
-    assert(hr == D3D_OK);
-    if (hr != D3D_OK)
+    for (int i = 0; i < pass->current_image; i++) {
+        const GfxImage* image = &pass->images[i];
+        b = R_BindImage(&pass->images[i], i);
+        assert(b);
+        if (!b)
+            return false;
+    }
+
+    b = R_SetPolygonMode(mode);
+    assert(b);
+    if (!b)
+        return false;
+    
+    b = R_DrawTris(vertices_count / 3, off / 3);
+    assert(b);
+    if (!b)
         return false;
 
-    if (mode == R_POLYGON_MODE_LINE) {
-        hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(r_d3d9Glob.d3ddev, 
-                                                       D3DRS_FILLMODE, 
-                                                       D3DFILL_SOLID);
-        assert(hr == D3D_OK);
-        if (hr != D3D_OK)
-            return false;
-    }
-#endif // A_RENDER_BACKEND_GL
-    return true;
+    b = R_SetPolygonMode(R_POLYGON_MODE_FILL);
+    assert(b);
+    
+    return b;
+
 }
 
 bool R_DeleteVertexBuffer(A_INOUT GfxVertexBuffer* vb) {
@@ -510,16 +488,17 @@ A_NO_DISCARD int R_ImageFormatPixelSize(ImageFormat format) {
 }
 
 #if A_RENDER_BACKEND_GL
-A_NO_DISCARD GLint R_ImageFilterToGL(GfxFilter filter) {
+A_NO_DISCARD GLint R_ImageFilterToGL(ImageFilter filter) {
     switch (filter) {
     case R_IMAGE_FILTER_LINEAR:
         return GL_LINEAR;
     default:
         assert(false && "Unimplemented GfxFilter");
     }
+    return 0;
 }
 #elif A_RENDER_BACKEND_D3D9
-A_NO_DISCARD DWORD R_ImageFilterToD3D(GfxFilter filter) {
+A_NO_DISCARD DWORD R_ImageFilterToD3D(ImageFilter filter) {
     switch (filter) {
     case R_IMAGE_FILTER_LINEAR:
         return D3DTEXF_LINEAR;

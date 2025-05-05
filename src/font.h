@@ -20,8 +20,7 @@ typedef struct GlyphDef {
 typedef struct FontDef {
     int atlas_width, atlas_height;
     GfxShaderProgram prog;
-    GfxVertexBuffer  vb;
-    GfxImage         image;
+    GfxMaterialPass  pass;
     GlyphDef         glyphs[95];
 } FontDef;
 

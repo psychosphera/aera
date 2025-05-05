@@ -32,9 +32,8 @@
 #include "m_math.h"
 #include "sys.h"
 
-extern dvar_t*     vid_width;
-extern dvar_t*     vid_height;
-extern SDL_Window* g_sdlWindow;
+extern dvar_t* vid_width;
+extern dvar_t* vid_height;
 
 #if A_RENDER_BACKEND_GL
 A_NO_DISCARD const char* R_GlDebugErrorString(GLenum err) {
@@ -177,7 +176,7 @@ D3D9RenderGlob r_d3d9Glob;
 #endif // A_RENDER_BACKEND_D3D9
 
 #if A_RENDER_BACKEND_GL
-static void R_InitGL(void) {
+static bool R_InitGL(void) {
 #if _DEBUG
     //GLint flags = 0;
     //GL_CALL(glGetIntegerv, GL_CONTEXT_FLAGS, &flags);
@@ -207,6 +206,9 @@ static void R_InitGL(void) {
                           r_renderGlob.clear_color.g, 
                           r_renderGlob.clear_color.b, 
                           r_renderGlob.clear_color.a);
+
+    GL_CALL(glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    return true;
 }
 #elif A_RENDER_BACKEND_D3D9
 static HWND R_GetHwnd(SDL_Window* window) {
@@ -267,25 +269,51 @@ static bool R_CheckD3DDeviceCaps(void) {
     return caps.RasterCaps & D3DPRASTERCAPS_SCISSORTEST;
 }
 
-static void R_InitD3D9(void) {
+static bool R_InitD3D9(void) {
     A_memset(&r_d3d9Glob, 0, sizeof(r_d3d9Glob));
 
-    HWND hWnd = R_GetHwnd(g_sdlWindow);
+    HWND hWnd = R_GetHwnd(sys_sdlGlob.window);
     r_d3d9Glob.hWnd = hWnd;
 
     IDirect3D9* d3d9 = Direct3DCreate9(D3D_SDK_VERSION);
     assert(d3d9);
     r_d3d9Glob.d3d9 = d3d9;
 
-    assert(d3d9->lpVtbl->GetAdapterCount(d3d9) > 0);
+    UINT adapterCount = d3d9->lpVtbl->GetAdapterCount(d3d9);
+    assert(adapterCount > 0);
+    if (adapterCount == 0)
+        return false;
     UINT adapter = R_ChooseAdapter(d3d9); 
 
     IDirect3DDevice9* d3ddev = R_CreateDevice(hWnd, d3d9, adapter);
     assert(d3ddev);
+    if (!d3ddev)
+        return false;
     r_d3d9Glob.d3ddev = d3ddev;
 
     r_d3d9Glob.clear_color_argb = 
         R_ColorRGBAToD3DARGB(r_renderGlob.clear_color);
+
+    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
+        r_d3d9Glob.d3ddev,
+        D3DRS_BLENDOP, D3DBLENDOP_ADD
+    );
+    assert(hr == D3D_OK);
+    if (hr != D3D_OK)
+        return false;
+    hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
+        r_d3d9Glob.d3ddev,
+        D3DRS_SRCBLEND, D3DBLEND_SRCALPHA
+    );
+    assert(hr == D3D_OK);
+    if (hr != D3D_OK)
+        return false;
+    hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
+        r_d3d9Glob.d3ddev,
+        D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA
+    );
+    assert(hr == D3D_OK);
+    return hr == D3D_OK;
 }
 #endif // A_RENDER_BACKEND_GL
 
@@ -302,9 +330,15 @@ void R_Init(void) {
     r_renderGlob.clear_color.a = 1.0f;
 
 #if A_RENDER_BACKEND_GL
-    R_InitGL();
+    bool b = R_InitGL();
+    assert(b && "Failed to initialize OpenGL.");
+    if (!b)
+        Com_Errorln(-1, "Failed to initialize OpenGL.");
 #elif A_RENDER_BACKEND_D3D9
-    R_InitD3D9();
+    bool b = R_InitD3D9();
+    assert(b && "Failed to initialize D3D9.");
+    if (!b)
+        Com_Errorln(-1, "Failed to initialize D3D9.");
 #endif // A_RENDER_BACKEND_GL
     
     for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
@@ -314,7 +348,7 @@ void R_Init(void) {
 
     R_RegisterDvars();
 
-    bool b = Font_Load("consola.ttf", 0, 48, &r_defaultFont);
+    b = Font_Load("consola.ttf", 0, 48, &r_defaultFont);
     assert(b);
     (void)b;
 
@@ -452,7 +486,7 @@ A_NO_DISCARD bool R_CreateImage2D(const void* pixels, size_t pixels_size,
                                   ImageFormat format,
                                   bool auto_generate_mipmaps,
                                   bool wrap_s, bool wrap_t,
-                                  GfxFilter minfilter, GfxFilter magfilter,
+                                  ImageFilter minfilter, ImageFilter magfilter,
                                   A_OUT GfxImage* image
 ) {
     assert(image);
@@ -571,6 +605,86 @@ A_NO_DISCARD bool R_CreateImage2D(const void* pixels, size_t pixels_size,
     return ret;
 }
 
+A_NO_DISCARD bool R_ImageSubData(A_INOUT GfxImage* image,
+                                 const void* pixels, size_t pixels_size, 
+                                 int xoff, int yoff, 
+                                 int width, int height, 
+                                 ImageFormat format
+) {
+    assert(image);
+    assert(pixels);
+    assert(pixels_size > 0);
+    assert(xoff + width  <= image->width);
+    assert(yoff + height <= image->height);
+#if A_RENDER_BACKEND_GL
+    GLenum gl_format = R_ImageFormatToGL(format);
+    GLenum gl_type = 0;
+    switch (format) {
+    case R_IMAGE_FORMAT_A8:
+    case R_IMAGE_FORMAT_R8:
+        gl_type = GL_UNSIGNED_BYTE;
+        break;
+    case R_IMAGE_FORMAT_RGB565:
+        gl_type = GL_UNSIGNED_SHORT_5_6_5;
+        break;
+    case R_IMAGE_FORMAT_ARGB8888:
+    case R_IMAGE_FORMAT_RGBA8888:
+        gl_type = GL_UNSIGNED_INT_8_8_8_8;
+        break;
+    default:
+        assert(false && 
+               "R_ImageSubData: Unimplemented GL type for image format");
+        Com_Errorln(
+            -1, 
+            "R_ImageSubData: Unimplemented GL type for image format %d.",
+            format
+        );
+        return false;
+    }
+    GL_CALL(glBindTexture, GL_TEXTURE_2D, image->tex);
+    GL_CALL(glTexSubImage2D,
+        GL_TEXTURE_2D, 0, xoff, yoff, width, height,
+        gl_format, GL_UNSIGNED_BYTE, pixels
+    );
+#elif A_RENDER_BACKEND_D3D9
+    IDirect3DTexture9* tex = image->tex;
+    D3DLOCKED_RECT locked_rect;
+    RECT rect = {
+        .left = xoff,
+        .right = xoff + width,
+        .top = yoff,
+        .bottom = yoff + height
+    };
+    HRESULT hr = tex->lpVtbl->LockRect(tex, 0, &locked_rect, &rect, D3DLOCK_DISCARD);
+    assert(hr == D3D_OK);
+    if (hr != D3D_OK)
+        return false;
+    INT pitch = locked_rect.Pitch;
+    int pixel_size = R_ImageFormatPixelSize(format);
+    // pitch can be greater than width * pixel_size,
+    // but it should never be less
+    assert(width * pixel_size <= pitch);
+    // if they're equal, a single full copy will work
+    if (width * pixel_size == pitch) {
+        A_memcpy(locked_rect.pBits, pixels, pixels_size);
+    }
+    // if not, copy line-by-line
+    else {
+        for (int i = 0; i < height; i++) {
+            A_memcpy((char*)locked_rect.pBits + i * pitch,
+                (char*)pixels + i * width * pixel_size,
+                width * pixel_size
+            );
+        }
+    }
+    hr = tex->lpVtbl->UnlockRect(tex, 0);
+    assert(hr == D3D_OK);
+    if (hr != D3D_OK)
+        return false;
+#endif // A_RENDER_BACKEND_GL
+    return true;
+}
+
 A_NO_DISCARD bool R_CreateSdlImage(const char* image_name, 
                                    A_INOUT GfxImage* image
 ) {
@@ -642,7 +756,7 @@ bool R_EnableDepthTest(void) {
 #elif A_RENDER_BACKEND_D3D9
     HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
         r_d3d9Glob.d3ddev,
-        D3DRS_ZENABLE, 1
+        D3DRS_ZENABLE, TRUE
     );
     assert(hr == D3D_OK);
     return hr == D3D_OK;
@@ -655,7 +769,7 @@ bool R_DisableDepthTest(void) {
 #elif A_RENDER_BACKEND_D3D9
     HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
         r_d3d9Glob.d3ddev,
-        D3DRS_ZENABLE, 0
+        D3DRS_ZENABLE, FALSE
     );
     assert(hr == D3D_OK);
     return hr == D3D_OK;
@@ -689,6 +803,79 @@ bool R_DisableBackFaceCulling(void) {
 #endif // A_RENDER_BACKEND_GL
 }
 
+bool R_EnableTransparencyBlending(void) {
+#if A_RENDER_BACKEND_GL
+    GL_CALL(glEnable, GL_BLEND);
+    return true;
+#elif A_RENDER_BACKEND_D3D9
+    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
+        r_d3d9Glob.d3ddev,
+        D3DRS_ALPHABLENDENABLE, TRUE
+    );
+    assert(hr == D3D_OK);
+    return hr == D3D_OK;
+#endif // A_RENDER_BACKEND_GL
+}
+
+bool R_DisableTransparencyBlending(void) {
+#if A_RENDER_BACKEND_GL
+    GL_CALL(glDisable, GL_BLEND);
+    return true;
+#elif A_RENDER_BACKEND_D3D9
+    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
+        r_d3d9Glob.d3ddev,
+        D3DRS_ALPHABLENDENABLE, FALSE
+    );
+    assert(hr == D3D_OK);
+    return hr == D3D_OK;
+#endif // A_RENDER_BACKEND_GL
+}
+
+#if A_RENDER_BACKEND_GL
+static GLenum R_PolygonModeToGL(GfxPolygonMode mode) {
+    switch (mode) {
+    case R_POLYGON_MODE_FILL:
+        return GL_FILL;
+    case R_POLYGON_MODE_LINE:
+        return GL_LINE;
+    default:
+        assert(false && "Unimplemented polygon mode");
+        Com_Errorln(-1, "Unimplemented polygon mode %d.", mode);
+        return 0;
+    }
+}
+#endif // A_RENDER_BACKEND_GL
+
+#if A_RENDER_BACKEND_D3D9
+static DWORD R_PolygonModeToD3D9(GfxPolygonMode mode) {
+    switch (mode) {
+    case R_POLYGON_MODE_FILL:
+        return D3DFILL_SOLID;
+    case R_POLYGON_MODE_LINE:
+        return D3DFILL_WIREFRAME;
+    default:
+        assert(false && "Unimplemented polygon mode");
+        Com_Errorln(-1, "Unimplemented polygon mode %d.", mode);
+        return 0;
+    }
+}
+#endif // A_RENDER_BACKEND_D3D9
+
+bool R_SetPolygonMode(GfxPolygonMode mode) {
+#if A_RENDER_BACKEND_GL
+    GLenum fill_mode = R_PolygonModeToGL(mode);
+    GL_CALL(glPolygonMode, GL_FRONT_AND_BACK, fill_mode);
+    return true;
+#elif A_RENDER_BACKEND_D3D9
+    DWORD fill_mode = R_PolygonModeToD3D9(mode);
+    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(r_d3d9Glob.d3ddev,
+                                                           D3DRS_FILLMODE,
+                                                           fill_mode);
+    assert(hr == D3D_OK);
+    return hr == D3D_OK;
+#endif // A_RENDER_BACKEND_GL
+}
+
 void R_SetViewport(int x, int y, int w, int h) {
 #if A_RENDER_BACKEND_GL
     GL_CALL(glViewport, x, y, w, h);
@@ -701,12 +888,6 @@ void R_SetViewport(int x, int y, int w, int h) {
         .MinZ = 0.0f,
         .MaxZ = 0.0f
     };
-    RECT rect = {
-        .left = 0.0f,
-        .right = w,
-        .top = 0.0f,
-        .bottom = h,
-    };
     r_d3d9Glob.d3ddev->lpVtbl->SetViewport(r_d3d9Glob.d3ddev, &viewport);
 #endif // A_RENDER_BACKEND_GL
 }
@@ -716,10 +897,10 @@ void R_SetScissorRect(int x, int y, int w, int h) {
     GL_CALL(glScissor, x, y, w, h);
 #elif A_RENDER_BACKEND_D3D9
     RECT rect = {
-        .left   = 0,
-        .right  = w,
-        .top    = 0,
-        .bottom = h,
+        .left   = x,
+        .right  = x + w,
+        .top    = y,
+        .bottom = y + h
     };
     r_d3d9Glob.d3ddev->lpVtbl->SetScissorRect(r_d3d9Glob.d3ddev, &rect);
 #endif // A_RENDER_BACKEND_GL
@@ -732,6 +913,71 @@ void R_Clear(void) {
     r_d3d9Glob.d3ddev->lpVtbl->Clear(r_d3d9Glob.d3ddev, 0, NULL,
                                      D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,
                                      r_d3d9Glob.clear_color_argb, 0.0f, 0);
+#endif // A_RENDER_BACKEND_GL
+}
+
+bool R_BindVertexBuffer(const GfxVertexBuffer* vb, int stream) {
+#if A_RENDER_BACKEND_GL
+    assert(stream == 0);
+    if (vb) {
+        GL_CALL(glBindVertexArray, vb->vao);
+        GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, vb->vbo);
+    } else {
+        GL_CALL(glBindVertexArray, 0);
+        GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, 0);
+    }
+    return true;
+#elif A_RENDER_BACKEND_D3D9
+    HRESULT hr = D3D_OK;
+    if (vb) {
+        hr = r_d3d9Glob.d3ddev->lpVtbl->SetStreamSource(r_d3d9Glob.d3ddev,
+                                                        stream, vb->buffer,
+                                                        0, vb->stride);
+    } else {
+        hr = r_d3d9Glob.d3ddev->lpVtbl->SetStreamSource(r_d3d9Glob.d3ddev,
+                                                        stream, NULL, 0, 0);
+    }
+    assert(hr == D3D_OK);
+    return hr == D3D_OK;
+#endif // A_RENDER_BACKEND_GL
+}
+
+bool R_BindImage(A_INOUT GfxImage* image, int index) {
+#if A_RENDER_BACKEND_GL
+    if (image) {
+        GL_CALL(glActiveTexture, GL_TEXTURE0 + index);
+        GL_CALL(glBindTexture, GL_TEXTURE_2D, image->tex);
+    } else {
+        GL_CALL(glActiveTexture, GL_TEXTURE0 + index);
+        GL_CALL(glBindTexture, GL_TEXTURE_2D, 0);
+    }
+    return true;
+#elif A_RENDER_BACKEND_D3D9
+    HRESULT hr = D3D_OK;
+    if (image) {
+        hr = r_d3d9Glob.d3ddev->lpVtbl->SetTexture(r_d3d9Glob.d3ddev, 
+                                                   index, 
+                                  (IDirect3DBaseTexture9*)image->tex);
+    } else {
+        hr = r_d3d9Glob.d3ddev->lpVtbl->SetTexture(r_d3d9Glob.d3ddev,
+                                                   index, NULL);
+    }
+    assert(hr == D3D_OK);
+    return hr == D3D_OK;
+#endif // A_RENDER_BACKEND_GL
+}
+
+bool R_DrawTris(int tri_count, int tri_off) {
+#if A_RENDER_BACKEND_GL
+    GL_CALL(glDrawArrays, GL_TRIANGLES, tri_off * 3, tri_count * 3);
+    return true;
+#elif A_RENDER_BACKEND_D3D9
+    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->DrawPrimitive(r_d3d9Glob.d3ddev,
+                                                          D3DPT_TRIANGLELIST, 
+                                                          tri_off * 3,
+                                                          tri_count);
+    assert(hr == D3D_OK);
+    return hr == D3D_OK;
 #endif // A_RENDER_BACKEND_GL
 }
 
