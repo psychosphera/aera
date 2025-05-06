@@ -431,6 +431,7 @@ static bool R_EnableScissorTest(void) {
 static bool R_DisableScissorTest(void) {
 #if A_RENDER_BACKEND_GL
     GL_CALL(glDisable, GL_SCISSOR_TEST);
+    return true;
 #elif A_RENDER_BACKEND_D3D9
     HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
         r_d3d9Glob.d3ddev,
@@ -481,6 +482,30 @@ void R_WindowResized(void) {
         R_UpdateLocalClientView(i);
 }
 
+#if A_RENDER_BACKEND_GL
+static GLint R_ImageFormatToTypeGL(ImageFormat format) {
+    switch (format) {
+    case R_IMAGE_FORMAT_A8:
+    case R_IMAGE_FORMAT_R8:
+        return GL_UNSIGNED_BYTE;
+    case R_IMAGE_FORMAT_RGB565:
+        return GL_UNSIGNED_SHORT_5_6_5;
+    case R_IMAGE_FORMAT_ARGB8888:
+    case R_IMAGE_FORMAT_RGBA8888:
+        return GL_UNSIGNED_INT_8_8_8_8;
+    default:
+        assert(false &&
+            "R_ImageSubData: Unimplemented GL type for image format");
+        Com_Errorln(
+            -1,
+            "R_ImageSubData: Unimplemented GL type for image format %d.",
+            format
+        );
+        return 0;
+    }
+}
+#endif // A_RENDER_BACKEND_GL
+
 A_NO_DISCARD bool R_CreateImage2D(const void* pixels, size_t pixels_size, 
                                   int width, int height, int depth,
                                   ImageFormat format,
@@ -505,7 +530,7 @@ A_NO_DISCARD bool R_CreateImage2D(const void* pixels, size_t pixels_size,
 
     A_memset(image, 0, sizeof(*image));
 #if A_RENDER_BACKEND_GL
-    GLenum target = 0;
+    GLenum target = GL_TEXTURE_2D;
     texture_t tex;
     GL_CALL(glActiveTexture, GL_TEXTURE0);
     GL_CALL(glGenTextures, 1, &tex);
@@ -519,13 +544,12 @@ A_NO_DISCARD bool R_CreateImage2D(const void* pixels, size_t pixels_size,
     GLint gl_minfilter = R_ImageFilterToGL(minfilter);
     GLint gl_magfilter = R_ImageFilterToGL(magfilter);
 
-
     GL_CALL(glTexParameteri, target, GL_TEXTURE_MIN_FILTER, gl_minfilter);
     GL_CALL(glTexParameteri, target, GL_TEXTURE_MAG_FILTER, gl_magfilter);
                                                             
     bool compressed  = R_ImageFormatIsCompressed(format);
     GLenum gl_format = R_ImageFormatToGL(format);
-    ImageFormat internal_format = compressed ? format : R_IMAGE_FORMAT_RGB888;
+    ImageFormat internal_format = format;
     GLenum gl_internal_format   = R_ImageFormatToGL(internal_format);
    
     if (compressed) {
@@ -533,11 +557,11 @@ A_NO_DISCARD bool R_CreateImage2D(const void* pixels, size_t pixels_size,
                                         gl_internal_format, 
                                         width, height, 0, 
                                         pixels_size, pixels);
-    }
-    else {
-        GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, internal_format,
+    } else {
+        GLint gl_type = R_ImageFormatToTypeGL(format);
+        GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, gl_internal_format,
                               width, height, 0, gl_format, 
-                              GL_UNSIGNED_BYTE, pixels);
+                              gl_type, pixels);
     }
 
     if (auto_generate_mipmaps)
@@ -635,7 +659,7 @@ A_NO_DISCARD bool R_ImageSubData(A_INOUT GfxImage* image,
     GL_CALL(glBindTexture, GL_TEXTURE_2D, image->tex);
     GL_CALL(glTexSubImage2D,
         GL_TEXTURE_2D, 0, xoff, yoff, width, height,
-        gl_format, GL_UNSIGNED_BYTE, pixels
+        gl_format, gl_type, pixels
     );
 #elif A_RENDER_BACKEND_D3D9
     IDirect3DTexture9* tex = image->tex;
@@ -757,6 +781,7 @@ bool R_EnableDepthTest(void) {
 bool R_DisableDepthTest(void) {
 #if A_RENDER_BACKEND_GL
     GL_CALL(glDisable, GL_DEPTH_TEST);
+    return true;
 #elif A_RENDER_BACKEND_D3D9
     HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
         r_d3d9Glob.d3ddev,
@@ -784,6 +809,7 @@ bool R_EnableBackFaceCulling(void) {
 bool R_DisableBackFaceCulling(void) {
 #if A_RENDER_BACKEND_GL
     GL_CALL(glDisable, GL_CULL_FACE);
+    return true;
 #elif A_RENDER_BACKEND_D3D9
     HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
         r_d3d9Glob.d3ddev,
@@ -955,6 +981,43 @@ bool R_BindImage(A_INOUT GfxImage* image, int index) {
     }
     assert(hr == D3D_OK);
     return hr == D3D_OK;
+#endif // A_RENDER_BACKEND_GL
+}
+
+bool R_BindShaderProgram(const GfxShaderProgram* prog) {
+#if A_RENDER_BACKEND_GL
+    if (prog) {
+        GL_CALL(glUseProgram, prog->program);
+    } else {
+        GL_CALL(glUseProgram, 0);
+    }
+    return true;
+#elif A_RENDER_BACKEND_D3D9
+    HRESULT hr = D3D_OK;
+    if (prog) {
+        hr = r_d3d9Glob.d3ddev->lpVtbl->SetVertexShader(
+            r_d3d9Glob.d3ddev,
+            prog->vertex_shader.vs
+        );
+        assert(hr == D3D_OK);
+        if (hr != D3D_OK)
+            return false;
+        hr = r_d3d9Glob.d3ddev->lpVtbl->SetPixelShader(r_d3d9Glob.d3ddev,
+            prog->pixel_shader.ps);
+        assert(hr == D3D_OK);
+        return hr == D3D_OK;
+    } else {
+        hr = r_d3d9Glob.d3ddev->lpVtbl->SetVertexShader(r_d3d9Glob.d3ddev,
+                                                        NULL);
+        assert(hr == D3D_OK);
+        if (hr != D3D_OK)
+            return false;
+        hr = r_d3d9Glob.d3ddev->lpVtbl->SetPixelShader(r_d3d9Glob.d3ddev,
+                                                       NULL);
+        assert(hr == D3D_OK);
+        return hr == D3D_OK;
+    }
+    
 #endif // A_RENDER_BACKEND_GL
 }
 

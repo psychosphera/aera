@@ -107,6 +107,8 @@ typedef enum GfxPolygonMode {
     R_POLYGON_MODE_LINE
 } GfxPolygonMode;
 
+A_EXTERN_C A_NO_DISCARD bool R_ImageFormatIsCompressed(ImageFormat format);
+
 A_EXTERN_C bool      R_CreateVertexBuffer(const void* data, 
                                           size_t n, size_t capacity, 
                                           size_t off, size_t stride, 

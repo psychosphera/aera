@@ -326,8 +326,8 @@ A_NO_DISCARD GLenum R_ImageFormatToGL(ImageFormat format) {
         gl_format = GL_RED;
         break;
     case R_IMAGE_FORMAT_RGB565:
-        gl_format = GL_RGB565;
-        break;
+       /* gl_format = GL_RGB565;
+        break;*/
     case R_IMAGE_FORMAT_RGB888:
         gl_format = GL_RGB;
         break;

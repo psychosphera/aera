@@ -239,6 +239,9 @@ void R_SetUniformBool(A_INOUT GfxShaderUniformDef* pUniform, bool value) {
         );
     }
     pUniform->value.b = value;
+    if (pUniform->location != -1) {
+        GL_CALL(glUniform1i, pUniform->location, value);
+    }
 }
 
 void R_SetUniformFloat(A_INOUT GfxShaderUniformDef* pUniform, float value) {

@@ -3,6 +3,7 @@
 #include "com_defs.h"
 #include "dvar.h"
 #include "gfx_defs.h"
+#include "gfx_shader.h"
 
 extern dvar_t* r_vsync;
 extern dvar_t* r_fullscreen;
@@ -49,6 +50,7 @@ A_EXTERN_C void R_Clear(void);
 A_EXTERN_C bool R_BindVertexBuffer(const GfxVertexBuffer* vb, 
                                    int stream);
 A_EXTERN_C bool R_BindImage(A_INOUT GfxImage* image, int index);
+A_EXTERN_C bool R_BindShaderProgram(const GfxShaderProgram* prog);
 A_EXTERN_C bool R_DrawTris(int tri_count, int tri_off);
 
 A_EXTERN_C void R_DrawTextDrawDefs(size_t localClientNum);

@@ -28,17 +28,22 @@ static const GfxSubTexDef s_subTexDefs[6] = {
 };
 
 // ============================================================================
-// DON'T TOUCH ANY OF THIS. DON'T EVEN LOOK AT IT THE WRONG WAY. LEAVE IT ALONE
-// AND BE HAPPY YOU DIDN'T SPEND TEN HOURS GETTING IT TO WORK.
 A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
     char* vertSource  = DB_LoadShader("text.vs");
     char* pixelSource = DB_LoadShader("text.ps");
 
-    if (!R_CreateShaderProgram(vertSource, pixelSource, &f->prog)) {
-        return false;
-    }
+    bool b = R_CreateShaderProgram(vertSource, pixelSource, &f->prog);
+    assert(b);
+
     DB_UnloadShader(vertSource);
     DB_UnloadShader(pixelSource);
+
+    if (!b)
+        return false;
+    b = R_BindShaderProgram(&f->prog);
+    assert(b);
+    if (!b)
+        return false;
 
     for (char i = ' '; i < Font_GlyphCount(f) + ' '; i++) {
         const GlyphDef* g = Font_GetGlyph(f, i);
@@ -46,10 +51,10 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
         f->atlas_height = A_MAX(f->atlas_height, g->height);
     }
 
-    bool b = R_CreateVertexBuffer(
+    b = R_CreateVertexBuffer(
         s_subTexDefs,
-        A_countof(s_subTexDefs),
-        A_countof(s_subTexDefs),
+        sizeof(s_subTexDefs),
+        sizeof(s_subTexDefs),
         0,
         sizeof(GfxSubTexDef),
         &f->pass.vbs[0]
@@ -81,7 +86,7 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
     assert(pImage);
     GfxShaderUniformDef uniform;
 
-    R_CreateUniformInt("uTex", 0, &uniform);
+    R_CreateUniformInt("uTex", pImage->tex, &uniform);
     GfxShaderUniformDef* pUniform = R_ShaderAddUniform(&f->prog, &uniform);
     assert(pUniform);
 
@@ -157,20 +162,21 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
         if (g->advance_x == 0)
             continue;
 
+        g->atlas_x = (float)width / (float)f->atlas_width;
+        g->atlas_y = 0.0f;
+
         if (g->width > 0 && g->height > 0) {
             b = R_ImageSubData(
                 pImage, g->pixels, g->width * g->height * pixel_size,
-                g->atlas_x, g->atlas_y,
+                width, 0,
                 g->width, g->height, format
             );
             assert(b);
         }
 
-        g->atlas_x = (float)width / (float)f->atlas_width;
-        g->atlas_y = 0.0f;
+        width += g->width + 1;
     }
 
-    R_ShaderSetUniformIntByName(&f->prog, "uTex", 0);
 #if A_RENDER_BACKEND_GL
     GL_CALL(glPixelStorei, GL_UNPACK_ALIGNMENT, unpackAlign);
 #endif // A_RENDER_BACKEND_GL
@@ -215,6 +221,10 @@ void R_DrawText(
     if (!b)
         return;
     b = R_BindImage(&font->pass.images[0], 0);
+    assert(b);
+    if (!b)
+        return;
+    b = R_BindShaderProgram(&font->prog);
     assert(b);
     if (!b)
         return;
@@ -327,7 +337,9 @@ void R_DrawText(
             R_ShaderSetUniformVec4fByName(&font->prog, "uAtlasCoord", atlasCoord);
         }
 
-        b = R_DrawTris(0, 2);
+        R_BindVertexBuffer(&font->pass.vbs[0], 0);
+        R_BindImage(&font->pass.images[0], 0);
+        b = R_DrawTris(2, 0);
         assert(b);
         if (!b)
             return;

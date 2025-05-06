@@ -187,22 +187,22 @@ A_NO_DISCARD bool R_CreateShaderProgram(
 }
 
 #if A_RENDER_BACKEND_GL
-static void R_SetUniformIntGL(shader_program_t program, 
-                              int location, int value);
-static void R_SetUniformBoolGL(shader_program_t program, 
-                               int locaction, bool value
+static void R_ShaderSetUniformIntGL(shader_program_t program,
+                                    int location, int value);
+static void R_ShaderSetUniformBoolGL(shader_program_t program,
+                                     int locaction, bool value
 ) {
-    R_SetUniformIntGL(program, locaction, (int)value);
+    R_ShaderSetUniformIntGL(program, locaction, (int)value);
 }
 
-static void R_SetUniformFloatGL(
+static void R_ShaderSetUniformFloatGL(
     shader_program_t program, int location, float value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform1f, location, value);
 }
 
-static void R_SetUniformFloatArrayGL(
+static void R_ShaderSetUniformFloatArrayGL(
     shader_program_t program, int location,
     const float* value, int count
 ) {
@@ -210,35 +210,35 @@ static void R_SetUniformFloatArrayGL(
     GL_CALL(glUniform1fv, location, count, value);
 }
 
-static void R_SetUniformVec2fGL(
+static void R_ShaderSetUniformVec2fGL(
     shader_program_t program, int location, avec2f_t value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform2f, location, value.x, value.y);
 }
 
-static void R_SetUniformVec3fGL(
+static void R_ShaderSetUniformVec3fGL(
     shader_program_t program, int location, avec3f_t value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform3f, location, value.x, value.y, value.z);
 }
 
-static void R_SetUniformVec4fGL(
+static void R_ShaderSetUniformVec4fGL(
     shader_program_t program, int location, avec4f_t value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform4f, location, value.x, value.y, value.z, value.w);
 }
 
-static void R_SetUniformIntGL(
+static void R_ShaderSetUniformIntGL(
     shader_program_t program, int location, int value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform1i, location, value);
 }
 
-static void R_SetUniformIntArrayGL(
+static void R_ShaderSetUniformIntArrayGL(
     shader_program_t program, int location,
     const int* value, int count
 ) {
@@ -246,35 +246,35 @@ static void R_SetUniformIntArrayGL(
     GL_CALL(glUniform1iv, location, count, value);
 }
 
-static void R_SetUniformVec2iGL(
+static void R_ShaderSetUniformVec2iGL(
     shader_program_t program, int location, avec2i_t value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform2i, location, value.x, value.y);
 }
 
-static void R_SetUniformVec3iGL(
+static void R_ShaderSetUniformVec3iGL(
     shader_program_t program, int location, avec3i_t value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform3i, location, value.x, value.y, value.z);
 }
 
-static void R_SetUniformVec4iGL(
+static void R_ShaderSetUniformVec4iGL(
     shader_program_t program, int location, avec4i_t value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform4i, location, value.x, value.y, value.z, value.w);
 }
 
-static void R_SetUniformUintGL(
+static void R_ShaderSetUniformUintGL(
     shader_program_t program, int location, unsigned int value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform1ui, location, value);
 }
 
-static void R_SetUniformUintArrayGL(
+static void R_ShaderSetUniformUintArrayGL(
     shader_program_t program, int location,
     const unsigned int* value, int count
 ) {
@@ -282,78 +282,261 @@ static void R_SetUniformUintArrayGL(
     GL_CALL(glUniform1uiv, location, count, value);
 }
 
-static void R_SetUniformMat2fGL(
+static void R_ShaderSetUniformMat2fGL(
     shader_program_t program, int location, const amat2f_t value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniformMatrix2fv, location, 1, GL_FALSE, value.array);
 }
 
-static void R_SetUniformMat3fGL(
+static void R_ShaderSetUniformMat3fGL(
     shader_program_t program, int location, amat3f_t value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniformMatrix3fv, location, 1, GL_FALSE, value.array);
 }
 
-static void R_SetUniformMat4fGL(
+static void R_ShaderSetUniformMat4fGL(
     shader_program_t program, int location, amat4f_t value
 ) {
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniformMatrix4fv, location, 1, GL_FALSE, value.array);
 }
 
-static void R_SetUniformGL(shader_program_t program, int location, 
-                           GfxShaderUniformDef* uniform
+static void R_ShaderSetUniformGL(shader_program_t program, int location,
+                                 GfxShaderUniformDef* uniform
 ) {
     switch (uniform->type) {
     case UNIFORM_TYPE_BOOL:
-        R_SetUniformBoolGL(program, location, uniform->value.b);
+        R_ShaderSetUniformBoolGL(program, location, uniform->value.b);
         break;
     case UNIFORM_TYPE_FLOAT:
-        R_SetUniformFloatGL(program, location, uniform->value.f);
+        R_ShaderSetUniformFloatGL(program, location, uniform->value.f);
         break;
     case UNIFORM_TYPE_FLOAT_ARRAY:
-        R_SetUniformFloatArrayGL(program, location, uniform->value.fa, uniform->value.fcount);
+        R_ShaderSetUniformFloatArrayGL(program, location, uniform->value.fa, uniform->value.fcount);
         break;
     case UNIFORM_TYPE_VEC2F:
-        R_SetUniformVec2fGL(program, location, uniform->value.v2f);
+        R_ShaderSetUniformVec2fGL(program, location, uniform->value.v2f);
         break;
     case UNIFORM_TYPE_VEC3F:
-        R_SetUniformVec3fGL(program, location, uniform->value.v3f);
+        R_ShaderSetUniformVec3fGL(program, location, uniform->value.v3f);
         break;
     case UNIFORM_TYPE_VEC4F:
-        R_SetUniformVec4fGL(program, location, uniform->value.v4f);
+        R_ShaderSetUniformVec4fGL(program, location, uniform->value.v4f);
         break;
     case UNIFORM_TYPE_INT:
-        R_SetUniformIntGL(program, location, uniform->value.i);
+        R_ShaderSetUniformIntGL(program, location, uniform->value.i);
         break;
     case UNIFORM_TYPE_INT_ARRAY:
-        R_SetUniformIntArrayGL(program, location, uniform->value.ia, uniform->value.icount);
+        R_ShaderSetUniformIntArrayGL(program, location, uniform->value.ia, uniform->value.icount);
         break;
     case UNIFORM_TYPE_VEC2I:
-        R_SetUniformVec2iGL(program, location, uniform->value.v2i);
+        R_ShaderSetUniformVec2iGL(program, location, uniform->value.v2i);
         break;
     case UNIFORM_TYPE_VEC3I:
-        R_SetUniformVec3iGL(program, location, uniform->value.v3i);
+        R_ShaderSetUniformVec3iGL(program, location, uniform->value.v3i);
         break;
     case UNIFORM_TYPE_VEC4I:
-        R_SetUniformVec4iGL(program, location, uniform->value.v4i);
+        R_ShaderSetUniformVec4iGL(program, location, uniform->value.v4i);
         break;
     case UNIFORM_TYPE_UINT:
-        R_SetUniformUintGL(program, location, uniform->value.u);
+        R_ShaderSetUniformUintGL(program, location, uniform->value.u);
         break;
     case UNIFORM_TYPE_UINT_ARRAY:
-        R_SetUniformUintArrayGL(program, location, uniform->value.ua, uniform->value.ucount);
+        R_ShaderSetUniformUintArrayGL(program, location, uniform->value.ua, uniform->value.ucount);
         break;
     case UNIFORM_TYPE_MAT2F:
-        R_SetUniformMat2fGL(program, location, uniform->value.m2f);
+        R_ShaderSetUniformMat2fGL(program, location, uniform->value.m2f);
         break;
     case UNIFORM_TYPE_MAT3F:
-        R_SetUniformMat3fGL(program, location, uniform->value.m3f);
+        R_ShaderSetUniformMat3fGL(program, location, uniform->value.m3f);
         break;
     case UNIFORM_TYPE_MAT4F:
-        R_SetUniformMat4fGL(program, location, uniform->value.m4f);
+        R_ShaderSetUniformMat4fGL(program, location, uniform->value.m4f);
+        break;
+    default:
+        assert(false && "R_SetUniformGL: Invalid uniform type.");
+        Com_Errorln(
+            -1,
+            "R_SetUniformGL: Invalid uniform type %d.",
+            uniform->type
+        );
+        break;
+    }
+}
+
+static void R_ShaderSetUniformIntByNameGL(shader_program_t program,
+                                    const char* name, int value);
+static void R_ShaderSetUniformBoolByNameGL(shader_program_t program,
+                                     const char* name, bool value
+) {
+    R_ShaderSetUniformIntByNameGL(program, name, (int)value);
+}
+
+static void R_ShaderSetUniformFloatByNameGL(
+    shader_program_t program, const char* name, float value
+) {
+    int location = GL_CALL(glGetUniformLocation, program, name);
+    R_ShaderSetUniformFloatGL(program, location, value);
+}
+
+static void R_ShaderSetUniformFloatArrayByNameGL(
+    shader_program_t program, const char* name,
+    const float* value, int count
+) {
+    int location = GL_CALL(glGetUniformLocation, program, name);
+    R_ShaderSetUniformFloatArrayGL(program, location, value, count);
+}
+
+static void R_ShaderSetUniformVec2fByNameGL(
+    shader_program_t program, const char* name, avec2f_t value
+) {
+    int location = GL_CALL(glGetUniformLocation, program, name);
+    R_ShaderSetUniformVec2fGL(program, location, value);
+}
+
+static void R_ShaderSetUniformVec3fByNameGL(
+    shader_program_t program, const char* name, avec3f_t value
+) {
+    int location = GL_CALL(glGetUniformLocation, program, name);
+    R_ShaderSetUniformVec3fGL(program, location, value);
+}
+
+static void R_ShaderSetUniformVec4fByNameGL(
+    shader_program_t program, const char* name, avec4f_t value
+) {
+    int location = GL_CALL(glGetUniformLocation, program, name);
+    R_ShaderSetUniformVec4fGL(program, location, value);
+}
+
+static void R_ShaderSetUniformIntByNameGL(
+    shader_program_t program, const char* name, int value
+) {
+    int location = GL_CALL(glGetUniformLocation, program, name);
+    R_ShaderSetUniformIntGL(program, location, value);
+}
+
+static void R_ShaderSetUniformIntArrayByNameGL(
+    shader_program_t program, const char* name,
+    const int* value, int count
+) {
+    int location = GL_CALL(glGetUniformLocation, program, name);
+    R_ShaderSetUniformIntArrayGL(program, location, value, count);
+}
+
+static void R_ShaderSetUniformVec2iByNameGL(
+    shader_program_t program, const char* name, avec2i_t value
+) {
+    int location = GL_CALL(glGetUniformLocation, program, name);
+    R_ShaderSetUniformVec2iGL(program, location, value);
+}
+
+static void R_ShaderSetUniformVec3iByNameGL(
+    shader_program_t program, const char* name, avec3i_t value
+) {
+    int location = GL_CALL(glGetUniformLocation, program, name);
+    R_ShaderSetUniformVec3iGL(program, location, value);
+}
+
+static void R_ShaderSetUniformVec4iByNameGL(
+    shader_program_t program, const char* name, avec4i_t value
+) {
+    int location = GL_CALL(glGetUniformLocation, program, name);
+    R_ShaderSetUniformVec4iGL(program, location, value);
+}
+
+static void R_ShaderSetUniformUintByNameGL(
+    shader_program_t program, const char* name, unsigned int value
+) {
+    int location = GL_CALL(glGetUniformLocation, program, name);
+    R_ShaderSetUniformUintGL(program, location, value);
+}
+
+static void R_ShaderSetUniformUintArrayByNameGL(
+    shader_program_t program, const char* name,
+    const unsigned int* value, int count
+) {
+    int location = GL_CALL(glGetUniformLocation, program, name);
+    R_ShaderSetUniformUintArrayGL(program, location, value, count);
+}
+
+static void R_ShaderSetUniformMat2fByNameGL(
+    shader_program_t program, const char* name, const amat2f_t value
+) {
+    int location = GL_CALL(glGetUniformLocation, program, name);
+    R_ShaderSetUniformMat2fGL(program, location, value);
+}
+
+static void R_ShaderSetUniformMat3fByNameGL(
+    shader_program_t program, const char* name, amat3f_t value
+) {
+    int location = GL_CALL(glGetUniformLocation, program, name);
+    R_ShaderSetUniformMat3fGL(program, location, value);
+}
+
+static void R_ShaderSetUniformMat4fByNameGL(
+    shader_program_t program, const char* name, amat4f_t value
+) {
+    int location = GL_CALL(glGetUniformLocation, program, name);
+    R_ShaderSetUniformMat4fGL(program, location, value);
+}
+
+static void R_ShaderSetUniformByNameGL(shader_program_t program, 
+                                       const char* name,
+                                       GfxShaderUniformDef* uniform
+) {
+    switch (uniform->type) {
+    case UNIFORM_TYPE_BOOL:
+        R_ShaderSetUniformBoolByNameGL(program, name, uniform->value.b);
+        break;
+    case UNIFORM_TYPE_FLOAT:
+        R_ShaderSetUniformFloatByNameGL(program, name, uniform->value.f);
+        break;
+    case UNIFORM_TYPE_FLOAT_ARRAY:
+        R_ShaderSetUniformFloatArrayByNameGL(program, name, uniform->value.fa,
+            uniform->value.fcount);
+        break;
+    case UNIFORM_TYPE_VEC2F:
+        R_ShaderSetUniformVec2fByNameGL(program, name, uniform->value.v2f);
+        break;
+    case UNIFORM_TYPE_VEC3F:
+        R_ShaderSetUniformVec3fByNameGL(program, name, uniform->value.v3f);
+        break;
+    case UNIFORM_TYPE_VEC4F:
+        R_ShaderSetUniformVec4fByNameGL(program, name, uniform->value.v4f);
+        break;
+    case UNIFORM_TYPE_INT:
+        R_ShaderSetUniformIntByNameGL(program, name, uniform->value.i);
+        break;
+    case UNIFORM_TYPE_INT_ARRAY:
+        R_ShaderSetUniformIntArrayByNameGL(program, name, uniform->value.ia,
+            uniform->value.icount);
+        break;
+    case UNIFORM_TYPE_VEC2I:
+        R_ShaderSetUniformVec2iByNameGL(program, name, uniform->value.v2i);
+        break;
+    case UNIFORM_TYPE_VEC3I:
+        R_ShaderSetUniformVec3iByNameGL(program, name, uniform->value.v3i);
+        break;
+    case UNIFORM_TYPE_VEC4I:
+        R_ShaderSetUniformVec4iByNameGL(program, name, uniform->value.v4i);
+        break;
+    case UNIFORM_TYPE_UINT:
+        R_ShaderSetUniformUintByNameGL(program, name, uniform->value.u);
+        break;
+    case UNIFORM_TYPE_UINT_ARRAY:
+        R_ShaderSetUniformUintArrayByNameGL(program, name, uniform->value.ua,
+            uniform->value.ucount);
+        break;
+    case UNIFORM_TYPE_MAT2F:
+        R_ShaderSetUniformMat2fByNameGL(program, name, uniform->value.m2f);
+        break;
+    case UNIFORM_TYPE_MAT3F:
+        R_ShaderSetUniformMat3fByNameGL(program, name, uniform->value.m3f);
+        break;
+    case UNIFORM_TYPE_MAT4F:
+        R_ShaderSetUniformMat4fByNameGL(program, name, uniform->value.m4f);
         break;
     default:
         assert(false && "R_SetUniformGL: Invalid uniform type.");
@@ -366,7 +549,7 @@ static void R_SetUniformGL(shader_program_t program, int location,
     }
 }
 #elif A_RENDER_BACKEND_D3D9
-static bool R_SetUniformBoolD3D9(ID3DXConstantTable* constant_table, 
+static bool R_ShaderSetUniformBoolD3D9(ID3DXConstantTable* constant_table, 
                                  int location, bool value
 ) {
     D3DXHANDLE handle = constant_table->lpVtbl->GetConstant(
@@ -378,7 +561,7 @@ static bool R_SetUniformBoolD3D9(ID3DXConstantTable* constant_table,
     return hr == D3D_OK;
 }
 
-static bool R_SetUniformFloatD3D9(ID3DXConstantTable* constant_table,
+static bool R_ShaderSetUniformFloatD3D9(ID3DXConstantTable* constant_table,
     int location, float value
 ) {
     D3DXHANDLE handle = constant_table->lpVtbl->GetConstant(
@@ -390,7 +573,7 @@ static bool R_SetUniformFloatD3D9(ID3DXConstantTable* constant_table,
     return hr == D3D_OK;
 }
 
-static bool R_SetUniformFloatArrayD3D9(ID3DXConstantTable* constant_table,
+static bool R_ShaderSetUniformFloatArrayD3D9(ID3DXConstantTable* constant_table,
     int location, const float* value, int count
 ) {
     D3DXHANDLE handle = constant_table->lpVtbl->GetConstant(
@@ -402,7 +585,7 @@ static bool R_SetUniformFloatArrayD3D9(ID3DXConstantTable* constant_table,
     return hr == D3D_OK;
 }
 
-static bool R_SetUniformVec4fD3D9(ID3DXConstantTable* constant_table,
+static bool R_ShaderSetUniformVec4fD3D9(ID3DXConstantTable* constant_table,
     int location, const avec4f_t value
 ) {
     D3DXHANDLE handle = constant_table->lpVtbl->GetConstant(
@@ -415,7 +598,7 @@ static bool R_SetUniformVec4fD3D9(ID3DXConstantTable* constant_table,
     return hr == D3D_OK;
 }
 
-static bool R_SetUniformIntD3D9(ID3DXConstantTable* constant_table,
+static bool R_ShaderSetUniformIntD3D9(ID3DXConstantTable* constant_table,
     int location, int value
 ) {
     D3DXHANDLE handle = constant_table->lpVtbl->GetConstant(
@@ -427,7 +610,7 @@ static bool R_SetUniformIntD3D9(ID3DXConstantTable* constant_table,
     return hr == D3D_OK;
 }
 
-static bool R_SetUniformMat4fD3D9(ID3DXConstantTable* constant_table,
+static bool R_ShaderSetUniformMat4fD3D9(ID3DXConstantTable* constant_table,
     int location, const amat4f_t value
 ) {
     D3DXHANDLE handle = constant_table->lpVtbl->GetConstant(
@@ -440,33 +623,35 @@ static bool R_SetUniformMat4fD3D9(ID3DXConstantTable* constant_table,
     return hr == D3D_OK;
 }
 
-static bool R_SetUniformD3D9(ID3DXConstantTable* constant_table, int location,
-                             GfxShaderUniformDef* uniform
+static bool R_ShaderSetUniformD3D9(ID3DXConstantTable* constant_table, 
+                                         int location,
+                                         GfxShaderUniformDef* uniform
 ) {
     switch (uniform->type) {
     case UNIFORM_TYPE_BOOL:
-        return R_SetUniformBoolD3D9(constant_table, 
+        return R_ShaderSetUniformBoolD3D9(constant_table, 
                                     location, uniform->value.b);
     case UNIFORM_TYPE_FLOAT:
-        return R_SetUniformFloatD3D9(constant_table, location,
+        return R_ShaderSetUniformFloatD3D9(constant_table, location,
                                      uniform->value.f);
     case UNIFORM_TYPE_FLOAT_ARRAY:
-        return R_SetUniformFloatArrayD3D9(constant_table, location,
+        return R_ShaderSetUniformFloatArrayD3D9(constant_table, location,
                                           uniform->value.fa, 
                                           uniform->value.fcount);
     case UNIFORM_TYPE_VEC4F:
-        return R_SetUniformVec4fD3D9(constant_table, location, 
+        return R_ShaderSetUniformVec4fD3D9(constant_table, location,
                                      uniform->value.v4f);
     case UNIFORM_TYPE_INT:
-        return R_SetUniformIntD3D9(constant_table, location, uniform->value.i);
+        return R_ShaderSetUniformIntD3D9(constant_table, location, 
+                                         uniform->value.i);
     case UNIFORM_TYPE_MAT4F:
-        return R_SetUniformMat4fD3D9(constant_table, location, 
-                                     uniform->value.m4f);
+        return R_ShaderSetUniformMat4fD3D9(constant_table, location,
+                                           uniform->value.m4f);
     default:
-        assert(false && "R_SetUniformD3D9: Invalid uniform type.");
+        assert(false && "R_ShaderSetUniformD3D9: Invalid uniform type.");
         Com_Errorln(
             -1,
-            "R_SetUniformD3D9: Invalid uniform type %d.",
+            "R_ShaderSetUniformD3D9: Invalid uniform type %d.",
             uniform->type
         );
         return false;
@@ -474,7 +659,44 @@ static bool R_SetUniformD3D9(ID3DXConstantTable* constant_table, int location,
 }
 #endif // A_RENDER_BACKEND_GL
 
+static bool R_ShaderSetUniform(const GfxShaderProgram* prog, int location, 
+                               GfxShaderUniformDef* uniform
+) {
+#if A_RENDER_BACKEND_GL
+    R_ShaderSetUniformGL(prog->program, location, uniform);
+    return true;
+#elif A_RENDER_BACKEND_D3D9
+    bool b = R_ShaderSetUniformD3D9(prog->vertex_shader.constant_table,
+                                    location, uniform);
+    assert(b);
+    if (!b)
+        return false;
+    bool b = R_ShaderSetUniformD3D9(prog->pixel_shader.constant_table,
+                                    location, uniform);
+    assert(b);
+    return b;
+#endif // A_RENDER_BACKEND_GL
+}
 
+static bool R_ShaderSetUniformByName(const GfxShaderProgram* prog, 
+                                     const char* name,
+                                     GfxShaderUniformDef* uniform
+) {
+#if A_RENDER_BACKEND_GL
+    R_ShaderSetUniformByNameGL(prog->program, name, uniform);
+    return true;
+#elif A_RENDER_BACKEND_D3D9
+    bool b = R_ShaderSetUniformD3D9(prog->vertex_shader.constant_table,
+        location, uniform);
+    assert(b);
+    if (!b)
+        return false;
+    bool b = R_ShaderSetUniformD3D9(prog->pixel_shader.constant_table,
+        location, uniform);
+    assert(b);
+    return b;
+#endif // A_RENDER_BACKEND_GL
+}
 
 GfxShaderUniformDef* R_ShaderAddUniform(A_INOUT GfxShaderProgram* prog,
                                         A_IN GfxShaderUniformDef* uniform
@@ -484,18 +706,18 @@ GfxShaderUniformDef* R_ShaderAddUniform(A_INOUT GfxShaderProgram* prog,
     assert(prog->current_uniform < R_SHADER_MAX_UNIFORM);
     if (prog->current_uniform >= R_SHADER_MAX_UNIFORM) {
         Com_Errorln(-1, "R_ShaderAddUniform: program has too many uniforms.");
-        return -1;
+        return NULL;
     }
     
     A_memcpy(&prog->uniforms[prog->current_uniform], uniform, sizeof(*uniform));
     GfxShaderUniformDef* ret = &prog->uniforms[prog->current_uniform];
 #if A_RENDER_BACKEND_GL
-    prog->uniforms[prog->current_uniform].location = GL_CALL(
+    ret->location = GL_CALL(
         glGetUniformLocation, prog->program, uniform->name
     );
-    R_SetUniformGL(
+    R_ShaderSetUniformByNameGL(
         prog->program,
-        prog->uniforms[prog->current_uniform].location,
+        uniform->name,
         &prog->uniforms[prog->current_uniform]
     );
 #elif A_RENDER_BACKEND_D3D9
@@ -514,7 +736,7 @@ GfxShaderUniformDef* R_ShaderAddUniform(A_INOUT GfxShaderProgram* prog,
     assert(hr == D3D_OK);
     assert(count > 0);
     prog->uniforms[prog->current_uniform].location = desc.RegisterIndex;
-    bool b = R_SetUniformD3D9(
+    bool b = R_ShaderSetUniformD3D9(
         prog->vertex_shader.constant_table,
         prog->uniforms[prog->current_uniform].location,
         &prog->uniforms[prog->current_uniform]
@@ -560,6 +782,7 @@ void R_ShaderSetUniformBool(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if(uniform)
         R_SetUniformBool(uniform, value);
+    R_ShaderSetUniform(prog, i, uniform);
 }
 
 void R_ShaderSetUniformBoolByName(A_INOUT GfxShaderProgram* prog, 
@@ -570,6 +793,7 @@ void R_ShaderSetUniformBoolByName(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformBool(uniform, value);
+    R_ShaderSetUniformByName(prog, name, uniform);
 }
 
 void R_ShaderSetUniformFloat(A_INOUT GfxShaderProgram* prog,
@@ -580,6 +804,7 @@ void R_ShaderSetUniformFloat(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformFloat(uniform, value);
+    R_ShaderSetUniform(prog, i, uniform);
 }
 
 void R_ShaderSetUniformFloatByName(A_INOUT GfxShaderProgram* prog,
@@ -590,6 +815,7 @@ void R_ShaderSetUniformFloatByName(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformFloat(uniform, value);
+    R_ShaderSetUniformByName(prog, name, uniform);
 }
 
 void R_ShaderSetUniformFloatArray(A_INOUT GfxShaderProgram* prog,
@@ -600,6 +826,7 @@ void R_ShaderSetUniformFloatArray(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformFloatArray(uniform, value, count);
+    R_ShaderSetUniform(prog, i, uniform);
 }
 
 void R_ShaderSetUniformFloatArrayByName(A_INOUT GfxShaderProgram* prog,
@@ -610,6 +837,7 @@ void R_ShaderSetUniformFloatArrayByName(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformFloatArray(uniform, value, count);
+    R_ShaderSetUniformByName(prog, name, uniform);
 }
 
 void R_ShaderSetUniformVec2f(A_INOUT GfxShaderProgram* prog,
@@ -620,6 +848,7 @@ void R_ShaderSetUniformVec2f(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformVec2f(uniform, value);
+    R_ShaderSetUniform(prog, i, uniform);
 }
 
 void R_ShaderSetUniformVec2fByName(A_INOUT GfxShaderProgram* prog,
@@ -630,6 +859,7 @@ void R_ShaderSetUniformVec2fByName(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformVec2f(uniform, value);
+    R_ShaderSetUniformByName(prog, name, uniform);
 }
 
 void R_ShaderSetUniformVec3f(A_INOUT GfxShaderProgram* prog,
@@ -640,6 +870,7 @@ void R_ShaderSetUniformVec3f(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformVec3f(uniform, value);
+    R_ShaderSetUniform(prog, i, uniform);
 }
 
 void R_ShaderSetUniformVec3fByName(A_INOUT GfxShaderProgram* prog,
@@ -650,6 +881,7 @@ void R_ShaderSetUniformVec3fByName(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformVec3f(uniform, value);
+    R_ShaderSetUniformByName(prog, name, uniform);
 }
 
 void R_ShaderSetUniformVec4f(A_INOUT GfxShaderProgram* prog,
@@ -660,6 +892,7 @@ void R_ShaderSetUniformVec4f(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformVec4f(uniform, value);
+    R_ShaderSetUniform(prog, i, uniform);
 }
 
 void R_ShaderSetUniformVec4fByName(A_INOUT GfxShaderProgram* prog,
@@ -670,6 +903,7 @@ void R_ShaderSetUniformVec4fByName(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformVec4f(uniform, value);
+    R_ShaderSetUniformByName(prog, name, uniform);
 }
 
 void R_ShaderSetUniformInt(A_INOUT GfxShaderProgram* prog,
@@ -680,6 +914,7 @@ void R_ShaderSetUniformInt(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformInt(uniform, value);
+    R_ShaderSetUniform(prog, i, uniform);
 }
 
 void R_ShaderSetUniformIntByName(A_INOUT GfxShaderProgram* prog,
@@ -690,6 +925,7 @@ void R_ShaderSetUniformIntByName(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformInt(uniform, value);
+    R_ShaderSetUniformByName(prog, name, uniform);
 }
 
 void R_ShaderSetUniformUint(A_INOUT GfxShaderProgram* prog,
@@ -700,6 +936,7 @@ void R_ShaderSetUniformUint(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformUint(uniform, value);
+    R_ShaderSetUniform(prog, i, uniform);
 }
 
 void R_ShaderSetUniformUintByName(A_INOUT GfxShaderProgram* prog,
@@ -710,6 +947,7 @@ void R_ShaderSetUniformUintByName(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformUint(uniform, value);
+    R_ShaderSetUniformByName(prog, name, uniform);
 }
 
 void R_ShaderSetUniformIntArray(A_INOUT GfxShaderProgram* prog,
@@ -720,6 +958,7 @@ void R_ShaderSetUniformIntArray(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformIntArray(uniform, value, count);
+    R_ShaderSetUniform(prog, i, uniform);
 }
 
 void R_ShaderSetUniformIntArrayByName(A_INOUT GfxShaderProgram* prog,
@@ -730,6 +969,7 @@ void R_ShaderSetUniformIntArrayByName(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformIntArray(uniform, value, count);
+    R_ShaderSetUniformByName(prog, name, uniform);
 }
 
 void R_ShaderSetUniformVec2i(A_INOUT GfxShaderProgram* prog,
@@ -740,6 +980,7 @@ void R_ShaderSetUniformVec2i(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformVec2i(uniform, value);
+    R_ShaderSetUniform(prog, i, uniform);
 }
 
 void R_ShaderSetUniformVec2iByName(A_INOUT GfxShaderProgram* prog,
@@ -750,6 +991,7 @@ void R_ShaderSetUniformVec2iByName(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformVec2i(uniform, value);
+    R_ShaderSetUniformByName(prog, name, uniform);
 }
 
 void R_ShaderSetUniformVec3i(A_INOUT GfxShaderProgram* prog,
@@ -760,6 +1002,7 @@ void R_ShaderSetUniformVec3i(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformVec3i(uniform, value);
+    R_ShaderSetUniform(prog, i, uniform);
 }
 
 void R_ShaderSetUniformVec3iByName(A_INOUT GfxShaderProgram* prog,
@@ -770,6 +1013,7 @@ void R_ShaderSetUniformVec3iByName(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformVec3i(uniform, value);
+    R_ShaderSetUniformByName(prog, name, uniform);
 }
 
 void R_ShaderSetUniformVec4i(A_INOUT GfxShaderProgram* prog,
@@ -780,6 +1024,7 @@ void R_ShaderSetUniformVec4i(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformVec4i(uniform, value);
+    R_ShaderSetUniform(prog, i, uniform);
 }
 
 void R_ShaderSetUniformVec4iByName(A_INOUT GfxShaderProgram* prog,
@@ -790,6 +1035,7 @@ void R_ShaderSetUniformVec4iByName(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformVec4i(uniform, value);
+    R_ShaderSetUniformByName(prog, name, uniform);
 }
 
 void R_ShaderSetUniformMat2f(A_INOUT GfxShaderProgram* prog,
@@ -800,6 +1046,7 @@ void R_ShaderSetUniformMat2f(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformMat2f(uniform, value);
+    R_ShaderSetUniform(prog, i, uniform);
 }
 
 void R_ShaderSetUniformMat2fByName(A_INOUT GfxShaderProgram* prog,
@@ -810,6 +1057,7 @@ void R_ShaderSetUniformMat2fByName(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformMat2f(uniform, value);
+    R_ShaderSetUniformByName(prog, name, uniform);
 }
 
 void R_ShaderSetUniformMat3f(A_INOUT GfxShaderProgram* prog,
@@ -820,6 +1068,7 @@ void R_ShaderSetUniformMat3f(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformMat3f(uniform, value);
+    R_ShaderSetUniform(prog, i, uniform);
 }
 
 void R_ShaderSetUniformMat3fByName(A_INOUT GfxShaderProgram* prog,
@@ -830,6 +1079,7 @@ void R_ShaderSetUniformMat3fByName(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformMat3f(uniform, value);
+    R_ShaderSetUniformByName(prog, name, uniform);
 }
 
 void R_ShaderSetUniformMat4f(A_INOUT GfxShaderProgram* prog,
@@ -840,6 +1090,7 @@ void R_ShaderSetUniformMat4f(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformMat4f(uniform, value);
+    R_ShaderSetUniform(prog, i, uniform);
 }
 
 void R_ShaderSetUniformMat4fByName(A_INOUT GfxShaderProgram* prog,
@@ -850,6 +1101,7 @@ void R_ShaderSetUniformMat4fByName(A_INOUT GfxShaderProgram* prog,
     assert(uniform);
     if (uniform)
         R_SetUniformMat4f(uniform, value);
+    R_ShaderSetUniformByName(prog, name, uniform);
 }
 
 bool R_DeleteShaderProgram(

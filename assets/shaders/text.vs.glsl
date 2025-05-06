@@ -6,7 +6,6 @@ out vec2 GlyphTexCoords;
 
 uniform mat4 uModel;
 uniform mat4 uOrthoProjection;
-uniform vec4 uAtlasCoord;
 
 void main() {
     gl_Position = uOrthoProjection * uModel * vec4(aVertex, 0.0, 1.0);

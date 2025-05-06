@@ -543,6 +543,11 @@ void R_LoadMap(void) {
 }
 
 static void R_RenderMaterial(GfxMaterial* material) {
+    bool b = R_BindShaderProgram(&r_mapGlob.prog);
+    assert(b);
+    if (!b)
+        return;
+
     R_ShaderSetUniformBoolByName(&r_mapGlob.prog, "uAlphaTested",
                                  material->alpha_tested);
 

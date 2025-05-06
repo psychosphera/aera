@@ -4,7 +4,6 @@ in vec2 GlyphTexCoords;
 uniform sampler2D uTex;
 uniform vec3 uTextColor;
 uniform vec4 uAtlasCoord;
-uniform mat4 uModel;
 
 out vec4 FragColor;
 
