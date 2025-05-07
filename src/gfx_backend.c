@@ -14,7 +14,7 @@
 
 static bool s_windowResizeable;
 
-bool RB_WindowResizeable() {
+bool RB_WindowResizeable(void) {
     return s_windowResizeable;
 }
 

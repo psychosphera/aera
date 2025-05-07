@@ -169,7 +169,7 @@ A_EXTERN_C bool CL_HasKbmFocus(size_t localClientNum) {
 	return CL_GetLocalClientGlobals(localClientNum)->hasKbmFocus;
 }
 
-A_EXTERN_C size_t CL_ClientWithKbmFocus() {
+A_EXTERN_C size_t CL_ClientWithKbmFocus(void) {
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		if (CL_HasKbmFocus(i))
 			return i;

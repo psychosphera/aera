@@ -173,7 +173,7 @@ void R_D3DCheckError(const char* func, int line, const char* file) {
 }
 #endif // A_RENDER_BACKEND_GL
 
-static void R_RegisterDvars        ();
+static void R_RegisterDvars        (void);
 static void R_DrawFrameInternal    (size_t localClientNum);
 static void R_InitLocalClient      (size_t localClientNum);
 static void R_UpdateLocalClientView(size_t localClientNum);

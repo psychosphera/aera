@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.27)
 project(h1_map_viewer C CXX)
 
-set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_REQUIRED ON)
@@ -11,6 +11,18 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	set(CLANG true)
 endif()
+
+if(MSVC)
+	message(STATUS "Compiler: MSVC")
+elseif(GCC)
+	message(STATUS "Compiler: GCC")
+elseif(CLANG)
+	message(STATUS "Compiler: Clang")
+else()
+	message(STATUS "Compiler: Unknown")
+endif()
+
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 if(APPLE)
     enable_language(OBJC)
@@ -102,34 +114,35 @@ set(GCC_COMPILE_OPTIONS
 	"-ftrack-macro-expansion=0" 
 	"-Wno-address-of-packed-member"
 	"-Wno-comment"
+	"-Wno-pointer-to-int-cast"
 )
 
 set(GCC_CLANG_NON_CL_OPTIONS 
-	"-Wall" "-Wextra" "-Wno-type-limits" "-Og"
+	"-Wall" "-Wextra" "-Wno-type-limits" "-Og" "-Wno-sign-compare"
 )
 
 set(CLANG_COMPILE_OPTIONS
 	"-Wno-gnu-zero-variadic-macro-arguments"
 	"-Wno-unreachable-code-generic-assoc"
-	"-Wno-sign-compare" "-Wno-macro-redefined"
+	"-Wno-macro-redefined"
 	"-Wno-pointer-to-int-cast" 
 	"-Wno-c99-designator" 
 	"-Wno-gnu-anonymous-struct"
 	"-Wno-address-of-packed-member"
-	"-Wno-sign-compare"
 	"-Wno-embedded-directive"
 	"-Wno-c23-extensions"
-	"-Wno-sign-compare"
+	"-Wno-c11-extensions"
 )
 
-set(CLANG_NON_CL_COMMON_OPTIONS "-pedantic" "-pedantic-errors")
+set(CLANG_NON_CL_COMMON_OPTIONS "-pedantic")
 
-set(CLANG_GCC_COMPILE_OPTIONS "-Wno-int-to-pointer-cast")
+set(CLANG_GCC_COMPILE_OPTIONS "-Wno-int-to-pointer-cast" "-Wno-sign-compare")
 
 set(APPLE_CLANG_COMPILE_OPTIONS "-Wno-undef-prefix")
 
 # =============================================================================
 if (DEFINED RENDER_BACKEND_GL)
+	message(STATUS "Compiling with GL backend.")
 	set(GL_LIBS GLEW::GLEW OpenGL::GL)
 	set(GL_COMPILE_DEFS A_RENDER_BACKEND_GL=1 A_RENDER_BACKEND_D3D9=0)
 
@@ -145,11 +158,12 @@ if (DEFINED RENDER_BACKEND_GL)
 	)
 	
 	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+		message(STATUS "Compiling with debug mode.")
 		target_compile_definitions(h1_map_viewer_gl PRIVATE 
 			${COMMON_DEBUG_COMPILE_DEFS}
 		)
 	endif()
-	
+
 	if(MSVC)
 		target_compile_options(h1_map_viewer_gl PRIVATE 
 			${MSVC_COMPILE_OPTIONS}
@@ -172,22 +186,26 @@ if (DEFINED RENDER_BACKEND_GL)
 	    target_compile_options(h1_map_viewer_gl PRIVATE ${GCC_COMPILE_OPTIONS}) 
 	endif()
 	
+	message("CLANG: ${CLANG}")
 	if(CLANG)
 	    target_compile_options(h1_map_viewer_gl PRIVATE 
 			${CLANG_COMPILE_OPTIONS}
 		) 
+		message(STATUS "Using clang compile opts.")
 	endif()
 	
 	if(CLANG AND NOT MSVC)
 		target_compile_options(h1_map_viewer_gl PRIVATE
 			${CLANG_NON_CL_COMMON_OPTIONS}
 		)
+		message(STATUS "Using clang non-cl compile opts.")
 	endif()
 	
 	if(CLANG OR GCC)
 	    target_compile_options(h1_map_viewer_gl PRIVATE 
 			${CLANG_GCC_COMPILE_OPTIONS}
 		)
+		message(STATUS "Using clang/gcc compile opts.")
 	endif()
 	
 	if(MSVC AND NOT CLANG)
@@ -200,12 +218,14 @@ if (DEFINED RENDER_BACKEND_GL)
 	    target_compile_options(h1_map_viewer_gl PRIVATE 
 			${APPLE_CLANG_COMPILE_OPTIONS}
 		)
+		message(STATUS "Using apple clang compile opts.")
 	endif()
 	
 	if((CLANG AND NOT MSVC) OR GCC)
 	    target_compile_options(h1_map_viewer_gl PRIVATE 
 			${GCC_CLANG_NON_CL_OPTIONS}
 		)
+		message(STATUS "Using non-cl clang/gcc compile opts.")
 	endif()
 endif()
 # =============================================================================

@@ -32,7 +32,7 @@ A_EXTERN_C dgl_t* DevGui_GetLocalClientLocals(size_t localClientNum) {
 	return &s_dgl[localClientNum];
 }
 
-A_EXTERN_C void DevGui_Init() {
+A_EXTERN_C void DevGui_Init(void) {
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		dgl_t* dgl = DevGui_GetLocalClientLocals(i);
 		A_cstrncpyz(dgl->buffer, "> ", sizeof(dgl->buffer));
@@ -95,7 +95,7 @@ static char DevGui_PopChar(size_t localClientNum) {
 	return dgl->buffer[dgl->buffer_idx--];
 }
 
-A_EXTERN_C void DevGui_Frame() {
+A_EXTERN_C void DevGui_Frame(void) {
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		dgl_t* dgl = DevGui_GetLocalClientLocals(i);
 		if (CL_KeyFocus(i) != KF_DEVGUI) {
@@ -143,7 +143,7 @@ A_EXTERN_C void DevGui_Frame() {
 	}
 }
 
-A_EXTERN_C void DevGui_Shutdown() {
+A_EXTERN_C void DevGui_Shutdown(void) {
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		dgl_t* dgl = DevGui_GetLocalClientLocals(i);
 		R_RemoveTextDrawDef(i, dgl->promptDrawId);

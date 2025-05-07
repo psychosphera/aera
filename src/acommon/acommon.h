@@ -226,12 +226,13 @@
     A_GENERIC_MATCH_SIGNED_INTEGRAL(b), \
     A_GENERIC_MATCH_UNSIGNED_INTEGRAL(b)
 
-#if A_C23 || A_CXX17
+#if A_C23 || A_CXX11
 #   define A_STATIC_ASSERT(expr) static_assert (expr, A_STRINGIFY(expr))
 #elif A_C11
 #   define A_STATIC_ASSERT(expr) _Static_assert(expr, A_STRINGIFY(expr))
-#elif A_CXX11
-#   define A_STATIC_ASSERT(expr) static_assert (expr, A_STRINGIFY(expr))
+#else
+#   define A_STATIC_ASSERT(expr) \
+    typedef char A_CAT(A__static_assert_impl_, __LINE__)[(expr)?1:-1]
 #endif // A_C23 || A_CXX17
 
 #if A_C23 || A_COMPILER_IS_GCC_COMPATIBLE
@@ -258,7 +259,9 @@
 #define nullptr NULL
 #endif // !A_CXX && (A_STDC && !A_C23)
 
-#if (A_COMPILER_IS_MSVC && _MSC_VER >= 1915) || A_CXX17 || A_C23
+#if (A_COMPILER_IS_MSVC && _MSC_VER >= 1915 && \
+        (!defined(_MSVC_TRADITIONAL) || _MSVC_TRADITIONAL == 0) \
+    ) || A_CXX17 || A_C23
 #define A_VA_OPT(...) __VA_OPT__(,) __VA_ARGS__
 #else 
 #define A_VA_OPT(...) , ##__VA_ARGS__

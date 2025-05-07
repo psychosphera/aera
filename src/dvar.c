@@ -65,7 +65,7 @@ static uint32_t Dvar_HashName(const char* name) {
 	return hash;
 }
 
-void Dvar_Init() {
+void Dvar_Init(void) {
 	Cmd_AddCommand("set",   Dvar_Set_f  );
 	Cmd_AddCommand("seta",  Dvar_SetA_f );
 	Cmd_AddCommand("setl",  Dvar_SetL_f );
@@ -532,7 +532,7 @@ A_NO_DISCARD dvar_t* Dvar_Find(const char* name) {
 	return NULL;
 }
 
-static dvar_t** Dvar_TakeFreeDvar() {
+static dvar_t** Dvar_TakeFreeDvar(void) {
 	if (s_dvarCount < DVAR_MAX_DVARS) {
 		dvar_t** d = &s_dvars[s_dvarCount++];
 		assert(*d == NULL);
@@ -790,7 +790,7 @@ bool Dvar_Unregister(const char* name) {
 	return false;
 }
 
-void Dvar_ClearDvars() {
+void Dvar_ClearDvars(void) {
 	for (int i = 0; i < s_dvarCount; i++) {
 		dvar_t** d = &s_dvars[i];
 		Dvar_DestroyDvar(*d);
@@ -1456,7 +1456,7 @@ void Dvar_SetLA_f(void) {
 }
 
 
-void Dvar_Shutdown() {
+void Dvar_Shutdown(void) {
 	Cmd_RemoveCommand("set");
 	Cmd_RemoveCommand("seta");
 	Cmd_RemoveCommand("setl");
