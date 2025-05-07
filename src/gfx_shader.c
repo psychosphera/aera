@@ -199,6 +199,7 @@ static void R_ShaderSetUniformBoolGL(shader_program_t program,
 static void R_ShaderSetUniformFloatGL(
     shader_program_t program, int location, float value
 ) {
+    assert(location >= 0);
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform1f, location, value);
 }
@@ -207,6 +208,7 @@ static void R_ShaderSetUniformFloatArrayGL(
     shader_program_t program, int location,
     const float* value, int count
 ) {
+    assert(location >= 0);
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform1fv, location, count, value);
 }
@@ -214,6 +216,7 @@ static void R_ShaderSetUniformFloatArrayGL(
 static void R_ShaderSetUniformVec2fGL(
     shader_program_t program, int location, avec2f_t value
 ) {
+    assert(location >= 0);
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform2f, location, value.x, value.y);
 }
@@ -221,6 +224,7 @@ static void R_ShaderSetUniformVec2fGL(
 static void R_ShaderSetUniformVec3fGL(
     shader_program_t program, int location, avec3f_t value
 ) {
+    assert(location >= 0);
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform3f, location, value.x, value.y, value.z);
 }
@@ -228,6 +232,7 @@ static void R_ShaderSetUniformVec3fGL(
 static void R_ShaderSetUniformVec4fGL(
     shader_program_t program, int location, avec4f_t value
 ) {
+    assert(location >= 0);
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform4f, location, value.x, value.y, value.z, value.w);
 }
@@ -235,6 +240,7 @@ static void R_ShaderSetUniformVec4fGL(
 static void R_ShaderSetUniformIntGL(
     shader_program_t program, int location, int value
 ) {
+    assert(location >= 0);
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform1i, location, value);
 }
@@ -243,6 +249,7 @@ static void R_ShaderSetUniformIntArrayGL(
     shader_program_t program, int location,
     const int* value, int count
 ) {
+    assert(location >= 0);
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform1iv, location, count, value);
 }
@@ -250,6 +257,7 @@ static void R_ShaderSetUniformIntArrayGL(
 static void R_ShaderSetUniformVec2iGL(
     shader_program_t program, int location, avec2i_t value
 ) {
+    assert(location >= 0);
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform2i, location, value.x, value.y);
 }
@@ -257,6 +265,7 @@ static void R_ShaderSetUniformVec2iGL(
 static void R_ShaderSetUniformVec3iGL(
     shader_program_t program, int location, avec3i_t value
 ) {
+    assert(location >= 0);
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform3i, location, value.x, value.y, value.z);
 }
@@ -264,6 +273,7 @@ static void R_ShaderSetUniformVec3iGL(
 static void R_ShaderSetUniformVec4iGL(
     shader_program_t program, int location, avec4i_t value
 ) {
+    assert(location >= 0);
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform4i, location, value.x, value.y, value.z, value.w);
 }
@@ -271,6 +281,7 @@ static void R_ShaderSetUniformVec4iGL(
 static void R_ShaderSetUniformUintGL(
     shader_program_t program, int location, unsigned int value
 ) {
+    assert(location >= 0);
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform1ui, location, value);
 }
@@ -279,6 +290,7 @@ static void R_ShaderSetUniformUintArrayGL(
     shader_program_t program, int location,
     const unsigned int* value, int count
 ) {
+    assert(location >= 0);
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniform1uiv, location, count, value);
 }
@@ -286,6 +298,7 @@ static void R_ShaderSetUniformUintArrayGL(
 static void R_ShaderSetUniformMat2fGL(
     shader_program_t program, int location, const amat2f_t value
 ) {
+    assert(location >= 0);
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniformMatrix2fv, location, 1, GL_FALSE, value.array);
 }
@@ -293,6 +306,7 @@ static void R_ShaderSetUniformMat2fGL(
 static void R_ShaderSetUniformMat3fGL(
     shader_program_t program, int location, amat3f_t value
 ) {
+    assert(location >= 0);
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniformMatrix3fv, location, 1, GL_FALSE, value.array);
 }
@@ -300,6 +314,7 @@ static void R_ShaderSetUniformMat3fGL(
 static void R_ShaderSetUniformMat4fGL(
     shader_program_t program, int location, amat4f_t value
 ) {
+    assert(location >= 0);
     GL_CALL(glUseProgram, program);
     GL_CALL(glUniformMatrix4fv, location, 1, GL_FALSE, value.array);
 }
@@ -803,9 +818,11 @@ GfxShaderUniformDef* R_ShaderAddUniform(A_INOUT GfxShaderProgram* prog,
     A_memcpy(&prog->uniforms[prog->current_uniform], uniform, sizeof(*uniform));
     GfxShaderUniformDef* ret = &prog->uniforms[prog->current_uniform];
 #if A_RENDER_BACKEND_GL
-    ret->location = GL_CALL(
+    int location = GL_CALL(
         glGetUniformLocation, prog->program, uniform->name
     );
+    assert(location >= 0);
+    ret->location = location;
     R_ShaderSetUniformByName(
         prog,
         uniform->name,

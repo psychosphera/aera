@@ -28,20 +28,6 @@ A_NO_DISCARD float R_VidAspectInv(void) {
     return (float)Dvar_GetInt(vid_width) / (float)Dvar_GetInt(vid_width);
 }
 
-#if A_RENDER_BACKEND_GL
-GLenum R_GlCheckError(const char* func, int line, const char* file) {
-    GLenum err = glGetError();
-    if (err != GL_NO_ERROR) {
-        const char* s = R_GlDebugErrorString(err);
-        Com_Println(
-            CON_DEST_ERR,
-            "%s (%s:%d): GL call failed with %s.", func, line, file, s
-        );
-    }
-    return err;
-}
-#endif // A_RENDER_BACKEND_GL
-
 bool R_CreateVertexBuffer(const void* data, size_t n, size_t capacity,
                           size_t off, size_t stride, A_OUT GfxVertexBuffer* vb
 ) {

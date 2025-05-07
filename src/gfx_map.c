@@ -113,17 +113,17 @@ void R_InitMap(void) {
     pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
     assert(pUniform);
 
-    R_CreateUniformBool("uAlphaTested", false, &uniform);
-    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
-    assert(pUniform);
+    //R_CreateUniformBool("uAlphaTested", false, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    //assert(pUniform);
 
     R_CreateUniformInt("uFlags", 0, &uniform);
     pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
     assert(pUniform);
 
-    R_CreateUniformInt("uMap", 0, &uniform);
-    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
-    assert(pUniform);
+    //R_CreateUniformInt("uMap", 0, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    //assert(pUniform);
 
     R_CreateUniformInt("uBaseMap", 0, &uniform);
     pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
@@ -137,13 +137,13 @@ void R_InitMap(void) {
     pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
     assert(pUniform);
 
-    R_CreateUniformInt("uMicroDetailMap", 0, &uniform);
-    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
-    assert(pUniform);
+    //R_CreateUniformInt("uMicroDetailMap", 0, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    //assert(pUniform);
 
-    R_CreateUniformInt("uBumpMap", 0, &uniform);
-    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
-    assert(pUniform);
+    //R_CreateUniformInt("uBumpMap", 0, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    //assert(pUniform);
 
     R_CreateUniformInt("uDetailMapFunction", 0, &uniform);
     pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
@@ -161,21 +161,21 @@ void R_InitMap(void) {
     pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
     assert(pUniform);
 
-    R_CreateUniformVec3f("uDistantLight0Dir", A_VEC3F_ZERO, &uniform);
-    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
-    assert(pUniform);
+    //R_CreateUniformVec3f("uDistantLight0Dir", A_VEC3F_ZERO, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    //assert(pUniform);
 
-    R_CreateUniformVec3f("uDistantLight1Dir", A_VEC3F_ZERO, &uniform);
-    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
-    assert(pUniform);
+    //R_CreateUniformVec3f("uDistantLight1Dir", A_VEC3F_ZERO, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    //assert(pUniform);
 
-    R_CreateUniformVec3f("uDistantLight0Color", A_VEC3F_ZERO, &uniform);
-    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
-    assert(pUniform);
+    //R_CreateUniformVec3f("uDistantLight0Color", A_VEC3F_ZERO, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    //assert(pUniform);
 
-    R_CreateUniformVec3f("uDistantLight1Color", A_VEC3F_ZERO, &uniform);
-    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
-    assert(pUniform);
+    //R_CreateUniformVec3f("uDistantLight1Color", A_VEC3F_ZERO, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    //assert(pUniform);
 
     assert(b);
     DB_UnloadShader(vertSource);
@@ -546,13 +546,13 @@ static void R_RenderMaterial(GfxMaterial* material) {
     if (!b)
         return;
 
-    R_ShaderSetUniformBoolByName(&r_mapGlob.prog, "uAlphaTested",
-                                 material->alpha_tested);
+    //R_ShaderSetUniformBoolByName(&r_mapGlob.prog, "uAlphaTested",
+    //                             material->alpha_tested);
 
-    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uDetailMapFunction",
-                               (int)material->detail_map_function);
-    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uMicroDetailMapFunction",
-                               (int)material->micro_detail_map_function);
+    //R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uDetailMapFunction",
+    //                           (int)material->detail_map_function);
+    //R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uMicroDetailMapFunction",
+    //                           (int)material->micro_detail_map_function);
 
     avec3f_t color = A_vec3(
         material->color.r,
@@ -566,30 +566,30 @@ static void R_RenderMaterial(GfxMaterial* material) {
     color.z = material->ambient_color.b;
     R_ShaderSetUniformVec3fByName(&r_mapGlob.prog, "uAmbientColor", color);
 
-    R_ShaderSetUniformVec3fByName(
-        &r_mapGlob.prog, "uDistantLight0Dir",
-        material->distant_light_0_dir);
-    R_ShaderSetUniformVec3fByName(
-        &r_mapGlob.prog, "uDistantLight1Dir",
-        material->distant_light_1_dir);
+    //R_ShaderSetUniformVec3fByName(
+    //    &r_mapGlob.prog, "uDistantLight0Dir",
+    //    material->distant_light_0_dir);
+    //R_ShaderSetUniformVec3fByName(
+    //    &r_mapGlob.prog, "uDistantLight1Dir",
+    //    material->distant_light_1_dir);
 
-    color.x =
-        material->distant_light_0_color.r;
-    color.y =
-        material->distant_light_0_color.g;
-    color.z =
-        material->distant_light_0_color.b;
-    R_ShaderSetUniformVec3fByName(&r_mapGlob.prog,
-        "uDistantLight0Color", color);
+    //color.x =
+    //    material->distant_light_0_color.r;
+    //color.y =
+    //    material->distant_light_0_color.g;
+    //color.z =
+    //    material->distant_light_0_color.b;
+    //R_ShaderSetUniformVec3fByName(&r_mapGlob.prog,
+    //    "uDistantLight0Color", color);
 
-    color.x =
-        material->distant_light_1_color.r;
-    color.y =
-        material->distant_light_1_color.g;
-    color.z =
-        material->distant_light_1_color.b;
-    R_ShaderSetUniformVec3fByName(&r_mapGlob.prog,
-        "uDistantLight1Color", color);
+    //color.x =
+    //    material->distant_light_1_color.r;
+    //color.y =
+    //    material->distant_light_1_color.g;
+    //color.z =
+    //    material->distant_light_1_color.b;
+    //R_ShaderSetUniformVec3fByName(&r_mapGlob.prog,
+    //    "uDistantLight1Color", color);
 
     bool has_map                  = material->pass.images[0].tex != 0;
     bool has_base_map             = material->pass.images[1].tex != 0;
@@ -615,12 +615,12 @@ static void R_RenderMaterial(GfxMaterial* material) {
 static void R_RenderMapInternal(void) {
     R_EnableDepthTest();
     R_EnableBackFaceCulling();
-    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uMap", 0);
-    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uBaseMap", 1);
-    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uPrimaryDetailMap", 2);
-    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uSecondaryDetailMap", 3);
-    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uMicroDetailMap", 4);
-    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uBumpMap", 5);
+    //R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uMap", 0);
+    //R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uBaseMap", 1);
+    //R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uPrimaryDetailMap", 2);
+    //R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uSecondaryDetailMap", 3);
+    //R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uMicroDetailMap", 4);
+    //R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uBumpMap", 5);
 
     amat4f_t model = A_MAT4F_IDENTITY;
     R_ShaderSetUniformMat4fByName(&r_mapGlob.prog, "uModel", model);

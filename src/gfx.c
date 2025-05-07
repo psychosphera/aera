@@ -36,7 +36,7 @@ extern dvar_t* vid_width;
 extern dvar_t* vid_height;
 
 #if A_RENDER_BACKEND_GL
-A_NO_DISCARD const char* R_GlDebugErrorString(GLenum err) {
+A_NO_DISCARD const char* R_GLDebugErrorString(GLenum err) {
     switch (err) {
     case GL_NO_ERROR:
         return "GL_NO_ERROR";
@@ -64,7 +64,7 @@ A_NO_DISCARD const char* R_GlDebugErrorString(GLenum err) {
     }
 }
 
-A_NO_DISCARD static const char* R_GlDebugSourceString(GLenum source) {
+A_NO_DISCARD static const char* R_GLDebugSourceString(GLenum source) {
     switch (source) {
     case GL_DEBUG_SOURCE_API:
         return "API";
@@ -83,7 +83,7 @@ A_NO_DISCARD static const char* R_GlDebugSourceString(GLenum source) {
     };
 }
 
-A_NO_DISCARD static const char* R_GlDebugTypeString(GLenum type) {
+A_NO_DISCARD static const char* R_GLDebugTypeString(GLenum type) {
     switch (type) {
     case GL_DEBUG_TYPE_ERROR:
         return "Error";
@@ -108,7 +108,7 @@ A_NO_DISCARD static const char* R_GlDebugTypeString(GLenum type) {
     };
 }
 
-A_NO_DISCARD static const char* R_GlDebugSeverityString(GLenum severity) {
+A_NO_DISCARD static const char* R_GLDebugSeverityString(GLenum severity) {
     switch (severity) {
     case GL_DEBUG_SEVERITY_HIGH:
         return "High";
@@ -124,7 +124,7 @@ A_NO_DISCARD static const char* R_GlDebugSeverityString(GLenum severity) {
 }
 
 #if _DEBUG
-static void GLAPIENTRY R_GlDebugOutput(
+static void GLAPIENTRY R_GLDebugOutput(
     GLenum source, GLenum type, unsigned int id, GLenum severity,
     GLsizei length, const char* message, const void* user
 ) {
@@ -137,15 +137,28 @@ static void GLAPIENTRY R_GlDebugOutput(
         return;
     }
 
-    const char* i   = R_GlDebugErrorString(id);
-    const char* src = R_GlDebugSourceString(source);
-    const char* t   = R_GlDebugTypeString(type);
-    const char* sev = R_GlDebugSeverityString(severity);
+    const char* i   = R_GLDebugErrorString(id);
+    const char* src = R_GLDebugSourceString(source);
+    const char* t   = R_GLDebugTypeString(type);
+    const char* sev = R_GLDebugSeverityString(severity);
     
     Com_DPrintln(CON_DEST_CLIENT,
         "OpenGL debug message (id=%s, source=%s, type=%s, severity=%s): %s", 
         i, src, t, sev, message
     );
+}
+
+GLenum R_GLCheckError(const char* func, int line, const char* file) {
+    GLenum err = glGetError();
+    assert(err == GL_NO_ERROR);
+    if (err != GL_NO_ERROR) {
+        const char* s = R_GLDebugErrorString(err);
+        Com_Errorln(-1,
+                    "%s (%s:%d): GL call failed with %s.",
+                    func, line, file, s
+        );
+    }
+    return err;
 }
 #endif // _DEBUG
 #elif A_RENDER_BACKEND_D3D9
@@ -222,7 +235,7 @@ static bool R_InitGL(void) {
 
     GL_CALL(glEnable, GL_DEBUG_OUTPUT);
     GL_CALL(glEnable, GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    GL_CALL(glDebugMessageCallback, R_GlDebugOutput, NULL);
+    GL_CALL(glDebugMessageCallback, R_GLDebugOutput, NULL);
     GL_CALL(glDebugMessageControl,  GL_DONT_CARE,    GL_DONT_CARE,
                                     GL_DONT_CARE, 0, NULL, GL_TRUE);
 #endif // _DEBUG

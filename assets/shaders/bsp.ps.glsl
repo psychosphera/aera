@@ -8,7 +8,7 @@ in vec2 tex_coords;
 in vec3 lightmap_normal;
 in vec2 lightmap_tex_coords;
 
-uniform bool      uAlphaTested;
+//uniform bool      uAlphaTested;
 uniform int       uFlags;
 uniform sampler2D uMap;
 uniform sampler2D uBaseMap;

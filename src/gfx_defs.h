@@ -191,14 +191,14 @@ A_EXTERN_C A_NO_DISCARD D3DCOLOR    R_ColorRGBAToD3DARGB  (acolor_rgba_t rgba);
 #endif // A_RENDER_BACKEND_D3D9
 
 #if A_RENDER_BACKEND_GL
-A_EXTERN_C A_NO_DISCARD const char* R_GlDebugErrorString(GLenum err);
-A_EXTERN_C GLenum R_GlCheckError(const char* func, int line, const char* file);
+A_EXTERN_C A_NO_DISCARD const char* R_GLDebugErrorString(GLenum err);
+A_EXTERN_C GLenum R_GLCheckError(const char* func, int line, const char* file);
 #endif // A_RENDER_BACKEND_GL
 
 #if A_RENDER_BACKEND_GL
 #define GL_CALL(func, ...)                                                     \
     func(__VA_ARGS__);                                                         \
-    R_GlCheckError(__func__, __LINE__, __FILE__);                                        
+    R_GLCheckError(__func__, __LINE__, __FILE__);                                        
 #elif A_RENDER_BACKEND_D3D9                                                    
 #define D3D_CALL(self, fn, ...)                                                \
     R_SetLastD3DError((self)->lpVtbl->fn((self) A_VA_OPT(__VA_ARGS__)));       \
