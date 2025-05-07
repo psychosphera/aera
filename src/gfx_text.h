@@ -7,7 +7,7 @@
 A_EXTERN_C A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f);
 A_EXTERN_C void R_DeleteTextureAtlas(A_INOUT FontDef* f);
 A_EXTERN_C void R_DrawText(
-    size_t localClientNum, A_OPTIONAL_IN const FontDef* font,
+    size_t localClientNum, A_OPTIONAL_INOUT FontDef* font,
     const RectDef* rect, const char* text,
     float xscale, float yscale, acolor_rgb_t color,
     bool right

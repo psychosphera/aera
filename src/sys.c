@@ -196,7 +196,7 @@ void Sys_ShutdownThreads(void) {
 // }
 
 A_NO_RETURN Sys_Exit(int ec) {
-    exit(ec);
+    A_exit(ec);
 }
 
 void Sys_Shutdown(void) {

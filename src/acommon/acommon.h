@@ -133,12 +133,18 @@
 #define A_OPTIONAL_OUT
 #endif // A_TARGET_OS_IS_WINDOWS
 
+#if A_COMPILER_IS_MSVC
+#define A_OPTIONAL_INOUT _Inout_opt_
+#else
+#define A_OPTIONAL_INOUT
+#endif // A_TARGET_OS_IS_WINDOWS
+
 #define A_ARCH_IS_32BIT (UINTPTR_MAX == UINT32_MAX)
 #define A_ARCH_IS_64BIT (UINTPTR_MAX == UINT64_MAX)
 
-#if A_CXX17 || A_C23
+#if (A_CXX17 || A_C23) && A_COMPILER_IS_MSVC
 #define A_NO_DISCARD [[nodiscard]]
-#elif A_COMPILER_IS_GCC_COMAPTIBLE
+#elif A_COMPILER_IS_GCC_COMPATIBLE
 #define A_NO_DISCARD __attribute__((warn_unused_result))
 #elif A_COMPILER_IS_MSVC
 #define A_NO_DISCARD _Check_return_
@@ -146,7 +152,7 @@
 #define A_NO_DISCARD
 #endif // __cplusplus 
 
-#if A_CXX11 || A_C23
+#if (A_CXX11 || A_C23) && A_COMPILER_IS_MSVC
 #define A_NO_RETURN [[noreturn]] void
 #elif A_C11 && !A_C23
 #define A_NO_RETURN _Noreturn void
@@ -252,7 +258,14 @@
 #define nullptr NULL
 #endif // !A_CXX && (A_STDC && !A_C23)
 
+#if (A_COMPILER_IS_MSVC && _MSC_VER >= 1915) || A_CXX17 || A_C23
+#define A_VA_OPT(...) __VA_OPT__(,) __VA_ARGS__
+#else 
+#define A_VA_OPT(...) , ##__VA_ARGS__
+#endif // (A_COMPILER_IS_MSVC && _MSC_VER >= 1915) || A_CXX17 || A_C23
+
 #define A_MAKE_FOURCC(a, b, c, d) ((d) | (c << 8) | (b << 16) | (a << 24))
 
 A_EXTERN_C A_NO_DISCARD size_t A_npow2(size_t n);
 A_EXTERN_C A_NO_DISCARD size_t A_ppow2(size_t n);
+A_EXTERN_C A_NO_RETURN  A_exit(int ec);

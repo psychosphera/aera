@@ -47,27 +47,27 @@ static ImageFormat R_BSPGetImageFormat(BSPBitmapDataFormat format) {
     return img_format;
 }
 
-static ImageType R_BSPGetImageType(BSPBitmapDataType type) {
-    ImageType img_type;
-    switch (type) {
-    case BSP_BITMAP_DATA_TYPE_2D_TEXTURE:
-        img_type = R_IMAGE_TYPE_2D_TEXTURE;
-        break;
-    case BSP_BITMAP_DATA_TYPE_3D_TEXTURE:
-        img_type = R_IMAGE_TYPE_3D_TEXTURE;
-        break;
-    case BSP_BITMAP_DATA_TYPE_CUBE_MAP:
-        img_type = R_IMAGE_TYPE_CUBE_MAP;
-        break;
-    default:
-        Com_Errorln(-1,
-            "R_BSPGetImageType: Unimplemented BSPBitmapDataType %d.",
-            (int)type
-        );
-    }
-
-    return img_type;
-}
+//static ImageType R_BSPGetImageType(BSPBitmapDataType type) {
+//    ImageType img_type;
+//    switch (type) {
+//    case BSP_BITMAP_DATA_TYPE_2D_TEXTURE:
+//        img_type = R_IMAGE_TYPE_2D_TEXTURE;
+//        break;
+//    case BSP_BITMAP_DATA_TYPE_3D_TEXTURE:
+//        img_type = R_IMAGE_TYPE_3D_TEXTURE;
+//        break;
+//    case BSP_BITMAP_DATA_TYPE_CUBE_MAP:
+//        img_type = R_IMAGE_TYPE_CUBE_MAP;
+//        break;
+//    default:
+//        Com_Errorln(-1,
+//            "R_BSPGetImageType: Unimplemented BSPBitmapDataType %d.",
+//            (int)type
+//        );
+//    }
+//
+//    return img_type;
+//}
 
 A_NO_DISCARD bool R_CreateBSPImage(
     const void* pixels, size_t pixels_size, int width, int height, int depth,
@@ -269,28 +269,28 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
 
     const BSPSurf* bsp_surfs = &CL_Map_Surfs()[start_surf];
     for (uint32_t k = 0; k < surf_count; k++) {
-        BSPSurf* bsp_surf = &bsp_surfs[k];
+        const BSPSurf* bsp_surf = &bsp_surfs[k];
         for (int l = 0; l < 3; l++) {
             uint16_t bsp_vert = bsp_surf->verts[l];
             BSPRenderedVertex* rendered_vertex = &rendered_vertices[k * 3 + l];
-            BSPRenderedVertex* bsp_rendered_vertex = &bsp_rendered_vertices[bsp_vert];
+            const BSPRenderedVertex* bsp_rendered_vertex = &bsp_rendered_vertices[bsp_vert];
             *rendered_vertex = *bsp_rendered_vertex;
             R_SwapRenderedVertexYZ(rendered_vertex);
         }
     }
     if (bsp_material->lightmap_vertices_count > 0) {
         for (uint32_t k = 0; k < surf_count; k++) {
-            BSPSurf* bsp_surf = &bsp_surfs[k];
+            const BSPSurf* bsp_surf = &bsp_surfs[k];
             for (int l = 0; l < 3; l++) {
                 uint16_t bsp_vert = bsp_surf->verts[l];
                 BSPLightmapVertex* lightmap_vertex = &lightmap_vertices[k * 3 + l];
-                BSPLightmapVertex* bsp_lightmap_vertex = &bsp_lightmap_vertices[bsp_vert];
+                const BSPLightmapVertex* bsp_lightmap_vertex = &bsp_lightmap_vertices[bsp_vert];
                 *lightmap_vertex = *bsp_lightmap_vertex;
                 R_SwapLightmapVertexYZ(lightmap_vertex);
             }
         }
     }
-
+    
     material->vertices_count = surf_count * 3;
 
     material->color = bsp_material->ambient_color;
@@ -504,10 +504,8 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
         D3DDECL_END()
     };
     IDirect3DVertexDeclaration9* decl = NULL;
-    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->CreateVertexDeclaration(
-        r_d3d9Glob.d3ddev, vertex_elements, &decl
-    );
-    assert(hr == D3D_OK);
+    D3D_CALL(r_d3d9Glob.d3ddev, CreateVertexDeclaration, vertex_elements, 
+                                                         &decl);
     assert(decl);
     material->pass.decl = decl;
 #endif // A_RENDER_BACKEND_GL

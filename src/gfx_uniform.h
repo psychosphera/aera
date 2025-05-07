@@ -25,17 +25,17 @@ typedef enum GfxUniformType {
 typedef union GfxUniformValue {
     bool          b;
     float         f;
-    struct { float* fa, fcount; };
+    struct { const float* fa; float fcount; };
     avec2f_t      v2f;
     avec3f_t      v3f;
     avec4f_t      v4f;
     int           i;
-    struct { int* ia, icount; };
+    struct { const int* ia; int icount; };
     avec2i_t      v2i;
     avec3i_t      v3i;
     avec4i_t      v4i;
     unsigned int  u;
-    struct { unsigned int* ua, ucount; };
+    struct { const unsigned int* ua; unsigned int ucount; };
     amat2f_t      m2f;
     amat3f_t      m3f;
     amat4f_t      m4f;

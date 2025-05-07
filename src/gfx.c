@@ -123,6 +123,7 @@ A_NO_DISCARD static const char* R_GlDebugSeverityString(GLenum severity) {
     };
 }
 
+#if _DEBUG
 static void GLAPIENTRY R_GlDebugOutput(
     GLenum source, GLenum type, unsigned int id, GLenum severity,
     GLsizei length, const char* message, const void* user
@@ -145,6 +146,30 @@ static void GLAPIENTRY R_GlDebugOutput(
         "OpenGL debug message (id=%s, source=%s, type=%s, severity=%s): %s", 
         i, src, t, sev, message
     );
+}
+#endif // _DEBUG
+#elif A_RENDER_BACKEND_D3D9
+HRESULT s_lastError;
+HRESULT R_SetLastD3DError(HRESULT hr) {
+    HRESULT old = s_lastError;
+    s_lastError = hr;
+    return old;
+}
+
+HRESULT R_GetLastD3DError(void) {
+    return s_lastError;
+}
+
+void R_D3DCheckError(const char* func, int line, const char* file) {
+    HRESULT hr = R_GetLastD3DError();
+    assert(SUCCEEDED(hr));
+    if (FAILED(hr)) {
+        Com_Errorln(
+            -1,
+            "%s (%s:%d): D3D error (hr=%l)",
+            func, file, line, R_GetLastD3DError()
+        );
+    }
 }
 #endif // A_RENDER_BACKEND_GL
 
@@ -251,9 +276,8 @@ static IDirect3DDevice9* R_CreateDevice(HWND hWnd,
         .PresentationInterval       = interval
     };
     IDirect3DDevice9* d3ddev = NULL;
-    HRESULT hr = d3d9->lpVtbl->CreateDevice(d3d9, adapter, D3DDEVTYPE_HAL,
-                                            hWnd, flags, &d3dpp, &d3ddev);
-    assert(hr == D3D_OK);
+    HRESULT hr = D3D_CALL(d3d9, CreateDevice, adapter, D3DDEVTYPE_HAL,
+                                              hWnd, flags, &d3dpp, &d3ddev);
 
     if (hr == D3D_OK)
         assert(d3ddev);
@@ -265,12 +289,14 @@ static IDirect3DDevice9* R_CreateDevice(HWND hWnd,
 // test currently, so this works
 static bool R_CheckD3DDeviceCaps(void) {
     D3DCAPS9 caps;
-    r_d3d9Glob.d3ddev->lpVtbl->GetDeviceCaps(r_d3d9Glob.d3ddev, &caps);
+    D3D_CALL(r_d3d9Glob.d3ddev, GetDeviceCaps, &caps);
     return caps.RasterCaps & D3DPRASTERCAPS_SCISSORTEST;
 }
 
 static bool R_InitD3D9(void) {
     A_memset(&r_d3d9Glob, 0, sizeof(r_d3d9Glob));
+
+    s_lastError = D3D_OK;
 
     HWND hWnd = R_GetHwnd(sys_sdlGlob.window);
     r_d3d9Glob.hWnd = hWnd;
@@ -279,7 +305,7 @@ static bool R_InitD3D9(void) {
     assert(d3d9);
     r_d3d9Glob.d3d9 = d3d9;
 
-    UINT adapterCount = d3d9->lpVtbl->GetAdapterCount(d3d9);
+    UINT adapterCount = D3D_CALL(d3d9, GetAdapterCount);
     assert(adapterCount > 0);
     if (adapterCount == 0)
         return false;
@@ -294,26 +320,15 @@ static bool R_InitD3D9(void) {
     r_d3d9Glob.clear_color_argb = 
         R_ColorRGBAToD3DARGB(r_renderGlob.clear_color);
 
-    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
-        r_d3d9Glob.d3ddev,
-        D3DRS_BLENDOP, D3DBLENDOP_ADD
-    );
-    assert(hr == D3D_OK);
-    if (hr != D3D_OK)
-        return false;
-    hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
-        r_d3d9Glob.d3ddev,
-        D3DRS_SRCBLEND, D3DBLEND_SRCALPHA
-    );
-    assert(hr == D3D_OK);
-    if (hr != D3D_OK)
-        return false;
-    hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
-        r_d3d9Glob.d3ddev,
-        D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA
-    );
-    assert(hr == D3D_OK);
-    return hr == D3D_OK;
+    D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_BLENDOP, 
+                                                D3DBLENDOP_ADD);
+
+    D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_SRCBLEND, 
+                                                D3DBLEND_SRCALPHA);
+
+    D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_DESTBLEND, 
+                                                D3DBLEND_INVSRCALPHA);
+    return true;
 }
 #endif // A_RENDER_BACKEND_GL
 
@@ -417,35 +432,26 @@ void R_DrawFrame(size_t localClientNum) {
 static bool R_EnableScissorTest(void) {
 #if A_RENDER_BACKEND_GL
     GL_CALL(glEnable, GL_SCISSOR_TEST);
-    return true;
 #elif A_RENDER_BACKEND_D3D9
-    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
-        r_d3d9Glob.d3ddev,
-        D3DRS_SCISSORTESTENABLE, 1
-    );
-    assert(hr == D3D_OK);
-    return hr == D3D_OK;
+    D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_SCISSORTESTENABLE, TRUE);
 #endif // A_RENDER_BACKEND_GL
+    return true;
 }
 
 static bool R_DisableScissorTest(void) {
 #if A_RENDER_BACKEND_GL
     GL_CALL(glDisable, GL_SCISSOR_TEST);
-    return true;
 #elif A_RENDER_BACKEND_D3D9
-    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
-        r_d3d9Glob.d3ddev,
-        D3DRS_SCISSORTESTENABLE, 0
-    );
-    assert(hr == D3D_OK);
-    return hr == D3D_OK;
+    D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_SCISSORTESTENABLE, 
+                                                FALSE);
 #endif // A_RENDER_BACKEND_GL
+    return true;
 }
 
 static void R_BeginFrame(void) {
     // intentionally a no-op for GL since there's nothing to do
 #if A_RENDER_BACKEND_D3D9
-    r_d3d9Glob.d3ddev->lpVtbl->BeginScene(r_d3d9Glob.d3ddev);
+    D3D_CALL(r_d3d9Glob.d3ddev, BeginScene);
 #endif // A_RENDER_BACKEND_D3D9
 }
 
@@ -456,9 +462,8 @@ static void R_EndFrame(void) {
     // implementation, but semantically the backend handles the buffer swap
     // for GL, whereas D3D handles the buffer swap on its own)
 #if A_RENDER_BACKEND_D3D9
-    r_d3d9Glob.d3ddev->lpVtbl->EndScene(r_d3d9Glob.d3ddev);
-    r_d3d9Glob.d3ddev->lpVtbl->Present(r_d3d9Glob.d3ddev,
-                                       NULL, NULL, NULL, NULL);
+    D3D_CALL(r_d3d9Glob.d3ddev, EndScene);
+    D3D_CALL(r_d3d9Glob.d3ddev, Present, NULL, NULL, NULL, NULL);
 #endif // A_RENDER_BACKEND_D3D9
 }
 
@@ -514,6 +519,7 @@ A_NO_DISCARD bool R_CreateImage2D(const void* pixels, size_t pixels_size,
                                   ImageFilter minfilter, ImageFilter magfilter,
                                   A_OUT GfxImage* image
 ) {
+    (void)depth;
     assert(image);
     if (!image)
         return false;
@@ -566,21 +572,19 @@ A_NO_DISCARD bool R_CreateImage2D(const void* pixels, size_t pixels_size,
 
     if (auto_generate_mipmaps)
         GL_CALL(glGenerateMipmap, target);
-
-    bool ret = true;
 #elif A_RENDER_BACKEND_D3D9
+    (void)wrap_s;
+    (void)wrap_t;
+    (void)auto_generate_mipmaps;
     D3DFORMAT          d3dfmt          = R_ImageFormatToD3D(format);
     ImageFormat        internal_format = format;
     IDirect3DTexture9* tex             = NULL;
-    r_d3d9Glob.d3ddev->lpVtbl->CreateTexture(r_d3d9Glob.d3ddev,
-                                             width, height, 0, 0,
-                                             d3dfmt, D3DPOOL_MANAGED, &tex,
-                                             NULL);
+    D3D_CALL(r_d3d9Glob.d3ddev, CreateTexture, width, height, 0, 0,
+                                               d3dfmt, D3DPOOL_MANAGED, &tex,
+                                               NULL);
     assert(tex);
     D3DLOCKED_RECT rect;
-    HRESULT hr = tex->lpVtbl->LockRect(tex, 0, &rect, NULL, D3DLOCK_DISCARD);
-    assert(hr == D3D_OK);
-    bool ret = hr == D3D_OK;
+    D3D_CALL(tex, LockRect, 0, &rect, NULL, D3DLOCK_DISCARD);
     INT pitch = rect.Pitch;
     int pixel_size = R_ImageFormatPixelSize(format);
     // pitch can be greater than width * pixel_size, 
@@ -600,10 +604,7 @@ A_NO_DISCARD bool R_CreateImage2D(const void* pixels, size_t pixels_size,
             );
         }
     }
-    hr = tex->lpVtbl->UnlockRect(tex, 0);
-    assert(hr == D3D_OK);
-    if (ret == D3D_OK)
-        ret = hr == D3D_OK;
+    D3D_CALL(tex, UnlockRect, 0);
 #endif // A_RENDER_BACKEND_GL
     image->width           = width;
     image->height          = height;
@@ -617,7 +618,7 @@ A_NO_DISCARD bool R_CreateImage2D(const void* pixels, size_t pixels_size,
     image->minfilter       = minfilter;
     image->magfilter       = magfilter;
 
-    return ret;
+    return true;
 }
 
 A_NO_DISCARD bool R_ImageSubData(A_INOUT GfxImage* image,
@@ -670,10 +671,7 @@ A_NO_DISCARD bool R_ImageSubData(A_INOUT GfxImage* image,
         .top = yoff,
         .bottom = yoff + height
     };
-    HRESULT hr = tex->lpVtbl->LockRect(tex, 0, &locked_rect, &rect, D3DLOCK_DISCARD);
-    assert(hr == D3D_OK);
-    if (hr != D3D_OK)
-        return false;
+    D3D_CALL(tex, LockRect, 0, &locked_rect, &rect, D3DLOCK_DISCARD);
     INT pitch = locked_rect.Pitch;
     int pixel_size = R_ImageFormatPixelSize(format);
     // pitch can be greater than width * pixel_size,
@@ -692,10 +690,7 @@ A_NO_DISCARD bool R_ImageSubData(A_INOUT GfxImage* image,
             );
         }
     }
-    hr = tex->lpVtbl->UnlockRect(tex, 0);
-    assert(hr == D3D_OK);
-    if (hr != D3D_OK)
-        return false;
+    D3D_CALL(tex, UnlockRect, 0);
 #endif // A_RENDER_BACKEND_GL
     return true;
 }
@@ -767,85 +762,55 @@ void R_DeleteImage(A_INOUT GfxImage* image) {
 bool R_EnableDepthTest(void) {
 #if A_RENDER_BACKEND_GL
     GL_CALL(glEnable, GL_DEPTH_TEST);
-    return true;
 #elif A_RENDER_BACKEND_D3D9
-    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
-        r_d3d9Glob.d3ddev,
-        D3DRS_ZENABLE, TRUE
-    );
-    assert(hr == D3D_OK);
-    return hr == D3D_OK;
+    D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_ZENABLE, TRUE);
 #endif // A_RENDER_BACKEND_GL
+    return true;
 }
 
 bool R_DisableDepthTest(void) {
 #if A_RENDER_BACKEND_GL
     GL_CALL(glDisable, GL_DEPTH_TEST);
-    return true;
 #elif A_RENDER_BACKEND_D3D9
-    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
-        r_d3d9Glob.d3ddev,
-        D3DRS_ZENABLE, FALSE
-    );
-    assert(hr == D3D_OK);
-    return hr == D3D_OK;
+    D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_ZENABLE, FALSE);
 #endif // A_RENDER_BACKEND_GL
+    return true;
 }
 
 bool R_EnableBackFaceCulling(void) {
 #if A_RENDER_BACKEND_GL
     GL_CALL(glEnable, GL_CULL_FACE);
-    return true;
 #elif A_RENDER_BACKEND_D3D9
-    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
-        r_d3d9Glob.d3ddev,
-        D3DRS_CULLMODE, D3DCULL_CCW
-    );
-    assert(hr == D3D_OK);
-    return hr == D3D_OK;
+    D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_CULLMODE, D3DCULL_CCW);
 #endif // A_RENDER_BACKEND_GL
+    return true;
 }
 
 bool R_DisableBackFaceCulling(void) {
 #if A_RENDER_BACKEND_GL
     GL_CALL(glDisable, GL_CULL_FACE);
-    return true;
 #elif A_RENDER_BACKEND_D3D9
-    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
-        r_d3d9Glob.d3ddev,
-        D3DRS_CULLMODE, 0
-    );
-    assert(hr == D3D_OK);
-    return hr == D3D_OK;
+    D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_CULLMODE, 0);
 #endif // A_RENDER_BACKEND_GL
+    return true;
 }
 
 bool R_EnableTransparencyBlending(void) {
 #if A_RENDER_BACKEND_GL
     GL_CALL(glEnable, GL_BLEND);
-    return true;
 #elif A_RENDER_BACKEND_D3D9
-    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
-        r_d3d9Glob.d3ddev,
-        D3DRS_ALPHABLENDENABLE, TRUE
-    );
-    assert(hr == D3D_OK);
-    return hr == D3D_OK;
+    D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_ALPHABLENDENABLE, TRUE);
 #endif // A_RENDER_BACKEND_GL
+    return true;
 }
 
 bool R_DisableTransparencyBlending(void) {
 #if A_RENDER_BACKEND_GL
     GL_CALL(glDisable, GL_BLEND);
-    return true;
 #elif A_RENDER_BACKEND_D3D9
-    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(
-        r_d3d9Glob.d3ddev,
-        D3DRS_ALPHABLENDENABLE, FALSE
-    );
-    assert(hr == D3D_OK);
-    return hr == D3D_OK;
+    D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_ALPHABLENDENABLE, FALSE);
 #endif // A_RENDER_BACKEND_GL
+    return true;
 }
 
 #if A_RENDER_BACKEND_GL
@@ -882,15 +847,11 @@ bool R_SetPolygonMode(GfxPolygonMode mode) {
 #if A_RENDER_BACKEND_GL
     GLenum fill_mode = R_PolygonModeToGL(mode);
     GL_CALL(glPolygonMode, GL_FRONT_AND_BACK, fill_mode);
-    return true;
 #elif A_RENDER_BACKEND_D3D9
     DWORD fill_mode = R_PolygonModeToD3D9(mode);
-    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetRenderState(r_d3d9Glob.d3ddev,
-                                                           D3DRS_FILLMODE,
-                                                           fill_mode);
-    assert(hr == D3D_OK);
-    return hr == D3D_OK;
+    D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_FILLMODE, fill_mode);                                       
 #endif // A_RENDER_BACKEND_GL
+    return true;
 }
 
 void R_SetViewport(int x, int y, int w, int h) {
@@ -905,7 +866,7 @@ void R_SetViewport(int x, int y, int w, int h) {
         .MinZ = 0.0f,
         .MaxZ = 0.0f
     };
-    r_d3d9Glob.d3ddev->lpVtbl->SetViewport(r_d3d9Glob.d3ddev, &viewport);
+    D3D_CALL(r_d3d9Glob.d3ddev, SetViewport, &viewport);
 #endif // A_RENDER_BACKEND_GL
 }
 
@@ -919,7 +880,7 @@ void R_SetScissorRect(int x, int y, int w, int h) {
         .top    = y,
         .bottom = y + h
     };
-    r_d3d9Glob.d3ddev->lpVtbl->SetScissorRect(r_d3d9Glob.d3ddev, &rect);
+    D3D_CALL(r_d3d9Glob.d3ddev, SetScissorRect, &rect);
 #endif // A_RENDER_BACKEND_GL
 }
 
@@ -927,9 +888,9 @@ void R_Clear(void) {
 #if A_RENDER_BACKEND_GL
     GL_CALL(glClear, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 #elif A_RENDER_BACKEND_D3D9
-    r_d3d9Glob.d3ddev->lpVtbl->Clear(r_d3d9Glob.d3ddev, 0, NULL,
-                                     D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,
-                                     r_d3d9Glob.clear_color_argb, 0.0f, 0);
+    D3D_CALL(r_d3d9Glob.d3ddev, Clear, 0, NULL, 
+                                       D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,
+                                       r_d3d9Glob.clear_color_argb, 0.0f, 0);
 #endif // A_RENDER_BACKEND_GL
 }
 
@@ -943,20 +904,15 @@ bool R_BindVertexBuffer(const GfxVertexBuffer* vb, int stream) {
         GL_CALL(glBindVertexArray, 0);
         GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, 0);
     }
-    return true;
 #elif A_RENDER_BACKEND_D3D9
-    HRESULT hr = D3D_OK;
     if (vb) {
-        hr = r_d3d9Glob.d3ddev->lpVtbl->SetStreamSource(r_d3d9Glob.d3ddev,
-                                                        stream, vb->buffer,
-                                                        0, vb->stride);
+        D3D_CALL(r_d3d9Glob.d3ddev, SetStreamSource, stream, vb->buffer,
+                                                     0, vb->stride);
     } else {
-        hr = r_d3d9Glob.d3ddev->lpVtbl->SetStreamSource(r_d3d9Glob.d3ddev,
-                                                        stream, NULL, 0, 0);
+        D3D_CALL(r_d3d9Glob.d3ddev, SetStreamSource, stream, NULL, 0, 0);
     }
-    assert(hr == D3D_OK);
-    return hr == D3D_OK;
 #endif // A_RENDER_BACKEND_GL
+    return true;
 }
 
 bool R_BindImage(A_INOUT GfxImage* image, int index) {
@@ -968,20 +924,15 @@ bool R_BindImage(A_INOUT GfxImage* image, int index) {
         GL_CALL(glActiveTexture, GL_TEXTURE0 + index);
         GL_CALL(glBindTexture, GL_TEXTURE_2D, 0);
     }
-    return true;
 #elif A_RENDER_BACKEND_D3D9
-    HRESULT hr = D3D_OK;
     if (image) {
-        hr = r_d3d9Glob.d3ddev->lpVtbl->SetTexture(r_d3d9Glob.d3ddev, 
-                                                   index, 
-                                  (IDirect3DBaseTexture9*)image->tex);
+        D3D_CALL(r_d3d9Glob.d3ddev, SetTexture, index, 
+                 (IDirect3DBaseTexture9*)image->tex);
     } else {
-        hr = r_d3d9Glob.d3ddev->lpVtbl->SetTexture(r_d3d9Glob.d3ddev,
-                                                   index, NULL);
+        D3D_CALL(r_d3d9Glob.d3ddev, SetTexture, index, NULL);
     }
-    assert(hr == D3D_OK);
-    return hr == D3D_OK;
 #endif // A_RENDER_BACKEND_GL
+    return true;
 }
 
 bool R_BindShaderProgram(const GfxShaderProgram* prog) {
@@ -991,48 +942,27 @@ bool R_BindShaderProgram(const GfxShaderProgram* prog) {
     } else {
         GL_CALL(glUseProgram, 0);
     }
-    return true;
 #elif A_RENDER_BACKEND_D3D9
-    HRESULT hr = D3D_OK;
     if (prog) {
-        hr = r_d3d9Glob.d3ddev->lpVtbl->SetVertexShader(
-            r_d3d9Glob.d3ddev,
-            prog->vertex_shader.vs
-        );
-        assert(hr == D3D_OK);
-        if (hr != D3D_OK)
-            return false;
-        hr = r_d3d9Glob.d3ddev->lpVtbl->SetPixelShader(r_d3d9Glob.d3ddev,
-            prog->pixel_shader.ps);
-        assert(hr == D3D_OK);
-        return hr == D3D_OK;
+        D3D_CALL(r_d3d9Glob.d3ddev, SetVertexShader, prog->vertex_shader.vs);
+        D3D_CALL(r_d3d9Glob.d3ddev, SetPixelShader,  prog->pixel_shader.ps);
     } else {
-        hr = r_d3d9Glob.d3ddev->lpVtbl->SetVertexShader(r_d3d9Glob.d3ddev,
-                                                        NULL);
-        assert(hr == D3D_OK);
-        if (hr != D3D_OK)
-            return false;
-        hr = r_d3d9Glob.d3ddev->lpVtbl->SetPixelShader(r_d3d9Glob.d3ddev,
-                                                       NULL);
-        assert(hr == D3D_OK);
-        return hr == D3D_OK;
+        D3D_CALL(r_d3d9Glob.d3ddev, SetVertexShader, NULL);
+        D3D_CALL(r_d3d9Glob.d3ddev, SetPixelShader,  NULL);
     }
-    
 #endif // A_RENDER_BACKEND_GL
+    return true;
 }
 
 bool R_DrawTris(int tri_count, int tri_off) {
 #if A_RENDER_BACKEND_GL
     GL_CALL(glDrawArrays, GL_TRIANGLES, tri_off * 3, tri_count * 3);
-    return true;
 #elif A_RENDER_BACKEND_D3D9
-    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->DrawPrimitive(r_d3d9Glob.d3ddev,
-                                                          D3DPT_TRIANGLELIST, 
-                                                          tri_off * 3,
-                                                          tri_count);
-    assert(hr == D3D_OK);
-    return hr == D3D_OK;
+    D3D_CALL(r_d3d9Glob.d3ddev, DrawPrimitive, D3DPT_TRIANGLELIST, 
+                                               tri_off * 3,
+                                               tri_count);
 #endif // A_RENDER_BACKEND_GL
+    return true;
 }
 
 static void R_DrawFrameInternal(size_t localClientNum) {
@@ -1112,12 +1042,12 @@ static void R_ShutdownGL(void) {
 #elif A_RENDER_BACKEND_D3D9
 static void R_ShutdownD3D9(void) {
     if (r_d3d9Glob.d3ddev) {
-        r_d3d9Glob.d3ddev->lpVtbl->Release(r_d3d9Glob.d3ddev);
+        D3D_CALL(r_d3d9Glob.d3ddev, Release);
         r_d3d9Glob.d3ddev = NULL;
     }
 
     if (r_d3d9Glob.d3d9) {
-        r_d3d9Glob.d3d9->lpVtbl->Release(r_d3d9Glob.d3d9);
+        D3D_CALL(r_d3d9Glob.d3d9, Release);
         r_d3d9Glob.d3d9 = NULL;
     }
 

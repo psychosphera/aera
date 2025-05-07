@@ -86,7 +86,7 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
     assert(pImage);
     GfxShaderUniformDef uniform;
 
-    R_CreateUniformInt("uTex", pImage->tex, &uniform);
+    R_CreateUniformInt("uTex", 0, &uniform);
     GfxShaderUniformDef* pUniform = R_ShaderAddUniform(&f->prog, &uniform);
     assert(pUniform);
 
@@ -144,13 +144,9 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
         },
         D3DDECL_END()
     };
-    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->CreateVertexDeclaration(
-        r_d3d9Glob.d3ddev, vertex_elements, &f->pass.decl
-    );
-    assert(hr == D3D_OK);
+    D3D_CALL(r_d3d9Glob.d3ddev, CreateVertexDeclaration, vertex_elements, 
+                                                         &f->pass.decl);
     assert(f->pass.decl);
-    if (hr != D3D_OK)
-        return false;
     if (!f->pass.decl)
         return false;
 #endif // A_RENDER_BACKEND_GL
@@ -191,7 +187,7 @@ void R_DeleteTextureAtlas(A_INOUT FontDef* f) {
 }
 
 void R_DrawText(
-    size_t localClientNum, A_OPTIONAL_IN const FontDef* font, 
+    size_t localClientNum, A_OPTIONAL_INOUT FontDef* font, 
     const RectDef* rect, const char* text,
     float xscale, float yscale, acolor_rgb_t color,
     bool right

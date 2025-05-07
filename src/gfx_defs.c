@@ -29,13 +29,13 @@ A_NO_DISCARD float R_VidAspectInv(void) {
 }
 
 #if A_RENDER_BACKEND_GL
-GLenum R_GlCheckError(int line, const char* file) {
+GLenum R_GlCheckError(const char* func, int line, const char* file) {
     GLenum err = glGetError();
     if (err != GL_NO_ERROR) {
         const char* s = R_GlDebugErrorString(err);
         Com_Println(
             CON_DEST_ERR,
-            "GL call at line %d in %s failed with %s.", line, file, s
+            "%s (%s:%d): GL call failed with %s.", func, line, file, s
         );
     }
     return err;
@@ -61,6 +61,7 @@ bool R_CreateVertexBuffer(const void* data, size_t n, size_t capacity,
     if (capacity < off + n || capacity < 1)
         return false;
 #if A_RENDER_BACKEND_GL
+    (void)stride;
     GL_CALL(glGenVertexArrays, 1, &vb->vao);
     GL_CALL(glGenBuffers,      1, &vb->vbo);
 
@@ -75,39 +76,27 @@ bool R_CreateVertexBuffer(const void* data, size_t n, size_t capacity,
         if (data)
             GL_CALL(glBufferSubData, GL_ARRAY_BUFFER, off, n, data);
     }
-    bool ret = true;
 #elif A_RENDER_BACKEND_D3D9
     IDirect3DVertexBuffer9* buffer = NULL;
-    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->CreateVertexBuffer(
-        r_d3d9Glob.d3ddev, capacity, 0, 0,
+    D3D_CALL(r_d3d9Glob.d3ddev, CreateVertexBuffer, 
+        capacity, 0, 0,
         D3DPOOL_DEFAULT, &buffer, NULL
     );
-    assert(hr == D3D_OK);
-    bool ret = hr == D3D_OK;
-    assert(buffer);
 
     vb->buffer = buffer;
 
-    if (hr == D3D_OK && data && n) {
+    if (data && n) {
         void* p = NULL;
-        hr = buffer->lpVtbl->Lock(buffer, off, n, &p, D3DLOCK_DISCARD);
-        assert(hr == D3D_OK);
-        if (ret)
-            ret = hr == D3D_OK;
-        if (hr == D3D_OK)
-            A_memcpy(p, data, n);
-
-        hr = buffer->lpVtbl->Unlock(buffer);
-        assert(hr == D3D_OK);
-        if (ret)
-            ret = hr == D3D_OK;
+        D3D_CALL(buffer, Lock, off, n, &p, D3DLOCK_DISCARD);
+        A_memcpy(p, data, n);
+        D3D_CALL(buffer, Unlock);
     }
     vb->stride = stride;
 #endif
     vb->bytes    = n;
     vb->capacity = capacity;
 
-    return ret;
+    return true;
 }
 
 bool R_UploadVertexData(A_INOUT GfxVertexBuffer* vb,
@@ -128,19 +117,13 @@ bool R_UploadVertexData(A_INOUT GfxVertexBuffer* vb,
         GL_CALL(glBufferSubData, GL_ARRAY_BUFFER, off, n, data);
         vb->bytes = A_MAX(vb->bytes, off + n);
     }
-    return true;
 #elif A_RENDER_BACKEND_D3D9
     void* p = NULL;
-    HRESULT hr = vb->buffer->lpVtbl->Lock(vb->buffer, off, n, &p, D3DLOCK_DISCARD);
-    assert(hr == D3D_OK);
-    bool ret = hr == D3D_OK;
-    if (hr == D3D_OK)
-        A_memcpy(p, data, n);
-    hr = vb->buffer->lpVtbl->Unlock(vb->buffer);
-    if (ret)
-        ret = hr == D3D_OK;
-    return ret;
+    D3D_CALL(vb->buffer, Lock, off, n, &p, D3DLOCK_DISCARD);
+    A_memcpy(p, data, n);
+    D3D_CALL(vb->buffer, Unlock);
 #endif // A_RENDER_BACKEND_GL
+    return true;
 }
 
 bool R_AppendVertexData(A_INOUT GfxVertexBuffer* vb,
@@ -166,21 +149,14 @@ bool R_AppendVertexData(A_INOUT GfxVertexBuffer* vb,
     GL_CALL(glBindVertexArray, vb->vao);
     GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, vb->vbo);
     GL_CALL(glBufferSubData, GL_ARRAY_BUFFER, vb->bytes, n, data);
-    bool ret = true;
 #elif A_RENDER_BACKEND_D3D9
     void* p = NULL;
-    HRESULT hr = vb->buffer->lpVtbl->Lock(vb->buffer, vb->bytes, n, &p, D3DLOCK_DISCARD);
-    assert(hr == D3D_OK);
-    bool ret = hr == D3D_OK;
-    if (hr == D3D_OK)
-        A_memcpy(p, data, n);
-    hr = vb->buffer->lpVtbl->Unlock(vb->buffer);
-    if (ret)
-        ret = hr == D3D_OK;
+    D3D_CALL(vb->buffer, Lock, vb->bytes, n, &p, D3DLOCK_DISCARD);
+    A_memcpy(p, data, n);
+    D3D_CALL(vb->buffer, Unlock);
 #endif // A_RENDER_BACKEND_GL
-
     vb->bytes += n;
-    return ret;
+    return true;
 }
 
 GfxImage* R_AddImageToMaterialPass(A_INOUT GfxMaterialPass* pass, 
@@ -210,7 +186,7 @@ GfxVertexBuffer* R_AddVertexBufferToMaterialPass(A_INOUT GfxMaterialPass* pass,
     return ret;
 }
 
-bool R_RenderMaterialPass(const GfxMaterialPass* pass, 
+bool R_RenderMaterialPass(A_INOUT GfxMaterialPass* pass, 
                           size_t vertices_count, size_t off, 
                           GfxPolygonMode mode
 ) {
@@ -227,12 +203,7 @@ bool R_RenderMaterialPass(const GfxMaterialPass* pass,
     assert(pass->vb_count == 1 && 
            "R_RenderVertexBuffer: GL backend only supports one vertex buffer at a time");
 #elif A_RENDER_BACKEND_D3D9
-    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->SetVertexDeclaration(
-        r_d3d9Glob.d3ddev, pass->decl
-    );
-    assert(hr == D3D_OK);
-    if (hr != D3D_OK)
-        return false;
+    D3D_CALL(r_d3d9Glob.d3ddev, SetVertexDeclaration, pass->decl);
 #endif
 
     bool b = true;
@@ -244,8 +215,8 @@ bool R_RenderMaterialPass(const GfxMaterialPass* pass,
     }
 
     for (int i = 0; i < pass->current_image; i++) {
-        const GfxImage* image = &pass->images[i];
-        b = R_BindImage(&pass->images[i], i);
+        GfxImage* image = &pass->images[i];
+        b = R_BindImage(image, i);
         assert(b);
         if (!b)
             return false;

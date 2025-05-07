@@ -2,6 +2,7 @@
 #include "a_type.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -82,8 +83,8 @@ A_NO_DISCARD char* A_cstrdup(const char* A_RESTRICT s) {
     return t;
 }
 
-void A_cstrfree(char* A_RESTRICT s) {
-    Z_Free(s);
+void A_cstrfree(const char* A_RESTRICT s) {
+    Z_Free((void*)s);
 }
 
 void A_cstrncpyz(char* A_RESTRICT dest, const char* A_RESTRICT src, size_t n) {
@@ -143,8 +144,8 @@ bool A_atoi(const char* A_RESTRICT s, A_OUT int* i) {
     if (s == NULL)
         return false;
     errno = 0;
-    const char* end = s;
-    int l = strtod(s, &end);
+    const char* A_RESTRICT end = s;
+    int l = strtod(s, (char** A_RESTRICT)&end);
     if (errno != 0 || end == s)
         return false;
     *i = l;
@@ -163,8 +164,8 @@ bool A_atof(const char* A_RESTRICT s, A_OUT float* f) {
     if (s == NULL)
         return false;
     errno = 0;
-    const char* end = s;
-    float g = strtof(s, &end);
+    const char* A_RESTRICT end = s;
+    float g = strtof(s, (char** A_RESTRICT)&end);
     if (errno != 0 || end == s)
         return false;
     *f = g;

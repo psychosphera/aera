@@ -1,8 +1,9 @@
 #include "acommon.h"
 
 #include <stdint.h>
+#include <stdlib.h>
 
-A_EXTERN_C A_NO_DISCARD size_t A_npow2(size_t n) {
+A_NO_DISCARD size_t A_npow2(size_t n) {
     if(n == 0)
         return 1;
 
@@ -19,6 +20,10 @@ A_EXTERN_C A_NO_DISCARD size_t A_npow2(size_t n) {
     return (size_t)1 << ((size_t)i + 1);
 }
 
-A_EXTERN_C A_NO_DISCARD size_t A_ppow2(size_t n) {
+A_NO_DISCARD size_t A_ppow2(size_t n) {
     return A_npow2(n) >> 1;
+}
+
+A_NO_RETURN A_exit(int ec) {
+    exit(ec);
 }

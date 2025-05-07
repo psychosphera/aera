@@ -2,6 +2,10 @@
 
 #include <assert.h>
 
+#if A_RENDER_BACKEND_D3D9
+#include <d3dx9shader.h>
+#endif // A_RENDER_BACKEND_D3D9
+
 #include "acommon/a_math.h"
 #include "acommon/a_string.h"
 #include "acommon/z_mem.h"
@@ -133,29 +137,26 @@ A_NO_DISCARD bool R_LinkShadersGL(
 static bool R_CreateVertexShaderD3D9(A_INOUT GfxShaderProgram*  prog, 
                                      A_IN    GfxCompiledShader* compiled_shader
 ) {
-    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->CreateVertexShader(
-        r_d3d9Glob.d3ddev, 
+    D3D_CALL(r_d3d9Glob.d3ddev, CreateVertexShader,
         (*compiled_shader)->lpVtbl->GetBufferPointer(*compiled_shader),
         &prog->vertex_shader.vs
     );
-    assert(hr == D3D_OK);
+       
     (*compiled_shader)->lpVtbl->Release(*compiled_shader);
     *compiled_shader = NULL;
-    return hr == D3D_OK;
+    return true;
 }
 
 static bool R_CreatePixelShaderD3D9(A_INOUT GfxShaderProgram*  prog,
                                     A_IN    GfxCompiledShader* compiled_shader
 ) {
-    HRESULT hr = r_d3d9Glob.d3ddev->lpVtbl->CreatePixelShader(
-        r_d3d9Glob.d3ddev,
+    D3D_CALL(r_d3d9Glob.d3ddev, CreatePixelShader,
         (*compiled_shader)->lpVtbl->GetBufferPointer(*compiled_shader),
         &prog->pixel_shader.ps
     );
-    assert(hr == D3D_OK);
     (*compiled_shader)->lpVtbl->Release(*compiled_shader);
     *compiled_shader = NULL;
-    return hr == D3D_OK;
+    return true;
 }
 #endif // A_RENDER_BACKEND_D3D9
 
@@ -550,15 +551,13 @@ static void R_ShaderSetUniformByNameGL(shader_program_t program,
 }
 #elif A_RENDER_BACKEND_D3D9
 static bool R_ShaderSetUniformBoolD3D9(ID3DXConstantTable* constant_table, 
-                                 int location, bool value
+                                       int location, bool value
 ) {
     D3DXHANDLE handle = constant_table->lpVtbl->GetConstant(
         constant_table, NULL, location
     );
-    HRESULT hr = constant_table->lpVtbl->SetBool(constant_table, 
-                                                 r_d3d9Glob.d3ddev, 
-                                                 handle, value);
-    return hr == D3D_OK;
+    D3D_CALL(constant_table, SetBool, r_d3d9Glob.d3ddev, handle, value);
+    return true;
 }
 
 static bool R_ShaderSetUniformFloatD3D9(ID3DXConstantTable* constant_table,
@@ -567,10 +566,8 @@ static bool R_ShaderSetUniformFloatD3D9(ID3DXConstantTable* constant_table,
     D3DXHANDLE handle = constant_table->lpVtbl->GetConstant(
         constant_table, NULL, location
     );
-    HRESULT hr = constant_table->lpVtbl->SetFloat(constant_table,
-                                                  r_d3d9Glob.d3ddev,
-                                                  handle, value);
-    return hr == D3D_OK;
+    D3D_CALL(constant_table, SetFloat, r_d3d9Glob.d3ddev, handle, value);
+    return true;
 }
 
 static bool R_ShaderSetUniformFloatArrayD3D9(ID3DXConstantTable* constant_table,
@@ -579,10 +576,9 @@ static bool R_ShaderSetUniformFloatArrayD3D9(ID3DXConstantTable* constant_table,
     D3DXHANDLE handle = constant_table->lpVtbl->GetConstant(
         constant_table, NULL, location
     );
-    HRESULT hr = constant_table->lpVtbl->SetFloatArray(constant_table,
-                                                       r_d3d9Glob.d3ddev,
-                                                       handle, value, count);
-    return hr == D3D_OK;
+    D3D_CALL(constant_table, SetFloatArray, r_d3d9Glob.d3ddev, handle, 
+                                                               value, count);
+    return true;
 }
 
 static bool R_ShaderSetUniformVec4fD3D9(ID3DXConstantTable* constant_table,
@@ -591,11 +587,9 @@ static bool R_ShaderSetUniformVec4fD3D9(ID3DXConstantTable* constant_table,
     D3DXHANDLE handle = constant_table->lpVtbl->GetConstant(
         constant_table, NULL, location
     );
-    HRESULT hr = constant_table->lpVtbl->SetVector(constant_table,
-                                                   r_d3d9Glob.d3ddev,
-                                                   handle, 
-                                                   (D3DXVECTOR4*)value.array);
-    return hr == D3D_OK;
+    D3D_CALL(constant_table, SetVector, r_d3d9Glob.d3ddev, 
+             handle, (D3DXVECTOR4*)value.array);
+    return true;
 }
 
 static bool R_ShaderSetUniformIntD3D9(ID3DXConstantTable* constant_table,
@@ -604,10 +598,8 @@ static bool R_ShaderSetUniformIntD3D9(ID3DXConstantTable* constant_table,
     D3DXHANDLE handle = constant_table->lpVtbl->GetConstant(
         constant_table, NULL, location
     );
-    HRESULT hr = constant_table->lpVtbl->SetInt(constant_table,
-                                                r_d3d9Glob.d3ddev,
-                                                handle, value);
-    return hr == D3D_OK;
+    D3D_CALL(constant_table, SetInt, r_d3d9Glob.d3ddev, handle, value);
+    return true;
 }
 
 static bool R_ShaderSetUniformMat4fD3D9(ID3DXConstantTable* constant_table,
@@ -616,11 +608,9 @@ static bool R_ShaderSetUniformMat4fD3D9(ID3DXConstantTable* constant_table,
     D3DXHANDLE handle = constant_table->lpVtbl->GetConstant(
         constant_table, NULL, location
     );
-    HRESULT hr = constant_table->lpVtbl->SetMatrix(constant_table,
-        r_d3d9Glob.d3ddev,
-        handle,
-        (D3DXMATRIX*)value.array);
-    return hr == D3D_OK;
+    D3D_CALL(constant_table, SetMatrix, r_d3d9Glob.d3ddev,
+             handle, (D3DXMATRIX*)value.array);
+    return true;
 }
 
 static bool R_ShaderSetUniformD3D9(ID3DXConstantTable* constant_table, 
@@ -630,23 +620,124 @@ static bool R_ShaderSetUniformD3D9(ID3DXConstantTable* constant_table,
     switch (uniform->type) {
     case UNIFORM_TYPE_BOOL:
         return R_ShaderSetUniformBoolD3D9(constant_table, 
-                                    location, uniform->value.b);
+                                          location, uniform->value.b);
     case UNIFORM_TYPE_FLOAT:
         return R_ShaderSetUniformFloatD3D9(constant_table, location,
-                                     uniform->value.f);
+                                           uniform->value.f);
     case UNIFORM_TYPE_FLOAT_ARRAY:
         return R_ShaderSetUniformFloatArrayD3D9(constant_table, location,
-                                          uniform->value.fa, 
-                                          uniform->value.fcount);
+                                                uniform->value.fa, 
+                                                uniform->value.fcount);
     case UNIFORM_TYPE_VEC4F:
         return R_ShaderSetUniformVec4fD3D9(constant_table, location,
-                                     uniform->value.v4f);
+                                           uniform->value.v4f);
     case UNIFORM_TYPE_INT:
         return R_ShaderSetUniformIntD3D9(constant_table, location, 
                                          uniform->value.i);
     case UNIFORM_TYPE_MAT4F:
         return R_ShaderSetUniformMat4fD3D9(constant_table, location,
                                            uniform->value.m4f);
+    default:
+        assert(false && "R_ShaderSetUniformD3D9: Invalid uniform type.");
+        Com_Errorln(
+            -1,
+            "R_ShaderSetUniformD3D9: Invalid uniform type %d.",
+            uniform->type
+        );
+        return false;
+    }
+}
+
+static bool R_ShaderSetUniformBoolByNameD3D9(ID3DXConstantTable* constant_table,
+                                             const char* name, bool value
+) {
+    D3DXHANDLE handle = constant_table->lpVtbl->GetConstantByName(
+        constant_table, NULL, name
+    );
+    D3D_CALL(constant_table, SetBool, r_d3d9Glob.d3ddev, handle, value);
+    return true;
+}
+
+static bool R_ShaderSetUniformFloatByNameD3D9(ID3DXConstantTable* constant_table,
+                                              const char* name, float value
+) {
+    D3DXHANDLE handle = constant_table->lpVtbl->GetConstantByName(
+        constant_table, NULL, name
+    );
+    D3D_CALL(constant_table, SetFloat, r_d3d9Glob.d3ddev, handle, value);
+    return true;
+}
+
+static bool R_ShaderSetUniformFloatArrayByNameD3D9(
+    ID3DXConstantTable* constant_table, const char* name,
+    const float* value, int count
+) {
+    D3DXHANDLE handle = constant_table->lpVtbl->GetConstantByName(
+        constant_table, NULL, name
+    );
+    D3D_CALL(constant_table, SetFloatArray, r_d3d9Glob.d3ddev, handle, 
+                                                               value, count);
+    return true;
+}
+
+static bool R_ShaderSetUniformVec4fByNameD3D9(
+    ID3DXConstantTable* constant_table, const char* name,
+    const avec4f_t value
+) {
+    D3DXHANDLE handle = constant_table->lpVtbl->GetConstantByName(
+        constant_table, NULL, name
+    );
+    D3D_CALL(constant_table, SetVector, r_d3d9Glob.d3ddev, 
+             handle, (D3DXVECTOR4*)value.array);
+    return true;
+}
+
+static bool R_ShaderSetUniformIntByNameD3D9(ID3DXConstantTable* constant_table,
+                                            const char* name, int value
+) {
+    D3DXHANDLE handle = constant_table->lpVtbl->GetConstantByName(
+        constant_table, NULL, name
+    );
+    D3D_CALL(constant_table, SetInt, r_d3d9Glob.d3ddev, handle, value);
+    return true;
+}
+
+static bool R_ShaderSetUniformMat4fByNameD3D9(
+    ID3DXConstantTable* constant_table, const char* name,
+    const amat4f_t value
+) {
+    D3DXHANDLE handle = constant_table->lpVtbl->GetConstantByName(
+        constant_table, NULL, name
+    );
+    D3D_CALL(constant_table, SetMatrix, r_d3d9Glob.d3ddev, 
+             handle, (D3DXMATRIX*)value.array);
+    return true;
+}
+
+static bool R_ShaderSetUniformByNameD3D9(ID3DXConstantTable* constant_table,
+                                         const char* name,
+                                         GfxShaderUniformDef* uniform
+) {
+    switch (uniform->type) {
+    case UNIFORM_TYPE_BOOL:
+        return R_ShaderSetUniformBoolByNameD3D9(constant_table,
+                                                name, uniform->value.b);
+    case UNIFORM_TYPE_FLOAT:
+        return R_ShaderSetUniformFloatByNameD3D9(constant_table, name,
+                                                 uniform->value.f);
+    case UNIFORM_TYPE_FLOAT_ARRAY:
+        return R_ShaderSetUniformFloatArrayByNameD3D9(constant_table, name,
+                                                      uniform->value.fa,
+                                                      uniform->value.fcount);
+    case UNIFORM_TYPE_VEC4F:
+        return R_ShaderSetUniformVec4fByNameD3D9(constant_table, name,
+                                                 uniform->value.v4f);
+    case UNIFORM_TYPE_INT:
+        return R_ShaderSetUniformIntByNameD3D9(constant_table, name,
+                                               uniform->value.i);
+    case UNIFORM_TYPE_MAT4F:
+        return R_ShaderSetUniformMat4fByNameD3D9(constant_table, name,
+                                                 uniform->value.m4f);
     default:
         assert(false && "R_ShaderSetUniformD3D9: Invalid uniform type.");
         Com_Errorln(
@@ -671,7 +762,7 @@ static bool R_ShaderSetUniform(const GfxShaderProgram* prog, int location,
     assert(b);
     if (!b)
         return false;
-    bool b = R_ShaderSetUniformD3D9(prog->pixel_shader.constant_table,
+    b = R_ShaderSetUniformD3D9(prog->pixel_shader.constant_table,
                                     location, uniform);
     assert(b);
     return b;
@@ -686,13 +777,13 @@ static bool R_ShaderSetUniformByName(const GfxShaderProgram* prog,
     R_ShaderSetUniformByNameGL(prog->program, name, uniform);
     return true;
 #elif A_RENDER_BACKEND_D3D9
-    bool b = R_ShaderSetUniformD3D9(prog->vertex_shader.constant_table,
-        location, uniform);
+    bool b = R_ShaderSetUniformByNameD3D9(prog->vertex_shader.constant_table,
+                                          name, uniform);
     assert(b);
     if (!b)
         return false;
-    bool b = R_ShaderSetUniformD3D9(prog->pixel_shader.constant_table,
-        location, uniform);
+    b = R_ShaderSetUniformByNameD3D9(prog->pixel_shader.constant_table,
+                                     name, uniform);
     assert(b);
     return b;
 #endif // A_RENDER_BACKEND_GL
@@ -715,10 +806,10 @@ GfxShaderUniformDef* R_ShaderAddUniform(A_INOUT GfxShaderProgram* prog,
     ret->location = GL_CALL(
         glGetUniformLocation, prog->program, uniform->name
     );
-    R_ShaderSetUniformByNameGL(
-        prog->program,
+    R_ShaderSetUniformByName(
+        prog,
         uniform->name,
-        &prog->uniforms[prog->current_uniform]
+        ret
     );
 #elif A_RENDER_BACKEND_D3D9
     D3DXHANDLE handle = 
@@ -729,11 +820,9 @@ GfxShaderUniformDef* R_ShaderAddUniform(A_INOUT GfxShaderProgram* prog,
     assert(handle);
     D3DXCONSTANT_DESC desc;
     UINT count = 1;
-    HRESULT hr = prog->vertex_shader.constant_table->lpVtbl->GetConstantDesc(
-        prog->vertex_shader.constant_table, handle,
-        &desc, &count
-    );
-    assert(hr == D3D_OK);
+    D3D_CALL(prog->vertex_shader.constant_table, GetConstantDesc, handle, 
+                                                                  &desc, 
+                                                                  &count);
     assert(count > 0);
     prog->uniforms[prog->current_uniform].location = desc.RegisterIndex;
     bool b = R_ShaderSetUniformD3D9(

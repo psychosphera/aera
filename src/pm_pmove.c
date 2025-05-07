@@ -24,7 +24,7 @@ void PM_Init(void) {
 }
 
 static void PM_Accelerate(
-	A_INOUT pmove_t* pm, const pml_t* pml,
+	A_INOUT pmove_t* pm, A_INOUT pml_t* pml,
 	avec3f_t wishdir, float wishspeed, float accel
 ) {
 	float currentspeed = glm_vec3_dot(pm->ps->velocity.array, wishdir.array);
@@ -42,7 +42,7 @@ static void PM_Accelerate(
 	glm_vec3_add(pm->ps->velocity.array, velocity, pm->ps->velocity.array);
 }
 
-static void PM_NoclipMove(A_INOUT pmove_t* pm, const pml_t* pml) {
+static void PM_NoclipMove(A_INOUT pmove_t* pm, A_INOUT pml_t* pml) {
 	float speed = glm_vec3_norm(pm->ps->velocity.array);
 	if (speed < 1.0f) {
 		pm->ps->velocity = A_VEC3F_ZERO;

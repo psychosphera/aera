@@ -239,9 +239,6 @@ void R_SetUniformBool(A_INOUT GfxShaderUniformDef* pUniform, bool value) {
         );
     }
     pUniform->value.b = value;
-    if (pUniform->location != -1) {
-        GL_CALL(glUniform1i, pUniform->location, value);
-    }
 }
 
 void R_SetUniformFloat(A_INOUT GfxShaderUniformDef* pUniform, float value) {
@@ -394,7 +391,7 @@ void R_SetUniformUint(A_INOUT GfxShaderUniformDef* pUniform, unsigned int value)
 }
 
 void R_SetUniformUintArray(A_INOUT GfxShaderUniformDef* pUniform,
-    const unsigned int* value, int count
+                           const unsigned int* value, int count
 ) {
     assert(pUniform);
     assert(pUniform->type == UNIFORM_TYPE_UINT_ARRAY);
@@ -406,6 +403,7 @@ void R_SetUniformUintArray(A_INOUT GfxShaderUniformDef* pUniform,
         );
     }
     pUniform->value.ua = value;
+    pUniform->value.ucount = count;
 }
 
 void R_SetUniformMat2f(A_INOUT GfxShaderUniformDef* pUniform, amat2f_t value) {

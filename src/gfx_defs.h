@@ -74,7 +74,7 @@ typedef struct GfxImage {
     ImageType          type;
     GfxTexture         tex;
     bool               wrap_s, wrap_t;
-    ImageFilter          minfilter, magfilter;
+    ImageFilter        minfilter, magfilter;
     ImageFormat        format, internal_format;
     const void*        pixels;
     size_t             pixels_size;
@@ -107,6 +107,12 @@ typedef enum GfxPolygonMode {
     R_POLYGON_MODE_LINE
 } GfxPolygonMode;
 
+#if A_RENDER_BACKEND_D3D9
+A_EXTERN_C HRESULT R_SetLastD3DError(HRESULT hr);
+A_EXTERN_C HRESULT R_GetLastD3DError(void);
+A_EXTERN_C void R_D3DCheckError(const char* func, int line, const char* file);
+#endif // A_RENDER_BACKEND_D3D9
+
 A_EXTERN_C A_NO_DISCARD bool R_ImageFormatIsCompressed(ImageFormat format);
 
 A_EXTERN_C bool      R_CreateVertexBuffer(const void* data, 
@@ -123,7 +129,7 @@ A_EXTERN_C GfxVertexBuffer* R_AddVertexBufferToMaterialPass(
     A_INOUT GfxMaterialPass* pass,
     A_IN GfxVertexBuffer* vb
 );
-A_EXTERN_C bool      R_RenderMaterialPass(const GfxMaterialPass* pass,
+A_EXTERN_C bool      R_RenderMaterialPass(A_INOUT GfxMaterialPass* pass,
                                           size_t vertices_count, size_t off,
                                           GfxPolygonMode mode
 );
@@ -186,13 +192,17 @@ A_EXTERN_C A_NO_DISCARD D3DCOLOR    R_ColorRGBAToD3DARGB  (acolor_rgba_t rgba);
 
 #if A_RENDER_BACKEND_GL
 A_EXTERN_C A_NO_DISCARD const char* R_GlDebugErrorString(GLenum err);
-A_EXTERN_C GLenum R_GlCheckError(int line, const char* file);
+A_EXTERN_C GLenum R_GlCheckError(const char* func, int line, const char* file);
 #endif // A_RENDER_BACKEND_GL
 
 #if A_RENDER_BACKEND_GL
-#define GL_CALL(func, ...)                                            \
-    func(__VA_ARGS__);                                                \
-    R_GlCheckError(__LINE__, __FILE__);
+#define GL_CALL(func, ...)                                                     \
+    func(__VA_ARGS__);                                                         \
+    R_GlCheckError(__func__, __LINE__, __FILE__);                                        
+#elif A_RENDER_BACKEND_D3D9                                                    
+#define D3D_CALL(self, fn, ...)                                                \
+    R_SetLastD3DError((self)->lpVtbl->fn((self) A_VA_OPT(__VA_ARGS__)));       \
+    R_D3DCheckError(__func__, __LINE__, __FILE__);                                       
 #endif // A_RENDER_BACKEND_GL
 
 A_EXTERN_C A_NO_DISCARD float R_FovHorzToVertical(float fovx, 

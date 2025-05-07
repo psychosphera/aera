@@ -1,11 +1,12 @@
 #include "devcon.h"
 
 #include <stdio.h>
-//#include <errno.h>
 
 // for select() - select(stdin) doesn't work on Windows
 // so don't include the headers there
 #if !A_TARGET_OS_IS_WINDOWS
+#include <errno.h>
+
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -13,17 +14,22 @@
 
 #include <SDL3/SDL.h>
 
+#include "acommon/acommon.h"
+#include "acommon/a_string.h"
+
+#include "com_print.h"
+
 #define DEVCON_MAX_IN 4096
 
 bool       devcon_hasText;
 SDL_Mutex* devcon_ioMutex;
 
 #if !A_TARGET_OS_IS_WINDOWS
-static char        devcon_in[DEVCON_MAX_IN];
-static SDL_Mutex*  devcon_inMutex;
-static SDL_Mutex*  devcon_selectMutex;
-static fd_set      devcon_fds;
-static timeval     devcon_timeval;
+static char           devcon_in[DEVCON_MAX_IN];
+static SDL_Mutex*     devcon_inMutex;
+static SDL_Mutex*     devcon_selectMutex;
+static fd_set         devcon_fds;
+static struct timeval devcon_timeval;
 #endif
 
 #if A_TARGET_OS_IS_WINDOWS
@@ -41,7 +47,7 @@ static bool DevCon_StdinHasLine(void) {
 
     if (select(1, &devcon_fds, NULL, NULL, &devcon_timeval) < 0) {
         SDL_UnlockMutex(devcon_selectMutex);
-        Com_Errorln("DevCon: select() failed with errno=%d", errno);
+        Com_Errorln(-1, "DevCon: select() failed with errno=%d", errno);
         return false;
     }
 

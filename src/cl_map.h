@@ -81,7 +81,7 @@ A_STATIC_ASSERT(sizeof(TagDependency) == 16);
 #define NATIVE_PTR(T, name) T* name; char __pad##__LINE__##[4]
 #else 
 #define NATIVE_PTR(T, name) T* name
-#endif
+#endif // A_ARCH_IS_32BIT
 
 A_PACK(struct TagDataOffset {
 	uint32_t size, external, file_offset;

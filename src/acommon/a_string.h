@@ -65,8 +65,8 @@ A_EXTERN_C A_NO_DISCARD bool A_cstricmp(const char* A_RESTRICT a,
 // create a `str_t` from a C-style string.
 A_EXTERN_C A_NO_DISCARD size_t A_cstrlen(const char* A_RESTRICT p);
 
-A_EXTERN_C A_NO_DISCARD char* A_cstrdup(const char* A_RESTRICT s);
-A_EXTERN_C              void  A_cstrfree(     char* A_RESTRICT s);
+A_EXTERN_C A_NO_DISCARD char* A_cstrdup (const char* A_RESTRICT s);
+A_EXTERN_C              void  A_cstrfree(const char* A_RESTRICT s);
 
 A_EXTERN_C A_NO_DISCARD size_t A_cstrchr(const char* A_RESTRICT s, char c);
 A_EXTERN_C void A_cstrncpyz(char* A_RESTRICT dest, 

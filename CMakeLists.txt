@@ -16,7 +16,7 @@ if(APPLE)
     enable_language(OBJC)
 endif()
 
-#set(VCPKG_TOOLCHAIN ) 
+#set(VCPKG_TOOLCHAIN) 
 #if(EXISTS VCPKG_TOOLCHAIN)
 if (MSVC)
     include("F:/vcpkg/scripts/buildsystems/vcpkg.cmake")
@@ -39,7 +39,6 @@ add_subdirectory(
 	${CMAKE_SOURCE_DIR}/deps/SDL_image 
 	${CMAKE_SOURCE_DIR}/deps/SDL_image_build
 )
-
 
 set(SDL3_LIB_DIR ${CMAKE_SOURCE_DIR}/deps/SDL_image/external/SDL_build)
 set(SDL3_LIB_NAME 
@@ -106,7 +105,7 @@ set(GCC_COMPILE_OPTIONS
 )
 
 set(GCC_CLANG_NON_CL_OPTIONS 
-	"-Wall" "-Wextra" "-Werror" "-Wno-type-limits" "-Og"
+	"-Wall" "-Wextra" "-Wno-type-limits" "-Og"
 )
 
 set(CLANG_COMPILE_OPTIONS
@@ -120,7 +119,7 @@ set(CLANG_COMPILE_OPTIONS
 	"-Wno-sign-compare"
 	"-Wno-embedded-directive"
 	"-Wno-c23-extensions"
-	"-fmacro-backtrace-limit=1"
+	"-Wno-sign-compare"
 )
 
 set(CLANG_NON_CL_COMMON_OPTIONS "-pedantic" "-pedantic-errors")
@@ -147,7 +146,7 @@ if (DEFINED RENDER_BACKEND_GL)
 	
 	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 		target_compile_definitions(h1_map_viewer_gl PRIVATE 
-			${COMMON_DEBUG_DEFS}
+			${COMMON_DEBUG_COMPILE_DEFS}
 		)
 	endif()
 	
