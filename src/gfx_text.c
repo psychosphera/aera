@@ -63,7 +63,11 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
     if (!b)
         return false;
 
+#if A_RENDER_BACKEND_GL
     ImageFormat format    = R_IMAGE_FORMAT_R8;
+#elif A_RENDER_BACKEND_D3D9
+    ImageFormat format    = R_IMAGE_FORMAT_A8;
+#endif // A_RENDER_BACKEND_GL
     ImageFilter minfilter = R_IMAGE_FILTER_LINEAR;
     ImageFilter magfilter = R_IMAGE_FILTER_LINEAR;
 

@@ -164,9 +164,8 @@ GLenum R_GLCheckError(const char* func, int line, const char* file) {
 #elif A_RENDER_BACKEND_D3D9
 HRESULT s_lastError;
 HRESULT R_SetLastD3DError(HRESULT hr) {
-    HRESULT old = s_lastError;
     s_lastError = hr;
-    return old;
+    return hr;
 }
 
 HRESULT R_GetLastD3DError(void) {
@@ -175,6 +174,7 @@ HRESULT R_GetLastD3DError(void) {
 
 void R_D3DCheckError(const char* func, int line, const char* file) {
     HRESULT hr = R_GetLastD3DError();
+    D3D_OK;
     assert(SUCCEEDED(hr));
     if (FAILED(hr)) {
         Com_Errorln(
@@ -275,18 +275,18 @@ static IDirect3DDevice9* R_CreateDevice(HWND hWnd,
     const D3DPRESENT_PARAMETERS d3dpp = {
         .Windowed                   = TRUE,
         .hDeviceWindow              = hWnd,
-        .BackBufferWidth            = 0,
-        .BackBufferHeight           = 0,
-        .BackBufferFormat           = D3DFMT_UNKNOWN,
-        .BackBufferCount            = 1,
+        //.BackBufferWidth            = 0,
+        //.BackBufferHeight           = 0,
+        //.BackBufferFormat           = D3DFMT_UNKNOWN,
+        //.BackBufferCount            = 1,
         .SwapEffect                 = D3DSWAPEFFECT_DISCARD,
-        .MultiSampleType            = D3DMULTISAMPLE_NONE,
-        .MultiSampleQuality         = 0,
-        .EnableAutoDepthStencil     = TRUE,
-        .AutoDepthStencilFormat     = D3DFMT_D32,
-        .FullScreen_RefreshRateInHz = 0,
-        .Flags                      = 0,
-        .PresentationInterval       = interval
+        //.MultiSampleType            = D3DMULTISAMPLE_NONE,
+        //.MultiSampleQuality         = 0,
+        //.EnableAutoDepthStencil     = TRUE,
+        //.AutoDepthStencilFormat     = D3DFMT_D32,
+        //.FullScreen_RefreshRateInHz = 0,
+        //.Flags                      = 0,
+        //.PresentationInterval       = interval
     };
     IDirect3DDevice9* d3ddev = NULL;
     HRESULT hr = D3D_CALL(d3d9, CreateDevice, adapter, D3DDEVTYPE_HAL,
@@ -318,7 +318,7 @@ static bool R_InitD3D9(void) {
     assert(d3d9);
     r_d3d9Glob.d3d9 = d3d9;
 
-    UINT adapterCount = D3D_CALL(d3d9, GetAdapterCount);
+    UINT adapterCount = D3D_CALL_NO_ERR(d3d9, GetAdapterCount);
     assert(adapterCount > 0);
     if (adapterCount == 0)
         return false;
@@ -357,6 +357,8 @@ void R_Init(void) {
     r_renderGlob.clear_color.b = 0.3f;
     r_renderGlob.clear_color.a = 1.0f;
 
+    R_RegisterDvars();
+
 #if A_RENDER_BACKEND_GL
     bool b = R_InitGL();
     assert(b && "Failed to initialize OpenGL.");
@@ -373,8 +375,6 @@ void R_Init(void) {
         R_InitLocalClient(i);
         R_ClearTextDrawDefs(i);
     }
-
-    R_RegisterDvars();
 
     b = Font_Load("consola.ttf", 0, 48, &r_defaultFont);
     assert(b);
@@ -609,7 +609,7 @@ A_NO_DISCARD bool R_CreateImage2D(const void* pixels, size_t pixels_size,
         A_memcpy(rect.pBits, pixels, width * height * pixel_size);
     }
     // if not, copy line-by-line
-    else {
+    else if (pixels_size > 0) {
         for (int i = 0; i < height; i++) {
             A_memcpy((char*)rect.pBits + i * pitch,
                 (char*)pixels + i * width * pixel_size,

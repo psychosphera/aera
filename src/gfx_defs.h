@@ -202,7 +202,9 @@ A_EXTERN_C GLenum R_GLCheckError(const char* func, int line, const char* file);
 #elif A_RENDER_BACKEND_D3D9                                                    
 #define D3D_CALL(self, fn, ...)                                                \
     R_SetLastD3DError((self)->lpVtbl->fn((self) A_VA_OPT(__VA_ARGS__)));       \
-    R_D3DCheckError(__func__, __LINE__, __FILE__);                                       
+    R_D3DCheckError(__func__, __LINE__, __FILE__);         
+#define D3D_CALL_NO_ERR(self, fn, ...)                                         \
+    (self)->lpVtbl->fn((self) A_VA_OPT(__VA_ARGS__));                          
 #endif // A_RENDER_BACKEND_GL
 
 A_EXTERN_C A_NO_DISCARD float R_FovHorzToVertical(float fovx, 

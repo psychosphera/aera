@@ -45,6 +45,7 @@ static bool R_CompileShaderGL(
 #elif A_RENDER_BACKEND_D3D9
 static bool R_CompileShaderD3D9(
     const char* shaderSource,
+    const char* shaderModel,
     A_OUT LPD3DXBUFFER* shader,
     A_OUT LPD3DXCONSTANTTABLE* constant_table
 ) {
@@ -52,7 +53,7 @@ static bool R_CompileShaderD3D9(
     ID3DXBuffer* error = NULL;
     HRESULT hr = D3DXCompileShader(
         shaderSource, A_cstrlen(shaderSource), NULL, NULL,
-        "main", "vs_2_0", 0, shader, &error, constant_table
+        "main", shaderModel, 0, shader, &error, constant_table
     );
     if (hr != D3D_OK) {
         R_SetLastShaderError(error->lpVtbl->GetBufferPointer(error),
@@ -82,7 +83,7 @@ A_NO_DISCARD bool R_CompileVertexShader(
     return R_CompileShaderGL(shaderSource, &shader->compiled_shader);
 #elif A_RENDER_BACKEND_D3D9
     return R_CompileShaderD3D9(
-        shaderSource, &prog->vertex_shader.compiled_shader,
+        shaderSource, "vs_3_0", & prog->vertex_shader.compiled_shader,
         &prog->vertex_shader.constant_table
     );
 #endif // A_RENDER_BACKEND_GL
@@ -101,7 +102,7 @@ A_NO_DISCARD bool R_CompilePixelShader(
     return R_CompileShaderGL(shaderSource, &shader->compiled_shader);
 #elif A_RENDER_BACKEND_D3D9
     return R_CompileShaderD3D9(
-        shaderSource, &prog->pixel_shader.compiled_shader,
+        shaderSource, "ps_3_0", & prog->pixel_shader.compiled_shader,
         &prog->pixel_shader.constant_table
     );
 #endif // A_RENDER_BACKEND_GL
@@ -804,7 +805,12 @@ static bool R_ShaderSetUniformByName(const GfxShaderProgram* prog,
 #endif // A_RENDER_BACKEND_GL
 }
 
-GfxShaderUniformDef* R_ShaderAddUniform(A_INOUT GfxShaderProgram* prog,
+typedef enum ShaderType {
+    SHADER_TYPE_VERTEX,
+    SHADER_TYPE_PIXEL,
+};
+
+GfxShaderUniformDef* R_ShaderAddUniform(A_INOUT GfxShaderProgram* prog, int shader_type,
                                         A_IN GfxShaderUniformDef* uniform
 ) {
     assert(prog);
@@ -818,6 +824,7 @@ GfxShaderUniformDef* R_ShaderAddUniform(A_INOUT GfxShaderProgram* prog,
     A_memcpy(&prog->uniforms[prog->current_uniform], uniform, sizeof(*uniform));
     GfxShaderUniformDef* ret = &prog->uniforms[prog->current_uniform];
 #if A_RENDER_BACKEND_GL
+    (void)shader_type;
     int location = GL_CALL(
         glGetUniformLocation, prog->program, uniform->name
     );
@@ -829,25 +836,50 @@ GfxShaderUniformDef* R_ShaderAddUniform(A_INOUT GfxShaderProgram* prog,
         ret
     );
 #elif A_RENDER_BACKEND_D3D9
-    D3DXHANDLE handle = 
-        prog->vertex_shader.constant_table->lpVtbl->GetConstantByName(
-            prog->vertex_shader.constant_table, NULL,
-            prog->uniforms[prog->current_uniform].name
+    if (shader_type & SHADER_TYPE_VERTEX) {
+        D3DXHANDLE handle =
+            prog->vertex_shader.constant_table->lpVtbl->GetConstantByName(
+                prog->vertex_shader.constant_table, NULL,
+                prog->uniforms[prog->current_uniform].name
+            );
+        assert(handle);
+        D3DXCONSTANT_DESC desc;
+        UINT count = 1;
+        D3D_CALL(prog->vertex_shader.constant_table, GetConstantDesc, handle,
+            &desc,
+            &count);
+        assert(count > 0);
+        prog->uniforms[prog->current_uniform].location = desc.RegisterIndex;
+        bool b = R_ShaderSetUniformD3D9(
+            prog->vertex_shader.constant_table,
+            prog->uniforms[prog->current_uniform].location,
+            &prog->uniforms[prog->current_uniform]
         );
-    assert(handle);
-    D3DXCONSTANT_DESC desc;
-    UINT count = 1;
-    D3D_CALL(prog->vertex_shader.constant_table, GetConstantDesc, handle, 
-                                                                  &desc, 
-                                                                  &count);
-    assert(count > 0);
-    prog->uniforms[prog->current_uniform].location = desc.RegisterIndex;
-    bool b = R_ShaderSetUniformD3D9(
-        prog->vertex_shader.constant_table,
-        prog->uniforms[prog->current_uniform].location,
-        &prog->uniforms[prog->current_uniform]
-    );
-    assert(b);
+        assert(b);
+    }
+
+    if (shader_type & SHADER_TYPE_PIXEL) {
+        D3DXHANDLE handle =
+            prog->pixel_shader.constant_table->lpVtbl->GetConstantByName(
+                prog->pixel_shader.constant_table, NULL,
+                prog->uniforms[prog->current_uniform].name
+            );
+        assert(handle);
+        D3DXCONSTANT_DESC desc;
+        UINT count = 1;
+        D3D_CALL(prog->pixel_shader.constant_table, GetConstantDesc, handle,
+            &desc,
+            &count);
+        assert(count > 0);
+        prog->uniforms[prog->current_uniform].location = desc.RegisterIndex;
+        bool b = R_ShaderSetUniformD3D9(
+            prog->pixel_shader.constant_table,
+            prog->uniforms[prog->current_uniform].location,
+            &prog->uniforms[prog->current_uniform]
+        );
+        assert(b);
+    }
+    
 #endif // A_RENDER_BACKEND_D3D9
     prog->current_uniform++;
     
@@ -1218,7 +1250,13 @@ bool R_DeleteShaderProgram(
     prog->program = 0;
 #elif A_RENDER_BACKEND_D3D9
     prog->vertex_shader.vs->lpVtbl->Release(prog->vertex_shader.vs);
+    prog->vertex_shader.constant_table->lpVtbl->Release(
+        prog->vertex_shader.constant_table
+    );
     prog->pixel_shader.ps->lpVtbl->Release(prog->pixel_shader.ps);
+    prog->pixel_shader.constant_table->lpVtbl->Release(
+        prog->pixel_shader.constant_table
+    );
     prog->vertex_shader.vs = NULL;
     prog->pixel_shader.ps  = NULL;
 #endif // A_RENDER_BACKEND_GL
