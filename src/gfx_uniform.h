@@ -44,7 +44,7 @@ typedef union GfxUniformValue {
 typedef struct GfxUniformDef {
     const char*     name;
     int             name_hash;
-    int             location;
+    int             vs_location, ps_location;
     GfxUniformType  type;
     GfxUniformValue value;
 } GfxShaderUniformDef;

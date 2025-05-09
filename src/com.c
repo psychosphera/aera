@@ -30,7 +30,7 @@ bool Com_Init(void) {
     Cmd_Init();
     Cmd_AddCommand("quit", Com_Quit_f);
     Dvar_Init();
-    Font_Init();
+    //Font_Init();
     PM_Init();
     CG_Init();
     R_Init();
@@ -93,7 +93,7 @@ void Com_Shutdown(void) {
     CL_Shutdown();
     CG_Shutdown();
     R_Shutdown();
-    Font_Shutdown();
+    //Font_Shutdown();
     Dvar_Unregister("com_maxfps");
     com_maxfps = NULL;
     Dvar_Shutdown();

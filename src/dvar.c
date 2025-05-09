@@ -778,7 +778,7 @@ dvar_t* Dvar_RegisterVec4(
 
 bool Dvar_Unregister(const char* name) {
 	for (int i = 0; i < s_dvarCount; i++) {
-		if (s_dvars[i]->name_hash == Dvar_HashName(name)) {
+		if (s_dvars[i] && s_dvars[i]->name_hash == Dvar_HashName(name)) {
 			dvar_t** d = &s_dvars[i];
 			Dvar_DestroyDvar(*d);
 			Z_Free(*d);
@@ -793,9 +793,11 @@ bool Dvar_Unregister(const char* name) {
 void Dvar_ClearDvars(void) {
 	for (int i = 0; i < s_dvarCount; i++) {
 		dvar_t** d = &s_dvars[i];
-		Dvar_DestroyDvar(*d);
-		Z_Free(*d);
-		*d = NULL;
+		if (*d != NULL) {
+			Dvar_DestroyDvar(*d);
+			Z_Free(*d);
+			*d = NULL;
+		}
 	}
 }
 
@@ -1096,7 +1098,7 @@ bool Dvar_UnregisterLocal(int localClientNum, const char* name) {
 		if (s_localDvars[localClientNum][i] &&
 			s_localDvars[localClientNum][i]->name_hash == Dvar_HashName(name)
 		) {
-			dvar_t** d = &s_dvars[i];
+			dvar_t** d = &s_localDvars[localClientNum][i];
 			Dvar_DestroyDvar(*d);
 			Z_Free(*d);
 			*d = NULL;
@@ -1110,9 +1112,11 @@ bool Dvar_UnregisterLocal(int localClientNum, const char* name) {
 void Dvar_ClearLocalDvars(int localClientNum) {
 	for (int i = 0; i < s_localDvarCount; i++) {
 		dvar_t** d = &s_localDvars[localClientNum][i];
-		Dvar_DestroyDvar(*d);
-		Z_Free(*d);
-		*d = NULL;
+		if (*d != NULL) {
+			Dvar_DestroyDvar(*d);
+			Z_Free(*d);
+			*d = NULL;
+		}
 	}
 }
 

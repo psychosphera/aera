@@ -352,7 +352,9 @@ bool CL_UnloadMap(void) {
 
 						assert(bitmap_data[k].pixels &&
 							bitmap_data[k].pixels != (void*)0xFFFFFFFF);
-						Z_Free(bitmap_data[k].pixels);
+						// FIXME: leak is intentional for now 
+						// this call to Z_Free is corrupting the heap somehow
+						//Z_Free(bitmap_data[k].pixels);
 					}
 				}
 
@@ -380,7 +382,9 @@ bool CL_UnloadMap(void) {
 
 						assert(bitmap_data[k].pixels &&
 							bitmap_data[k].pixels != (void*)0xFFFFFFFF);
-						Z_Free(bitmap_data[k].pixels);
+						// FIXME: leak is intentional for now 
+						// this call to Z_Free is corrupting the heap somehow
+						//Z_Free(bitmap_data[k].pixels);
 					}
 				}
 
@@ -406,7 +410,9 @@ bool CL_UnloadMap(void) {
 
 						assert(bitmap_data[k].pixels &&
 							bitmap_data[k].pixels != (void*)0xFFFFFFFF);
-						Z_Free(bitmap_data[k].pixels);
+						// FIXME: leak is intentional for now 
+						// this call to Z_Free is corrupting the heap somehow
+						//Z_Free(bitmap_data[k].pixels);
 					}
 				}
 
@@ -432,7 +438,9 @@ bool CL_UnloadMap(void) {
 
 						assert(bitmap_data[k].pixels &&
 							bitmap_data[k].pixels != (void*)0xFFFFFFFF);
-						Z_Free(bitmap_data[k].pixels);
+						// FIXME: leak is intentional for now 
+						// this call to Z_Free is corrupting the heap somehow
+						//Z_Free(bitmap_data[k].pixels);
 					}
 				}
 			}

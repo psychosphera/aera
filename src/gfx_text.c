@@ -90,25 +90,27 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
     assert(pImage);
     GfxShaderUniformDef uniform;
 
-    R_CreateUniformInt("uTex", 0, &uniform);
-    GfxShaderUniformDef* pUniform = R_ShaderAddUniform(&f->prog, &uniform);
-    assert(pUniform);
+    //R_CreateUniformInt("uTex", 0, &uniform);
+    //GfxShaderUniformDef* pUniform = R_ShaderAddUniform(&f->prog, 
+    //                                                   SHADER_TYPE_PIXEL, 
+    //                                                   &uniform);
+    //assert(pUniform);
 
     amat4f_t m = A_MAT4F_IDENTITY;
     R_CreateUniformMat4f("uModel", m, &uniform);
-    pUniform = R_ShaderAddUniform(&f->prog, &uniform);
+    GfxShaderUniformDef* pUniform = R_ShaderAddUniform(&f->prog, SHADER_TYPE_VERTEX, &uniform);
     assert(pUniform);
     
     R_CreateUniformMat4f("uOrthoProjection", m, &uniform);
-    pUniform = R_ShaderAddUniform(&f->prog, &uniform);
+    pUniform = R_ShaderAddUniform(&f->prog, SHADER_TYPE_VERTEX, &uniform);
     assert(pUniform);
     
     R_CreateUniformVec4f("uAtlasCoord", A_VEC4F_ZERO, &uniform);
-    pUniform = R_ShaderAddUniform(&f->prog, &uniform);
+    pUniform = R_ShaderAddUniform(&f->prog, SHADER_TYPE_PIXEL, &uniform);
     assert(pUniform);
 
-    R_CreateUniformVec3f("uTextColor", A_VEC3F_ZERO, &uniform);
-    pUniform = R_ShaderAddUniform(&f->prog, &uniform);
+    R_CreateUniformVec4f("uTextColor", A_VEC4F_ZERO, &uniform);
+    pUniform = R_ShaderAddUniform(&f->prog, SHADER_TYPE_PIXEL, &uniform);
     assert(pUniform);
 
 #if A_RENDER_BACKEND_GL
@@ -154,7 +156,7 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
     if (!f->pass.decl)
         return false;
 #endif // A_RENDER_BACKEND_GL
-    int pixel_size = R_ImageFormatPixelSize(format);
+    int bpp = R_ImageFormatBPP(format);
     width = 0;
     height = 0;
     for (char c = ' '; c < ' ' + Font_GlyphCount(f); c++) {
@@ -167,7 +169,7 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
 
         if (g->width > 0 && g->height > 0) {
             b = R_ImageSubData(
-                pImage, g->pixels, g->width * g->height * pixel_size,
+                pImage, g->pixels, g->width * g->height * bpp / 8,
                 width, 0,
                 g->width, g->height, format
             );
@@ -228,12 +230,14 @@ void R_DrawText(
     assert(b);
     if (!b)
         return;
-    avec3f_t textColor = A_vec3(color.r, color.g, color.b);
-    R_ShaderSetUniformVec3fByName(&font->prog, "uTextColor", textColor);
+    avec4f_t textColor = A_vec4(color.r, color.g, color.b, 1.0f);
+    R_ShaderSetUniformVec4fByName(&font->prog, "uTextColor", 
+                                  SHADER_TYPE_PIXEL, textColor);
 
-    R_ShaderSetUniformMat4fByName(
-        &font->prog, "uOrthoProjection", cg->camera.orthoProjection
-    );
+    R_ShaderSetUniformMat4fByName(&font->prog, 
+                                  "uOrthoProjection", 
+                                  SHADER_TYPE_VERTEX,
+                                  cg->camera.orthoProjection);
 
     char            last_c   = '\0';
     float           last_w   = 0, last_h = 0;
@@ -326,7 +330,8 @@ void R_DrawText(
         model = A_mat4f_translate_vec3(model, pos);
         avec3f_t scale = A_vec3(w, h, 0.0f);
         model = A_mat4f_scale_vec3(model, scale);
-        R_ShaderSetUniformMat4fByName(&font->prog, "uModel", model);
+        R_ShaderSetUniformMat4fByName(&font->prog, "uModel", 
+                                      SHADER_TYPE_VERTEX, model);
 
         // If the same glyph is being rendered again, the coord uniform doesn't
         // need to be updated.
@@ -334,7 +339,8 @@ void R_DrawText(
             avec4f_t atlasCoord = A_vec4(g->atlas_x, g->atlas_y,
                 (float)g->width / (float)font->atlas_width,
                 (float)g->height / (float)font->atlas_height);
-            R_ShaderSetUniformVec4fByName(&font->prog, "uAtlasCoord", atlasCoord);
+            R_ShaderSetUniformVec4fByName(&font->prog, "uAtlasCoord",
+                                          SHADER_TYPE_PIXEL, atlasCoord);
         }
 
         R_BindVertexBuffer(&font->pass.vbs[0], 0);

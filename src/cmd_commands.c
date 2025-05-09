@@ -80,7 +80,7 @@ CmdFn Cmd_FindCommand(const char* cmdName) {
 
 void Cmd_RemoveCommand(const char* cmdName) {
 	for (size_t i = 0; i < CMD_MAX_COMMANDS; i++) {
-		if (A_cstrcmp(cmdName, s_cmds[i].name)) {
+		if (s_cmds[i].name && A_cstrcmp(cmdName, s_cmds[i].name)) {
 			A_cstrfree(s_cmds[i].name);
 			s_cmds[i].name = NULL;
 			s_cmds[i].cmd  = NULL;

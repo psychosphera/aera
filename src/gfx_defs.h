@@ -125,6 +125,7 @@ A_EXTERN_C bool      R_AppendVertexData(A_INOUT GfxVertexBuffer* vb,
                                         const void* data, size_t n);
 A_EXTERN_C GfxImage* R_AddImageToMaterialPass(A_INOUT GfxMaterialPass* pass,
                                               A_IN GfxImage* image);
+A_EXTERN_C GfxImage* R_GetMaterialPassImage(A_INOUT GfxMaterialPass* pass, int i);
 A_EXTERN_C GfxVertexBuffer* R_AddVertexBufferToMaterialPass(
     A_INOUT GfxMaterialPass* pass,
     A_IN GfxVertexBuffer* vb
@@ -184,7 +185,8 @@ A_EXTERN_C A_NO_DISCARD ImageFormat R_ImageFormatFromGl   (GLenum      format);
 A_EXTERN_C A_NO_DISCARD D3DFORMAT   R_ImageFormatToD3D    (ImageFormat format);
 A_EXTERN_C A_NO_DISCARD ImageFormat R_ImageFormatFromD3D  (D3DFORMAT   format);
 #endif // A_RENDER_BACKEND_GL
-A_EXTERN_C A_NO_DISCARD int         R_ImageFormatPixelSize(ImageFormat format);
+A_EXTERN_C A_NO_DISCARD int         R_ImageFormatBPP      (ImageFormat format);
+A_EXTERN_C A_NO_DISCARD bool        R_ImageFormatIsDXT    (ImageFormat format);
 
 #if A_RENDER_BACKEND_D3D9
 A_EXTERN_C A_NO_DISCARD D3DCOLOR    R_ColorRGBAToD3DARGB  (acolor_rgba_t rgba);

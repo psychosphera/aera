@@ -174,7 +174,6 @@ HRESULT R_GetLastD3DError(void) {
 
 void R_D3DCheckError(const char* func, int line, const char* file) {
     HRESULT hr = R_GetLastD3DError();
-    D3D_OK;
     assert(SUCCEEDED(hr));
     if (FAILED(hr)) {
         Com_Errorln(
@@ -282,8 +281,8 @@ static IDirect3DDevice9* R_CreateDevice(HWND hWnd,
         .SwapEffect                 = D3DSWAPEFFECT_DISCARD,
         //.MultiSampleType            = D3DMULTISAMPLE_NONE,
         //.MultiSampleQuality         = 0,
-        //.EnableAutoDepthStencil     = TRUE,
-        //.AutoDepthStencilFormat     = D3DFMT_D32,
+        .EnableAutoDepthStencil     = TRUE,
+        .AutoDepthStencilFormat     = D3DFMT_D16,
         //.FullScreen_RefreshRateInHz = 0,
         //.Flags                      = 0,
         //.PresentationInterval       = interval
@@ -376,8 +375,8 @@ void R_Init(void) {
         R_ClearTextDrawDefs(i);
     }
 
-    b = Font_Load("consola.ttf", 0, 48, &r_defaultFont);
-    assert(b);
+    //b = Font_Load("consola.ttf", 0, 48, &r_defaultFont);
+    //assert(b);
     (void)b;
 
     RectDef rect = { .x = 0.1f, .y = 0.1f, .w = 0.8f, .h = 0.2f };
@@ -592,28 +591,42 @@ A_NO_DISCARD bool R_CreateImage2D(const void* pixels, size_t pixels_size,
     D3DFORMAT          d3dfmt          = R_ImageFormatToD3D(format);
     ImageFormat        internal_format = format;
     IDirect3DTexture9* tex             = NULL;
-    D3D_CALL(r_d3d9Glob.d3ddev, CreateTexture, width, height, 0, 0,
+    HRESULT hr = D3DXCreateTexture(r_d3d9Glob.d3ddev, width, height, 1, 0, d3dfmt, D3DPOOL_MANAGED, &tex);
+    assert(SUCCEEDED(hr));
+    /*D3D_CALL(r_d3d9Glob.d3ddev, CreateTexture, width, height, 1, 0,
                                                d3dfmt, D3DPOOL_MANAGED, &tex,
-                                               NULL);
+                                               NULL);*/
     assert(tex);
-    D3DLOCKED_RECT rect;
-    D3D_CALL(tex, LockRect, 0, &rect, NULL, D3DLOCK_DISCARD);
-    INT pitch = rect.Pitch;
-    int pixel_size = R_ImageFormatPixelSize(format);
+    D3DLOCKED_RECT locked_rect;
+    const RECT rect = {
+        .left   = 0,
+        .right  = width,
+        .top    = 0,
+        .bottom = height
+    };
+    D3D_CALL(tex, LockRect, 0, &locked_rect, &rect, D3DLOCK_DISCARD);
+    INT pitch = locked_rect.Pitch;
+    if (format == R_IMAGE_FORMAT_DXT1)
+        pitch /= 16;
+    else if (format == R_IMAGE_FORMAT_DXT3 || format == R_IMAGE_FORMAT_DXT5)
+        pitch /= 4;
+
+    int bpp = R_ImageFormatBPP(format);
+    int block_size = R_ImageFormatIsDXT(format) ? 4 : 1;
     // pitch can be greater than width * pixel_size, 
     // but it should never be less
-    assert(width * pixel_size <= pitch);
+    assert(width * bpp / 8 / block_size <= pitch);
 
     // if they're equal, a single full copy will work
-    if (width * pixel_size == pitch) {
-        A_memcpy(rect.pBits, pixels, width * height * pixel_size);
+    if (width * bpp / 8 == pitch) {
+        A_memcpy(locked_rect.pBits, pixels, width * height * bpp / 8);
     }
     // if not, copy line-by-line
     else if (pixels_size > 0) {
         for (int i = 0; i < height; i++) {
-            A_memcpy((char*)rect.pBits + i * pitch,
-                (char*)pixels + i * width * pixel_size,
-                width * pixel_size
+            A_memcpy((char*)locked_rect.pBits + i * pitch * block_size,
+                     (char*)pixels + i * pitch * block_size,
+                     pitch * block_size
             );
         }
     }
@@ -686,20 +699,20 @@ A_NO_DISCARD bool R_ImageSubData(A_INOUT GfxImage* image,
     };
     D3D_CALL(tex, LockRect, 0, &locked_rect, &rect, D3DLOCK_DISCARD);
     INT pitch = locked_rect.Pitch;
-    int pixel_size = R_ImageFormatPixelSize(format);
+    int bpp = R_ImageFormatBPP(format);
     // pitch can be greater than width * pixel_size,
     // but it should never be less
-    assert(width * pixel_size <= pitch);
+    assert(width * bpp / 8 <= pitch);
     // if they're equal, a single full copy will work
-    if (width * pixel_size == pitch) {
+    if (width * bpp / 8 == pitch && xoff == 0 && yoff == 0) {
         A_memcpy(locked_rect.pBits, pixels, pixels_size);
     }
     // if not, copy line-by-line
     else {
-        for (int i = 0; i < height; i++) {
+        for (int i = yoff; i < height; i++) {
             A_memcpy((char*)locked_rect.pBits + i * pitch,
-                (char*)pixels + i * width * pixel_size,
-                width * pixel_size
+                (char*)pixels + i * width,
+                width
             );
         }
     }
@@ -1001,32 +1014,32 @@ static void R_DrawFrameInternal(size_t localClientNum) {
         .h = h
     };
     acolor_rgb_t color = A_color_rgb(0.5f, 0.8f, 0.2f);
-    R_DrawText(localClientNum,
-        NULL, &rect, "Testing 123...", 
-        1.0f, 1.0f, color, false
-    );
+    //R_DrawText(localClientNum,
+    //    NULL, &rect, "Testing 123...", 
+    //    1.0f, 1.0f, color, false
+    //);
 
-    avec3f_t pos   = A_vec3(cg->camera.pos.x,   
+    avec4f_t pos   = A_vec4(cg->camera.pos.x,   
                             cg->camera.pos.y,   
-                            cg->camera.pos.z);
-    avec3f_t front = A_vec3(cg->camera.front.x, 
+                            cg->camera.pos.z,
+                            1.0f);
+    avec4f_t front = A_vec4(cg->camera.front.x, 
                             cg->camera.front.y, 
-                            cg->camera.front.z);
-    avec3f_t center;
+                            cg->camera.front.z,
+                            1.0f);
+    avec4f_t center;
     glm_vec3_add(pos.array, front.array, center.array);
     mat4 view;
     glm_lookat(pos.array, center.array, cg->camera.up.array, view);
     
-    R_ShaderSetUniformMat4fByName(
-        &r_mapGlob.prog, "uView", *(amat4f_t*)&view
-    );
-    R_ShaderSetUniformMat4fByName(
-        &r_mapGlob.prog, "uPerspectiveProjection",
-        cg->camera.perspectiveProjection
-    );
+    R_ShaderSetUniformMat4fByName(&r_mapGlob.prog, "uView", 
+                                  SHADER_TYPE_VERTEX, *(amat4f_t*)&view);
+    R_ShaderSetUniformMat4fByName(&r_mapGlob.prog, "uPerspectiveProjection",
+                                  SHADER_TYPE_VERTEX,
+                                  cg->camera.perspectiveProjection);
     R_RenderMap();
     
-    R_DrawTextDrawDefs(localClientNum);
+    //R_DrawTextDrawDefs(localClientNum);
 }
 
 static void R_UnregisterDvars(void) {

@@ -20,11 +20,12 @@ void R_CreateUniformBool(const char* name, bool value,
                          A_OUT GfxShaderUniformDef* pUniform
 ) {
     GfxShaderUniformDef uniform = {
-        .name      = A_cstrdup(name),
-        .name_hash = R_HashUniformName(name),
-        .location  = -1,
-        .type      = UNIFORM_TYPE_BOOL,
-        .value.b   = value
+        .name        = A_cstrdup(name),
+        .name_hash   = R_HashUniformName(name),
+        .vs_location = -1,
+        .ps_location = -1,
+        .type        = UNIFORM_TYPE_BOOL,
+        .value.b     = value
     };
 
     *pUniform = uniform;
@@ -34,11 +35,12 @@ void R_CreateUniformFloat(const char* name, float value,
                           A_OUT GfxShaderUniformDef* pUniform
 ) {
     GfxShaderUniformDef uniform = {
-        .name = A_cstrdup(name),
-        .name_hash = R_HashUniformName(name),
-        .location = -1,
-        .type = UNIFORM_TYPE_FLOAT,
-        .value.f = value
+        .name        = A_cstrdup(name),
+        .name_hash   = R_HashUniformName(name),
+        .ps_location = -1,
+        .vs_location = -1,
+        .type        = UNIFORM_TYPE_FLOAT,
+        .value.f     = value
     };
     *pUniform = uniform;
 }
@@ -49,7 +51,8 @@ void R_CreateUniformFloatArray(const char* name, const float* value, int count,
     GfxShaderUniformDef uniform = {
         .name         = A_cstrdup(name),
         .name_hash    = R_HashUniformName(name),
-        .location     = -1,
+        .vs_location  = -1,
+        .ps_location  = -1,
         .type         = UNIFORM_TYPE_FLOAT_ARRAY,
         .value.fa     = value,
         .value.fcount = count
@@ -61,11 +64,12 @@ void R_CreateUniformVec2f(const char* name, avec2f_t value,
                           A_OUT GfxShaderUniformDef* pUniform
 ) {
     GfxShaderUniformDef uniform = {
-        .name      = A_cstrdup(name),
-        .name_hash = R_HashUniformName(name),
-        .location  = -1,
-        .type      = UNIFORM_TYPE_VEC2F,
-        .value.v2f = value
+        .name        = A_cstrdup(name),
+        .name_hash   = R_HashUniformName(name),
+        .vs_location = -1,
+        .ps_location = -1,
+        .type        = UNIFORM_TYPE_VEC2F,
+        .value.v2f   = value
     };
     *pUniform = uniform;
 }
@@ -74,11 +78,12 @@ void R_CreateUniformVec3f(const char* name, avec3f_t value,
                           A_OUT GfxShaderUniformDef* pUniform
 ) {
     GfxShaderUniformDef uniform = {
-        .name      = A_cstrdup(name),
-        .name_hash = R_HashUniformName(name),
-        .location  = -1,
-        .type      = UNIFORM_TYPE_VEC3F,
-        .value.v3f = value
+        .name        = A_cstrdup(name),
+        .name_hash   = R_HashUniformName(name),
+        .vs_location = -1,
+        .ps_location = -1,
+        .type        = UNIFORM_TYPE_VEC3F,
+        .value.v3f   = value
     };
     *pUniform = uniform;
 }
@@ -87,11 +92,12 @@ void R_CreateUniformVec4f(const char* name, avec4f_t value,
                           A_OUT GfxShaderUniformDef* pUniform
 ) {
     GfxShaderUniformDef uniform = {
-        .name      = A_cstrdup(name),
-        .name_hash = R_HashUniformName(name),
-        .location  = -1,
-        .type      = UNIFORM_TYPE_VEC4F,
-        .value.v4f = value
+        .name        = A_cstrdup(name),
+        .name_hash   = R_HashUniformName(name),
+        .vs_location = -1,
+        .ps_location = -1,
+        .type        = UNIFORM_TYPE_VEC4F,
+        .value.v4f   = value
     };
     *pUniform = uniform;
 }
@@ -100,11 +106,12 @@ void R_CreateUniformInt(const char* name, int value,
                         A_OUT GfxShaderUniformDef* pUniform
 ) {
     GfxShaderUniformDef uniform = {
-        .name      = A_cstrdup(name),
-        .name_hash = R_HashUniformName(name),
-        .location  = -1,
-        .type      = UNIFORM_TYPE_INT,
-        .value.i   = value
+        .name        = A_cstrdup(name),
+        .name_hash   = R_HashUniformName(name),
+        .vs_location = -1,
+        .ps_location = -1,
+        .type        = UNIFORM_TYPE_INT,
+        .value.i     = value
     };
     *pUniform = uniform;
 }
@@ -115,7 +122,8 @@ void R_CreateUniformIntArray(const char* name, const int* value, int count,
     GfxShaderUniformDef uniform = {
         .name         = A_cstrdup(name),
         .name_hash    = R_HashUniformName(name),
-        .location     = -1,
+        .vs_location  = -1,
+        .ps_location  = -1,
         .type         = UNIFORM_TYPE_INT_ARRAY,
         .value.ia     = value,
         .value.icount = count
@@ -127,11 +135,12 @@ void R_CreateUniformVec2i(const char* name, avec2i_t value,
                           A_OUT GfxShaderUniformDef* pUniform
 ) {
     GfxShaderUniformDef uniform = {
-        .name      = A_cstrdup(name),
-        .name_hash = R_HashUniformName(name),
-        .location  = -1,
-        .type      = UNIFORM_TYPE_VEC2I,
-        .value.v2i = value
+        .name        = A_cstrdup(name),
+        .name_hash   = R_HashUniformName(name),
+        .vs_location = -1,
+        .ps_location = -1,
+        .type        = UNIFORM_TYPE_VEC2I,
+        .value.v2i   = value
     };
     *pUniform = uniform;
 }
@@ -140,11 +149,12 @@ void R_CreateUniformVec3i(const char* name, avec3i_t value,
                           A_OUT GfxShaderUniformDef* pUniform
 ) {
     GfxShaderUniformDef uniform = {
-        .name      = A_cstrdup(name),
-        .name_hash = R_HashUniformName(name),
-        .location  = -1,
-        .type      = UNIFORM_TYPE_VEC3I,
-        .value.v3i = value
+        .name        = A_cstrdup(name),
+        .name_hash   = R_HashUniformName(name),
+        .vs_location = -1,
+        .ps_location = -1,
+        .type        = UNIFORM_TYPE_VEC3I,
+        .value.v3i   = value
     };
     *pUniform = uniform;
 }
@@ -153,11 +163,12 @@ void R_CreateUniformVec4i(const char* name, avec4i_t value,
                           A_OUT GfxShaderUniformDef* pUniform
 ) {
     GfxShaderUniformDef uniform = {
-        .name      = A_cstrdup(name),
-        .name_hash = R_HashUniformName(name),
-        .location  = -1,
-        .type      = UNIFORM_TYPE_VEC4I,
-        .value.v4i = value
+        .name        = A_cstrdup(name),
+        .name_hash   = R_HashUniformName(name),
+        .vs_location = -1,
+        .vs_location = -1,
+        .type        = UNIFORM_TYPE_VEC4I,
+        .value.v4i   = value
     };
     *pUniform = uniform;
 }
@@ -166,11 +177,12 @@ void R_CreateUniformUint(const char* name, unsigned int value,
                          A_OUT GfxShaderUniformDef* pUniform
 ) {
     GfxShaderUniformDef uniform = {
-        .name      = A_cstrdup(name),
-        .name_hash = R_HashUniformName(name),
-        .location  = -1,
-        .type      = UNIFORM_TYPE_UINT,
-        .value.u   = value
+        .name        = A_cstrdup(name),
+        .name_hash   = R_HashUniformName(name),
+        .vs_location = -1,
+        .ps_location = -1,
+        .type        = UNIFORM_TYPE_UINT,
+        .value.u     = value
     };
     *pUniform = uniform;
 }
@@ -181,7 +193,8 @@ void R_CreateUniformUintArray(const char* name, const unsigned int* value,
     GfxShaderUniformDef uniform = {
         .name         = A_cstrdup(name),
         .name_hash    = R_HashUniformName(name),
-        .location     = -1,
+        .vs_location  = -1,
+        .ps_location  = -1,
         .type         = UNIFORM_TYPE_UINT_ARRAY,
         .value.ua     = value,
         .value.ucount = count
@@ -193,11 +206,12 @@ void R_CreateUniformMat2f(const char* name, amat2f_t value,
                           A_OUT GfxShaderUniformDef* pUniform
 ) {
     GfxShaderUniformDef uniform = {
-        .name      = A_cstrdup(name),
-        .name_hash = R_HashUniformName(name),
-        .location  = -1,
-        .type      = UNIFORM_TYPE_MAT2F,
-        .value.m2f = value
+        .name        = A_cstrdup(name),
+        .name_hash   = R_HashUniformName(name),
+        .vs_location = -1,
+        .ps_location = -1,
+        .type        = UNIFORM_TYPE_MAT2F,
+        .value.m2f   = value
     };
     *pUniform = uniform;
 }
@@ -206,11 +220,12 @@ void R_CreateUniformMat3f(const char* name, amat3f_t value,
                           A_OUT GfxShaderUniformDef* pUniform
 ) {
     GfxShaderUniformDef uniform = {
-        .name      = A_cstrdup(name),
-        .name_hash = R_HashUniformName(name),
-        .location  = -1,
-        .type      = UNIFORM_TYPE_MAT3F,
-        .value.m3f = value
+        .name        = A_cstrdup(name),
+        .name_hash   = R_HashUniformName(name),
+        .vs_location = -1,
+        .vs_location = -1,
+        .type        = UNIFORM_TYPE_MAT3F,
+        .value.m3f   = value
     };
     *pUniform = uniform;
 }
@@ -219,11 +234,12 @@ void R_CreateUniformMat4f(const char* name, amat4f_t value,
                           A_OUT GfxShaderUniformDef* pUniform
 ) {
     GfxShaderUniformDef uniform = {
-        .name      = A_cstrdup(name),
-        .name_hash = R_HashUniformName(name),
-        .location  = -1,
-        .type      = UNIFORM_TYPE_MAT4F,
-        .value.m4f = value
+        .name        = A_cstrdup(name),
+        .name_hash   = R_HashUniformName(name),
+        .vs_location = -1,
+        .ps_location = -1,
+        .type        = UNIFORM_TYPE_MAT4F,
+        .value.m4f   = value
     };
     *pUniform = uniform;
 }
@@ -448,9 +464,10 @@ void R_SetUniformMat4f(A_INOUT GfxShaderUniformDef* pUniform, amat4f_t value) {
 void R_DeleteUniform(A_IN GfxShaderUniformDef* pUniform) {
     assert(pUniform);
     A_cstrfree(pUniform->name);
-    pUniform->name      =  NULL;
-    pUniform->location  = -1;
-    pUniform->type      =  UNIFORM_TYPE_INVALID;
-    pUniform->value.i   =  0;
-    pUniform->name_hash = -1;
+    pUniform->name        =  NULL;
+    pUniform->vs_location = -1;
+    pUniform->ps_location = -1;
+    pUniform->type        =  UNIFORM_TYPE_INVALID;
+    pUniform->value.i     =  0;
+    pUniform->name_hash   = -1;
 }

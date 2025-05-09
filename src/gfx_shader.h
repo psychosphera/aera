@@ -63,8 +63,13 @@ A_EXTERN_C A_NO_DISCARD bool R_CreateShaderProgram(
     A_OUT GfxShaderProgram* prog
 );
 
+typedef enum ShaderType {
+    SHADER_TYPE_VERTEX,
+    SHADER_TYPE_PIXEL,
+} ShaderType;
+
 A_EXTERN_C GfxShaderUniformDef* R_ShaderAddUniform(
-    A_INOUT GfxShaderProgram* prog,
+    A_INOUT GfxShaderProgram* prog, int shader_type,
     A_IN GfxShaderUniformDef* uniform
 );
 A_EXTERN_C GfxShaderUniformDef* R_ShaderGetUniform(
@@ -74,82 +79,102 @@ A_EXTERN_C GfxShaderUniformDef* R_ShaderGetUniformByName(
     A_INOUT GfxShaderProgram* prog, const char* name
 );
 A_EXTERN_C void R_ShaderSetUniformBool(A_INOUT GfxShaderProgram* prog,
-                                       int i, bool value);
+                                       int i, int shader_type, bool value);
 A_EXTERN_C void R_ShaderSetUniformBoolByName(A_INOUT GfxShaderProgram* prog,
-                                             const char* name, bool value);
+                                             const char* name, int shader_type,
+                                             bool value);
 A_EXTERN_C void R_ShaderSetUniformFloat(A_INOUT GfxShaderProgram* prog,
-                                        int i, float value);
+                                        int i, int shader_type, float value);
 A_EXTERN_C void R_ShaderSetUniformFloatByName(A_INOUT GfxShaderProgram* prog,
-                                              const char* name, float value);
+                                              const char* name, int shader_type,
+                                              float value);
 A_EXTERN_C void R_ShaderSetUniformFloatArray(A_INOUT GfxShaderProgram* prog,
-                                             int i, 
+                                             int i, int shader_type,
                                              const float* value, int count);
 A_EXTERN_C void R_ShaderSetUniformFloatArrayByName(
     A_INOUT GfxShaderProgram* prog,
-    const char* name, 
+    const char* name, int shader_type,
     const float* value, int count
 );
 A_EXTERN_C void R_ShaderSetUniformVec2f(A_INOUT GfxShaderProgram* prog,
-                                        int i, 
+                                        int i, int shader_type,
                                         avec2f_t value);
 A_EXTERN_C void R_ShaderSetUniformVec2fByName(A_INOUT GfxShaderProgram* prog,
-                                              const char* name, 
+                                              const char* name, int shader_type,
                                               avec2f_t value);
 A_EXTERN_C void R_ShaderSetUniformVec3f(A_INOUT GfxShaderProgram* prog,
-                                        int i, avec3f_t value);
+                                        int i, int shader_type, avec3f_t value);
 A_EXTERN_C void R_ShaderSetUniformVec3fByName(A_INOUT GfxShaderProgram* prog,
-                                   const char* name, avec3f_t value);
+                                              const char* name, int shader_type,
+                                              avec3f_t value);
 A_EXTERN_C void R_ShaderSetUniformVec4f(A_INOUT GfxShaderProgram* prog,
-                                        int i, avec4f_t value);
+                                        int i, int shader_type, 
+                                        avec4f_t value);
 A_EXTERN_C void R_ShaderSetUniformVec4fByName(A_INOUT GfxShaderProgram* prog,
                                               const char* name, 
+                                              int shader_type,
                                               avec4f_t value);
 A_EXTERN_C void R_ShaderSetUniformInt(A_INOUT GfxShaderProgram* prog,
-                                      int i, int value);
+                                      int i, int shader_type, int value);
 A_EXTERN_C void R_ShaderSetUniformIntByName(A_INOUT GfxShaderProgram* prog,
-                                            const char* name, int value);
+                                            const char* name, int shader_type,
+                                            int value);
 A_EXTERN_C void R_ShaderSetUniformUint(A_INOUT GfxShaderProgram* prog,
-                                       int i, unsigned int value);
+                                       int i, int shader_type, 
+                                       unsigned int value);
 A_EXTERN_C void R_ShaderSetUniformUintByName(A_INOUT GfxShaderProgram* prog,
                                              const char* name, 
+                                             int shader_type,
                                              unsigned int value);
 A_EXTERN_C void R_ShaderSetUniformIntArray(A_INOUT GfxShaderProgram* prog,
-                                           int i, const int* value, int count);
+                                           int i, int shader_type, 
+                                           const int* value, int count);
 A_EXTERN_C void R_ShaderSetUniformIntArrayByName(
     A_INOUT GfxShaderProgram* prog, 
-    const char* name, 
+    const char* name, int shader_type,
     const int* value, int count
 );
 A_EXTERN_C void R_ShaderSetUniformVec2i(A_INOUT GfxShaderProgram* prog,
-                                        int i,
+                                        int i, int shader_type,
                                         avec2i_t value);
 A_EXTERN_C void R_ShaderSetUniformVec2iByName(A_INOUT GfxShaderProgram* prog,
                                               const char* name, 
+                                              int shader_type,
                                               avec2i_t value);
 A_EXTERN_C void R_ShaderSetUniformVec3i(A_INOUT GfxShaderProgram* prog,
-                                        int i, 
+                                        int i, int shader_type,
                                         avec3i_t value);
 A_EXTERN_C void R_ShaderSetUniformVec3iByName(A_INOUT GfxShaderProgram* prog,
                                               const char* name, 
+                                              int shader_type,
                                               avec3i_t value);
 A_EXTERN_C void R_ShaderSetUniformVec4i(A_INOUT GfxShaderProgram* prog,
-                                        int i, avec4i_t value);
+                                        int i, int shader_type, 
+                                        avec4i_t value);
 A_EXTERN_C void R_ShaderSetUniformVec4iByName(A_INOUT GfxShaderProgram* prog,
                                               const char* name, 
+                                              int shader_type,
                                               avec4i_t value);
 A_EXTERN_C void R_ShaderSetUniformMat2f(A_INOUT GfxShaderProgram* prog,
-                                        int i, amat2f_t value);
+                                        int i, int shader_type, 
+                                        amat2f_t value);
 A_EXTERN_C void R_ShaderSetUniformMat2fByName(A_INOUT GfxShaderProgram* prog,
                                               const char* name, 
+                                              int shader_type,
                                               amat2f_t value);
 A_EXTERN_C void R_ShaderSetUniformMat3f(A_INOUT GfxShaderProgram* prog,
+                                        int shader_type,
                                         int i, amat3f_t value);
 A_EXTERN_C void R_ShaderSetUniformMat3fByName(A_INOUT GfxShaderProgram* prog,
                                               const char* name, 
+                                              int shader_type,
                                               amat3f_t value);
 A_EXTERN_C void R_ShaderSetUniformMat4f(A_INOUT GfxShaderProgram* prog,
+                                        int shader_type,
                                         int i, amat4f_t value);
 A_EXTERN_C void R_ShaderSetUniformMat4fByName(A_INOUT GfxShaderProgram* prog,
-                                              const char* name, amat4f_t value);
+                                              const char* name,
+                                              int shader_type,
+                                              amat4f_t value);
 
 A_EXTERN_C bool R_DeleteShaderProgram(A_INOUT GfxShaderProgram* prog);

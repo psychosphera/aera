@@ -99,82 +99,123 @@ void R_InitMap(void) {
     char* pixelSource = DB_LoadShader("bsp.ps");
 
     bool b = R_CreateShaderProgram(vertSource, pixelSource, &r_mapGlob.prog);
+    assert(b);
     GfxShaderUniformDef uniform;
 
     R_CreateUniformMat4f("uModel", A_MAT4F_IDENTITY, &uniform);
-    GfxShaderUniformDef* pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    GfxShaderUniformDef* pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+                                                      SHADER_TYPE_VERTEX, 
+                                                      &uniform);
     assert(pUniform);
 
     R_CreateUniformMat4f("uView", A_MAT4F_IDENTITY, &uniform);
-    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+                                  SHADER_TYPE_VERTEX, 
+                                  &uniform);
     assert(pUniform);
 
     R_CreateUniformMat4f("uPerspectiveProjection", A_MAT4F_IDENTITY, &uniform);
-    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+                                  SHADER_TYPE_VERTEX, 
+                                  &uniform);
     assert(pUniform);
 
     //R_CreateUniformBool("uAlphaTested", false, &uniform);
-    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+    //                              SHADER_TYPE_PIXEL, 
+    //                              &uniform);
     //assert(pUniform);
 
-    R_CreateUniformInt("uFlags", 0, &uniform);
-    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
-    assert(pUniform);
+    //R_CreateUniformInt("uFlags", 0, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+    //                              SHADER_TYPE_PIXEL, 
+    //                              &uniform);
+    //assert(pUniform);
 
+#if A_RENDER_BACKEND_GL
     //R_CreateUniformInt("uMap", 0, &uniform);
-    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+    //                              SHADER_TYPE_PIXEL, 
+    //                              &uniform);
     //assert(pUniform);
 
     R_CreateUniformInt("uBaseMap", 0, &uniform);
-    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+                                  SHADER_TYPE_PIXEL, 
+                                  &uniform);
     assert(pUniform);
 
-    R_CreateUniformInt("uPrimaryDetailMap", 0, &uniform);
-    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
-    assert(pUniform);
-    
-    R_CreateUniformInt("uSecondaryDetailMap", 0, &uniform);
-    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
-    assert(pUniform);
+    //R_CreateUniformInt("uPrimaryDetailMap", 0, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+    //                              SHADER_TYPE_PIXEL, 
+    //                              &uniform);
+    //assert(pUniform);
+    //
+    //R_CreateUniformInt("uSecondaryDetailMap", 0, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+    //                              SHADER_TYPE_PIXEL, 
+    //                              &uniform);
+    //assert(pUniform);
 
     //R_CreateUniformInt("uMicroDetailMap", 0, &uniform);
-    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+    //                              SHADER_TYPE_PIXEL, 
+    //                              &uniform);
     //assert(pUniform);
 
     //R_CreateUniformInt("uBumpMap", 0, &uniform);
-    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+    //                              SHADER_TYPE_PIXEL, 
+    //                              &uniform);
+    //assert(pUniform);
+#endif // A_RENDER_BACKEND_GL
+
+    //R_CreateUniformInt("uDetailMapFunction", 0, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+    //                              SHADER_TYPE_PIXEL, 
+    //                              &uniform);
     //assert(pUniform);
 
-    R_CreateUniformInt("uDetailMapFunction", 0, &uniform);
-    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    //R_CreateUniformInt("uMicroDetailMapFunction", 0, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+    //                              SHADER_TYPE_PIXEL, 
+    //                              &uniform);
+    //assert(pUniform);
+
+    R_CreateUniformVec4f("uMaterialColor", A_VEC4F_ZERO, &uniform);
+    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+                                  SHADER_TYPE_PIXEL, 
+                                  &uniform);
     assert(pUniform);
 
-    R_CreateUniformInt("uMicroDetailMapFunction", 0, &uniform);
-    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
-    assert(pUniform);
-
-    R_CreateUniformVec3f("uMaterialColor", A_VEC3F_ZERO, &uniform);
-    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
-    assert(pUniform);
-
-    R_CreateUniformVec3f("uAmbientColor", A_VEC3F_ZERO, &uniform);
-    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    R_CreateUniformVec4f("uAmbientColor", A_VEC4F_ZERO, &uniform);
+    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+                                  SHADER_TYPE_PIXEL, 
+                                  &uniform);
     assert(pUniform);
 
     //R_CreateUniformVec3f("uDistantLight0Dir", A_VEC3F_ZERO, &uniform);
-    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+    //                              SHADER_TYPE_PIXEL, 
+    //                              &uniform);
     //assert(pUniform);
 
     //R_CreateUniformVec3f("uDistantLight1Dir", A_VEC3F_ZERO, &uniform);
-    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+    //                              SHADER_TYPE_PIXEL,
+    //                              &uniform);
     //assert(pUniform);
 
     //R_CreateUniformVec3f("uDistantLight0Color", A_VEC3F_ZERO, &uniform);
-    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+    //                              SHADER_TYPE_PIXEL, 
+    //                              &uniform);
     //assert(pUniform);
 
     //R_CreateUniformVec3f("uDistantLight1Color", A_VEC3F_ZERO, &uniform);
-    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, &uniform);
+    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+    //                              SHADER_TYPE_PIXEL, 
+    //                              &uniform);
     //assert(pUniform);
 
     assert(b);
@@ -436,14 +477,16 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
     GL_CALL(glEnableVertexAttribArray, 5);
     GL_CALL(glEnableVertexAttribArray, 6);
 #elif A_RENDER_BACKEND_D3D9 
-    b = R_CreateVertexBuffer(lightmap_vertices,
-                             lightmap_vertices_size,
-                             lightmap_vertices_size, 0,
-                             sizeof(BSPLightmapVertex),  
-                             &vb);
-    assert(b);
-    pVb = R_AddVertexBufferToMaterialPass(&material->pass, &vb);
-    assert(pVb);
+    if (bsp_material->lightmap_vertices_count > 0) {
+        b = R_CreateVertexBuffer(lightmap_vertices,
+                                 lightmap_vertices_size,
+                                 lightmap_vertices_size, 0,
+                                 sizeof(BSPLightmapVertex),
+                                 &vb);
+        assert(b);
+        pVb = R_AddVertexBufferToMaterialPass(&material->pass, &vb);
+        assert(pVb);
+    }
     D3DVERTEXELEMENT9 vertex_elements[] = {
         {
             .Stream     = 0,
@@ -498,7 +541,7 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
             .Offset     = offsetof(BSPLightmapVertex, tex_coords),
             .Type       = D3DDECLTYPE_FLOAT2,
             .Method     = D3DDECLMETHOD_DEFAULT,
-            .Usage      = D3DDECLUSAGE_NORMAL,
+            .Usage      = D3DDECLUSAGE_TEXCOORD,
             .UsageIndex = 1
         },
         D3DDECL_END()
@@ -554,17 +597,20 @@ static void R_RenderMaterial(GfxMaterial* material) {
     //R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uMicroDetailMapFunction",
     //                           (int)material->micro_detail_map_function);
 
-    avec3f_t color = A_vec3(
+    avec4f_t color = A_vec4(
         material->color.r,
         material->color.g,
-        material->color.b
+        material->color.b,
+        1.0f
     );
-    R_ShaderSetUniformVec3fByName(&r_mapGlob.prog, "uMaterialColor", color);
+    R_ShaderSetUniformVec4fByName(&r_mapGlob.prog, "uMaterialColor", 
+                                  SHADER_TYPE_PIXEL, color);
 
     color.x = material->ambient_color.r;
     color.y = material->ambient_color.g;
     color.z = material->ambient_color.b;
-    R_ShaderSetUniformVec3fByName(&r_mapGlob.prog, "uAmbientColor", color);
+    R_ShaderSetUniformVec4fByName(&r_mapGlob.prog, "uAmbientColor", 
+                                  SHADER_TYPE_PIXEL, color);
 
     //R_ShaderSetUniformVec3fByName(
     //    &r_mapGlob.prog, "uDistantLight0Dir",
@@ -591,23 +637,13 @@ static void R_RenderMaterial(GfxMaterial* material) {
     //R_ShaderSetUniformVec3fByName(&r_mapGlob.prog,
     //    "uDistantLight1Color", color);
 
-    bool has_map                  = material->pass.images[0].tex != 0;
-    bool has_base_map             = material->pass.images[1].tex != 0;
-    bool has_primary_detail_map   = material->pass.images[2].tex != 0;
-    bool has_secondary_detail_map = material->pass.images[3].tex != 0;
-    bool has_bump_map             = material->pass.images[4].tex != 0;
-    bool has_micro_detail_map     = material->pass.images[5].tex != 0;
-    bool wireframe = Dvar_GetBool(r_wireframe);
-    int flags = wireframe | has_map << 1 | has_base_map << 2 |
-        has_primary_detail_map << 3 | has_secondary_detail_map << 4 |
-        has_micro_detail_map << 5 | has_bump_map << 6;
+    //bool wireframe = Dvar_GetBool(r_wireframe);
 
-    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uFlags", flags & 0x7E);
     size_t vertices_count =
         material->vertices_count;
     R_RenderMaterialPass(&material->pass, vertices_count, 0, R_POLYGON_MODE_FILL);
     if (Dvar_GetBool(r_wireframe)) {
-        R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uFlags", flags & 0x7F);
+        //R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uFlags", flags & 0x7F);
         R_RenderMaterialPass(&material->pass, vertices_count, 0, R_POLYGON_MODE_LINE);
     }
 }
@@ -615,15 +651,18 @@ static void R_RenderMaterial(GfxMaterial* material) {
 static void R_RenderMapInternal(void) {
     R_EnableDepthTest();
     R_EnableBackFaceCulling();
-    //R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uMap", 0);
-    //R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uBaseMap", 1);
-    //R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uPrimaryDetailMap", 2);
-    //R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uSecondaryDetailMap", 3);
-    //R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uMicroDetailMap", 4);
-    //R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uBumpMap", 5);
+#if A_RENDER_BACKEND_GL
+    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uBaseMap",            SHADER_TYPE_PIXEL, 0);
+//    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uPrimaryDetailMap",   SHADER_TYPE_PIXEL, 1);
+//    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uSecondaryDetailMap", SHADER_TYPE_PIXEL, 2);
+//    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uMicroDetailMap",     SHADER_TYPE_PIXEL, 3);
+//    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uBumpMap",            SHADER_TYPE_PIXEL, 4);
+//    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uMap",                SHADER_TYPE_PIXEL, 5);
+#endif // A_RENDER_BACKEND_GL
 
     amat4f_t model = A_MAT4F_IDENTITY;
-    R_ShaderSetUniformMat4fByName(&r_mapGlob.prog, "uModel", model);
+    R_ShaderSetUniformMat4fByName(&r_mapGlob.prog, "uModel", 
+                                  SHADER_TYPE_VERTEX, model);
     for (uint32_t i = 0; i < r_mapGlob.lightmap_count; i++) {
         GfxLightmap* lightmap = &r_mapGlob.lightmaps[i];
         for (uint32_t j = 0; j < lightmap->material_count; j++) {

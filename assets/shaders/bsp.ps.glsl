@@ -18,12 +18,12 @@ uniform sampler2D uMicroDetailMap;
 uniform sampler2D uBumpMap;
 uniform int       uDetailMapFunction;
 uniform int       uMicroDetailMapFunction;
-uniform vec3      uMaterialColor;
-uniform vec3      uAmbientColor;
-uniform vec3      uDistantLight0Dir;
-uniform vec3      uDistantLight1Dir;
-uniform vec3      uDistantLight0Color;
-uniform vec3      uDistantLight1Color;
+uniform vec4      uMaterialColor;
+uniform vec4      uAmbientColor;
+uniform vec4      uDistantLight0Dir;
+uniform vec4      uDistantLight1Dir;
+uniform vec4      uDistantLight0Color;
+uniform vec4      uDistantLight1Color;
 
 vec3 shader_detail_double_biased_multiply(vec3 base, vec3 detail) {
 	return clamp(base * detail * 2.0f, 0.0f, 1.0f);
@@ -90,13 +90,13 @@ void main() {
 		if (HasBumpMap)
 			BumpColor = texture(uBumpMap, lightmap_tex_coords);
 		
-		vec3 Ambient = clamp(uAmbientColor * uMaterialColor, 0.0f, 1.0f);
+		vec4 Ambient = clamp(uAmbientColor * uMaterialColor, 0.0f, 1.0f);
 
-		float DistantLight0Diff = max(dot(normal, uDistantLight0Dir), 0.0);
-		float DistantLight1Diff = max(dot(normal, uDistantLight1Dir), 0.0);
+		float DistantLight0Diff = max(dot(normal, uDistantLight0Dir.xyz), 0.0);
+		float DistantLight1Diff = max(dot(normal, uDistantLight1Dir.xyz), 0.0);
 
-		vec3 DistantLight0Diffuse = clamp(DistantLight0Diff * uDistantLight0Color, 0.0f, 1.0f);
-		vec3 DistantLight1Diffuse = clamp(DistantLight1Diff * uDistantLight1Color, 0.0f, 1.0f);
+		vec3 DistantLight0Diffuse = clamp(DistantLight0Diff * uDistantLight0Color.rgb, 0.0f, 1.0f);
+		vec3 DistantLight1Diffuse = clamp(DistantLight1Diff * uDistantLight1Color.rgb, 0.0f, 1.0f);
 
 		//vec3 Diffuse = mix(DistantLight0Diffuse, DistantLight1Diffuse, 0.5f);
 		vec3 Diffuse = vec3(1.0f);
@@ -120,7 +120,7 @@ void main() {
 			FragColor = vec4(clamp(
 				BaseColor.rgb * PrimaryDetailColor.rgb * 
 				SecondaryDetailColor.rgb * MicroDetailColor.rgb * BumpColor.rgb *
-				(Ambient + DistantLight0Diffuse + DistantLight1Diffuse), 
+				(Ambient.rgb + DistantLight0Diffuse + DistantLight1Diffuse), 
 				0.0f, 1.0f
 			), BumpColor.w);
 		} else {
@@ -128,7 +128,7 @@ void main() {
 			FragColor = vec4(clamp(
 				 Color.rgb * // MapColor.rgb * //PrimaryDetailColor.rgb * 
 				//SecondaryDetailColor.rgb * MicroDetailColor.rgb * BumpColor.rgb *
-				(Ambient + Diffuse), 
+				(Ambient.rgb + Diffuse.rgb), 
 				0.0f, 1.0f
 			), 1.0f);
 		//}

@@ -159,6 +159,11 @@ GfxImage* R_AddImageToMaterialPass(A_INOUT GfxMaterialPass* pass,
     return &pass->images[i];
 }
 
+GfxImage* R_GetMaterialPassImage(A_INOUT GfxMaterialPass* pass, int i) {
+    assert(i < pass->current_image);
+    return &pass->images[i];
+}
+
 GfxVertexBuffer* R_AddVertexBufferToMaterialPass(A_INOUT GfxMaterialPass* pass,
                                                  A_IN GfxVertexBuffer* vb
 ) {
@@ -420,23 +425,23 @@ A_NO_DISCARD bool R_ImageFormatIsCompressed(ImageFormat format) {
     };
 }
 
-A_NO_DISCARD int R_ImageFormatPixelSize(ImageFormat format) {
+A_NO_DISCARD int R_ImageFormatBPP(ImageFormat format) {
     switch (format) {
     case R_IMAGE_FORMAT_A8:
     case R_IMAGE_FORMAT_R8:
-        return 1;
+        return 8;
     case R_IMAGE_FORMAT_RGB565:
-        return 2;
+        return 16;
     case R_IMAGE_FORMAT_RGB888: 
-        return 3;
+        return 24;
     case R_IMAGE_FORMAT_ARGB8888:
     case R_IMAGE_FORMAT_RGBA8888:
-        return 4;
+        return 32;
     case R_IMAGE_FORMAT_DXT1:
-        return 8;
+        return 4;
     case R_IMAGE_FORMAT_DXT3:
     case R_IMAGE_FORMAT_DXT5:
-        return 16;
+        return 8;
     default:
         assert(false && "Unimplemented ImageFormat");
         Com_Errorln(
@@ -444,6 +449,17 @@ A_NO_DISCARD int R_ImageFormatPixelSize(ImageFormat format) {
             "R_ImageFormatPixelSize: Unimplemented ImageFormat %d.",
             format
         );
+    }
+}
+
+A_NO_DISCARD bool R_ImageFormatIsDXT(ImageFormat format) {
+    switch (format) {
+    case R_IMAGE_FORMAT_DXT1:
+    case R_IMAGE_FORMAT_DXT3:
+    case R_IMAGE_FORMAT_DXT5:
+        return true;
+    default:
+        return false;
     }
 }
 
