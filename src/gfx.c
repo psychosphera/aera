@@ -417,8 +417,13 @@ void R_UpdateProjection(size_t localClientNum) {
     float w = cg->viewport.w * Dvar_GetInt(vid_width);
     float h = cg->viewport.h * Dvar_GetInt(vid_height);
 
+#if A_RENDER_BACKEND_GL
     mat4 perspective;
     glm_perspective(A_radians(cg->fovy), w / h, cg->nearPlane, cg->farPlane, perspective);
+#elif A_RENDER_BACKEND_D3D9
+    D3DXMATRIX perspective;
+    D3DXMatrixPerspectiveFovLH(&perspective, A_radians(cg->fovy), w / h, cg->nearPlane, cg->farPlane);
+#endif // A_RENDER_BACKEND_GL
     cg->camera.perspectiveProjection = *(amat4f_t*)&perspective;
 }
 
@@ -591,11 +596,7 @@ A_NO_DISCARD bool R_CreateImage2D(const void* pixels, size_t pixels_size,
     D3DFORMAT          d3dfmt          = R_ImageFormatToD3D(format);
     ImageFormat        internal_format = format;
     IDirect3DTexture9* tex             = NULL;
-    HRESULT hr = D3DXCreateTexture(r_d3d9Glob.d3ddev, width, height, 1, 0, d3dfmt, D3DPOOL_MANAGED, &tex);
-    assert(SUCCEEDED(hr));
-    /*D3D_CALL(r_d3d9Glob.d3ddev, CreateTexture, width, height, 1, 0,
-                                               d3dfmt, D3DPOOL_MANAGED, &tex,
-                                               NULL);*/
+    D3D_CALL(r_d3d9Glob.d3ddev, CreateTexture, width, height, 1, 0, d3dfmt, D3DPOOL_MANAGED, &tex, NULL)
     assert(tex);
     D3DLOCKED_RECT locked_rect;
     const RECT rect = {
@@ -779,7 +780,7 @@ void R_DeleteImage(A_INOUT GfxImage* image) {
     GL_CALL(glDeleteTextures, 1, &image->tex);
 #elif A_RENDER_BACKEND_D3D9
     if (image->tex) {
-        image->tex->lpVtbl->Release(image->tex);
+        D3D_CALL(image->tex, Release);
         image->tex = NULL;
     }
 #endif // A_RENDER_BACKEND_GL
@@ -1029,8 +1030,13 @@ static void R_DrawFrameInternal(size_t localClientNum) {
                             1.0f);
     avec4f_t center;
     glm_vec3_add(pos.array, front.array, center.array);
+#if A_RENDER_BACKEND_GL
     mat4 view;
     glm_lookat(pos.array, center.array, cg->camera.up.array, view);
+#elif A_RENDER_BACKEND_D3D9
+    D3DXMATRIX view;
+    D3DXMatrixLookAtLH(&view, (D3DXVECTOR3*)&pos, (D3DXVECTOR3*)&center, (D3DXVECTOR3*)&cg->camera.up);
+#endif // A_RENDER_BACKEND_GL
     
     R_ShaderSetUniformMat4fByName(&r_mapGlob.prog, "uView", 
                                   SHADER_TYPE_VERTEX, *(amat4f_t*)&view);

@@ -194,6 +194,7 @@ bool R_RenderMaterialPass(A_INOUT GfxMaterialPass* pass,
     assert(pass->vb_count == 1 && 
            "R_RenderVertexBuffer: GL backend only supports one vertex buffer at a time");
 #elif A_RENDER_BACKEND_D3D9
+    assert(pass->decl);
     D3D_CALL(r_d3d9Glob.d3ddev, SetVertexDeclaration, pass->decl);
 #endif
 
@@ -250,7 +251,7 @@ bool R_DeleteVertexBuffer(A_INOUT GfxVertexBuffer* vb) {
     vb->vao = 0;
     vb->vbo = 0;
 #elif A_RENDER_BACKEND_D3D9
-    vb->buffer->lpVtbl->Release(vb->buffer);
+    D3D_CALL(vb->buffer, Release);
     vb->buffer = NULL;
 #endif // A_RENDER_BACKEND_GL
     vb->bytes    = 0;
@@ -271,7 +272,7 @@ bool R_DeleteMaterialPass(A_IN GfxMaterialPass* pass) {
 
 #if A_RENDER_BACKEND_D3D9
     if (pass->decl)
-        pass->decl->lpVtbl->Release(pass->decl);
+        D3D_CALL(pass->decl, Release);
 #endif // A_RENDER_BACKEND_D3D9
     A_memset(pass, 0, sizeof(*pass));
     return true;

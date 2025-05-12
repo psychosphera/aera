@@ -34,7 +34,9 @@ typedef enum TagFourCC {
 	TAG_FOURCC_SBSP               = A_MAKE_FOURCC('s', 'b', 's', 'p'),
 	TAG_FOURCC_BITMAP             = A_MAKE_FOURCC('b', 'i', 't', 'm'),
 	TAG_FOURCC_SHADER             = A_MAKE_FOURCC('s', 'h', 'd', 'r'),
-	TAG_FOURCC_SHADER_ENVIRONMENT = A_MAKE_FOURCC('s', 'e', 'n', 'v')
+	TAG_FOURCC_SHADER_ENVIRONMENT = A_MAKE_FOURCC('s', 'e', 'n', 'v'),
+	TAG_FOURCC_SKY                = A_MAKE_FOURCC('s', 'k', 'y', ' '),
+	TAG_FOURCC_MODEL              = A_MAKE_FOURCC('m', 'o', 'd', 'e')
 } TagFourCC;
 
 A_PACK(struct MapHeader {
@@ -694,6 +696,208 @@ A_PACK(struct BSPShaderEnvironment {
 });
 typedef struct BSPShaderEnvironment BSPShaderEnvironment;
 A_STATIC_ASSERT(sizeof(BSPShaderEnvironment) == 836);
+
+A_PACK(struct BSPSky {
+	TagDependency model;
+	TagDependency animation_graph;
+	char          __pad1[24];
+	acolor_rgb_t  indoor_ambient_color;
+	float         indoor_ambient_power;
+	acolor_rgb_t  outdoor_ambient_color;
+	float         outdoor_ambient_power;
+	acolor_rgb_t  outdoor_fog_color;
+	char          __pad2[8];
+	float         outdoor_fog_maximum_density;
+	float         outdoor_fog_start_distance;
+	float         outdoor_fog_opaque_distance;
+	acolor_rgb_t  indoor_fog_color;
+	char          __pad3[8];
+	float         indoor_fog_maximum_density;
+	float         indoor_fog_start_distance;
+	float         indoor_fog_opaque_distance;
+	TagDependency indoor_fog_screen;
+	char          __pad4[4];
+	TagReflexive  shader_functions;
+	TagReflexive  animations;
+	TagReflexive  lights;
+});
+typedef struct BSPSky BSPSky;
+A_STATIC_ASSERT(sizeof(BSPSky) == 208);
+
+typedef enum BSPModelFlags {
+	BSP_MODEL_FLAG_SHARED_NORMALS         = 0x01,
+	BSP_MODEL_FLAG_PARTS_HAVE_LOCAL_NODES = 0x02,
+	BSP_MODEL_FLAG_IGNORE_SKINNING        = 0x04
+} BSPModelFlags;
+
+A_PACK(struct BSPModelMarkerInstance {
+	uint8_t    region_index, permutation_index, node_index;
+	char       __pad;
+	apoint3f_t translation;
+	aquatf_t   rotation;
+});
+typedef struct BSPModelMarkerInstance BSPModelMarkerInstance;
+A_STATIC_ASSERT(sizeof(BSPModelMarkerInstance) == 32);
+
+A_PACK(struct BSPModelMarker {
+	char         name[32];
+	uint16_t     magic;
+	char         __pad[18];
+	TagReflexive instances;
+});
+typedef struct BSPModelMarker BSPModelMarker;
+A_STATIC_ASSERT(sizeof(BSPModelMarker) == 64);
+
+A_PACK(struct BSPModelNode {
+	char       name[32];
+	uint16_t   next_sibling_node_index;
+	uint16_t   first_child_node_index;
+	uint16_t   parent_node_index;
+	char       __pad1[2];
+	apoint3f_t default_translation;
+	aquatf_t   default_rotation;
+	float      node_distance_from_parent;
+	char       __pad2[32];
+	float      scale;
+	amat3f_t   rotation;
+	apoint3f_t translation;
+});
+typedef struct BSPModelNode BSPModelNode;
+A_STATIC_ASSERT(sizeof(BSPModelNode) == 156);
+
+typedef enum BSPModelRegionPermutationFlags {
+	BSP_MODEL_REGION_PERMUTATION_FLAG_NO_RANDOM = 0x01
+} BSPModelRegionPermutationFlags;
+
+A_PACK(struct BSPModelRegionPermutation {
+	char name[32];
+	// BSPModelRegionPermutationFlags
+	int flags;
+	uint16_t permutation_number;
+	char __pad1[26];
+	uint16_t super_low_geometry_index;
+	uint16_t low_geometry_index;
+	uint16_t medium_geometry_index;
+	uint16_t high_geometry_index;
+	uint16_t super_high_geometry_index;
+	char __pad2[2];
+	TagReflexive markers;
+});
+typedef struct BSPModelRegionPermutation BSPModelRegionPermutation;
+A_STATIC_ASSERT(sizeof(BSPModelRegionPermutation) == 88);
+
+A_PACK(struct ModelRegion {
+	char name[32];
+	char __pad[32];
+	TagReflexive permutations;
+});
+typedef struct ModelRegion ModelRegion;
+A_STATIC_ASSERT(sizeof(ModelRegion) == 76);
+
+typedef enum BSPModelGeometryPartFlags {
+	BSP_MODEL_GEOMETRY_PART_FLAG_STRIPPED_INTERNAL = 0x01,
+	BSP_MODEL_GEOMETRY_PART_FLAG_ZONER = 0x02,
+
+} BSPModelGeometryPartFlags;
+
+typedef enum BSPModelTriBufferType {
+	BSP_MODEL_TRI_BUFFER_TYPE_TRIANGLE_LIST = 0,
+	BSP_MODEL_TRI_BUFFER_TYPE_TRIANGLE_STRIP = 1
+} BSPModelTriBufferType;
+
+A_PACK(struct BSPModelDecompressedVertex {
+	apoint3f_t position;
+	avec3f_t normal, binormal, tangent;
+	apoint2f_t texcoords;
+	uint16_t node0_index, node1_index;
+	float node0_weight, node1_weight;
+});
+typedef struct BSPModelDecompressedVertex BSPModelDecompressedVertex;
+A_STATIC_ASSERT(sizeof(BSPModelDecompressedVertex) == 68);
+
+A_PACK(struct BSPModelCompressedVertex {
+	apoint3f_t position;
+	uint32_t normal, binormal, tangent;
+	apoint2s_t texcoords;
+	uint8_t node0_index, node1_index;
+	uint16_t node0_weight;
+});
+typedef struct BSPModelCompressedVertex BSPModelCompressedVertex;
+A_STATIC_ASSERT(sizeof(BSPModelCompressedVertex) == 32);
+
+A_PACK(struct BSPModelTri {
+	uint16_t vertex_index[3];
+});
+typedef struct BSPModelTri BSPModelTri;
+A_STATIC_ASSERT(sizeof(BSPModelTri) == 6);
+
+A_PACK(struct BSPModelGeometryPart {
+	int flags;
+	uint16_t shader_index;
+	uint8_t prev_filthy_part_index, next_filthy_part_index;
+	uint16_t centroid_primary_node, centroid_secondary_node;
+	float centroid_primary_weight, centroid_secondary_weight;
+	apoint3f_t centroid;
+	TagReflexive decompressed_vertices;
+	TagReflexive compressed_vertices;
+	TagReflexive triangles;
+	BSPModelTriBufferType tri_buffer_type;
+	uint32_t tri_count, tri_offset, tri_offset2;
+	BSPVertexType vertex_type;
+	uint32_t vertex_count;
+	char __pad[4];
+	uint32_t vertex_pointer;
+	uint32_t vertex_offset;
+});
+typedef struct BSPModelGeometryPart BSPModelGeometryPart;
+A_STATIC_ASSERT(sizeof(BSPModelGeometryPart) == 104);
+
+typedef enum BSPModelGeometryFlags {
+	BSP_MODEL_GEOMETRY_FLAG_UNUSED = 0x01
+} BSPModelGeometryFlags;
+
+A_PACK(struct BSPModelGeometry {
+	// BSPModelGeometryFlags
+	int flags;
+	char __pad[32];
+	TagReflexive parts;
+});
+typedef struct BSPModelGeometry BSPModelGeometry;
+A_STATIC_ASSERT(sizeof(BSPModelGeometry) == 48);
+
+A_PACK(struct BSPModelShaderReference {
+	TagDependency shader;
+	uint16_t permutation;
+	char __pad[14];
+});
+typedef struct BSPModelShaderReference BSPModelShaderReference;
+A_STATIC_ASSERT(sizeof(BSPModelShaderReference) == 32);
+
+A_PACK(struct BSPModel {
+	// BSPModelFlags
+	uint32_t     flags;
+	int32_t      node_list_checksum;
+	float        super_high_detail_cutoff;
+	float        high_detail_cutoff;
+	float        medium_detail_cutoff;
+	float        low_detail_cutoff;
+	float        super_low_detail_cutoff;
+	uint16_t     super_low_detail_node_count;
+	uint16_t     low_detail_node_count;
+	uint16_t     medium_detail_node_count;
+	uint16_t     high_detail_node_count;
+	uint16_t     super_high_detail_node_count;
+	char         __pad1[10];
+	float        base_map_u_scale, base_map_v_scale;
+	char         __pad2[116];
+	TagReflexive markers;
+	TagReflexive nodes;
+	TagReflexive regions;
+	TagReflexive geometries;
+	TagReflexive shaders;
+});
+typedef struct BSPModel BSPModel;
+A_STATIC_ASSERT(sizeof(BSPModel) == 232);
 
 A_EXTERN_C void               CL_InitMap(void);
 A_EXTERN_C bool               CL_LoadMap(const char* map_name);

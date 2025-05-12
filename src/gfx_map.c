@@ -126,11 +126,11 @@ void R_InitMap(void) {
     //                              &uniform);
     //assert(pUniform);
 
-    //R_CreateUniformInt("uFlags", 0, &uniform);
-    //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
-    //                              SHADER_TYPE_PIXEL, 
-    //                              &uniform);
-    //assert(pUniform);
+    R_CreateUniformBool("uWireframe", 0, &uniform);
+    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
+                                  SHADER_TYPE_PIXEL, 
+                                  &uniform);
+    assert(pUniform);
 
 #if A_RENDER_BACKEND_GL
     //R_CreateUniformInt("uMap", 0, &uniform);
@@ -350,17 +350,8 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
             (BSPShaderEnvironment*)shader_tag->tag_data;
         assert(shader);
         material->alpha_tested = shader->flags & 0x01;
-
-        bool b = true;
-        assert(shader->map.fourcc == TAG_FOURCC_BITMAP);
-        if (shader->map.id.index != 0xFFFF) {
-            GfxImage map;
-            b = R_LoadBitmap(shader->map.id, &map);
-            if (R_AddImageToMaterialPass(&material->pass, &map) == NULL)
-                b = false;
-        }
         
-        assert(b);
+        bool b = true;
         assert(shader->base_map.fourcc == TAG_FOURCC_BITMAP);
         if (shader->base_map.id.index != 0xFFFF) {
             GfxImage base_map;
@@ -399,6 +390,14 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
             GfxImage bump_map;
             b = R_LoadBitmap(shader->bump_map.id, &bump_map);
             if (R_AddImageToMaterialPass(&material->pass, &bump_map) == NULL)
+                b = false;
+        }
+
+        assert(shader->map.fourcc == TAG_FOURCC_BITMAP);
+        if (shader->map.id.index != 0xFFFF) {
+            GfxImage map;
+            b = R_LoadBitmap(shader->map.id, &map);
+            if (R_AddImageToMaterialPass(&material->pass, &map) == NULL)
                 b = false;
         }
        
@@ -584,11 +583,6 @@ void R_LoadMap(void) {
 }
 
 static void R_RenderMaterial(GfxMaterial* material) {
-    bool b = R_BindShaderProgram(&r_mapGlob.prog);
-    assert(b);
-    if (!b)
-        return;
-
     //R_ShaderSetUniformBoolByName(&r_mapGlob.prog, "uAlphaTested",
     //                             material->alpha_tested);
 
@@ -639,12 +633,12 @@ static void R_RenderMaterial(GfxMaterial* material) {
 
     //bool wireframe = Dvar_GetBool(r_wireframe);
 
-    size_t vertices_count =
-        material->vertices_count;
+    size_t vertices_count = material->vertices_count;
     R_RenderMaterialPass(&material->pass, vertices_count, 0, R_POLYGON_MODE_FILL);
     if (Dvar_GetBool(r_wireframe)) {
-        //R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uFlags", flags & 0x7F);
+        R_ShaderSetUniformBoolByName(&r_mapGlob.prog, "uWireframe", SHADER_TYPE_PIXEL, true);
         R_RenderMaterialPass(&material->pass, vertices_count, 0, R_POLYGON_MODE_LINE);
+        R_ShaderSetUniformBoolByName(&r_mapGlob.prog, "uWireframe", SHADER_TYPE_PIXEL, false);
     }
 }
 
@@ -660,6 +654,10 @@ static void R_RenderMapInternal(void) {
 //    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uMap",                SHADER_TYPE_PIXEL, 5);
 #endif // A_RENDER_BACKEND_GL
 
+    bool b = R_BindShaderProgram(&r_mapGlob.prog);
+    assert(b);
+    if (!b)
+        return;
     amat4f_t model = A_MAT4F_IDENTITY;
     R_ShaderSetUniformMat4fByName(&r_mapGlob.prog, "uModel", 
                                   SHADER_TYPE_VERTEX, model);
@@ -670,6 +668,7 @@ static void R_RenderMapInternal(void) {
             R_RenderMaterial(material);
         }
     }
+    R_BindShaderProgram(NULL);
     R_DisableBackFaceCulling();
     R_DisableDepthTest();
 }

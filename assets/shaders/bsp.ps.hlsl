@@ -22,6 +22,7 @@ sampler uMicroDetailMap     : register(s3);
 sampler uBumpMap            : register(s4);
 sampler uMap                : register(s5);
 
+bool    uWireframe;
 int     uType;
 int     uDetailMapFunction;
 int     uMicroDetailMapFunction;
@@ -61,7 +62,8 @@ float3 ShaderDetailMap(float3 Base, float3 Detail, float3 DetailMask, int Fn) {
 */
 
 float4 main(PS_INPUT Input) : COLOR0 {
-    float4 BaseColor            = tex2D(uBaseMap, Input.TexCoords);
+    if (uWireframe) {
+        float4 BaseColor = tex2D(uBaseMap, Input.TexCoords);
     /*
     float4 PrimaryDetailColor   = 1.0f;
     float4 SecondaryDetailColor = 1.0f;
@@ -72,7 +74,11 @@ float4 main(PS_INPUT Input) : COLOR0 {
         MicroDetailColor     = tex2D(uMicroDetailMap,     Input.TexCoords);
     }
     */
-    float3 Ambient = clamp(uAmbientColor * uMaterialColor, 0.0f, 1.0f);
-    float4 Color = float4(BaseColor.rgb * Ambient, 1.0);
-    return Color;
+        float3 Ambient = clamp(uAmbientColor * uMaterialColor, 0.0f, 1.0f);
+        float4 Color = float4(BaseColor.rgb * Ambient, 1.0);
+        return Color;
+    }
+    else {
+        return float4(0.3f, 1.0f, 0.3f, 1.0f);
+    }
 }

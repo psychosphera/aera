@@ -180,6 +180,13 @@ typedef union amat4f_t {
 } amat4f_t;
 A_STATIC_ASSERT(sizeof(amat4f_t) == 64);
 
+typedef union aquatf_t {
+    float q[2][2];
+    float array[4];
+    char  bytes[16];
+} aquatf_t;
+A_STATIC_ASSERT(sizeof(aquatf_t) == 16);
+
 A_EXTERN_C const amat4f_t A__priv__mat4f_identity;
 #define A_MAT4F_ZERO      A__priv__mat4f_zero
 #define A_MAT4F_IDENTITY  A__priv__mat4f_identity

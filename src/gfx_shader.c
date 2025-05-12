@@ -65,7 +65,7 @@ static bool R_CompileShaderD3D9(
         return false;
     }
     if (error)
-        error->lpVtbl->Release(error);
+        D3D_CALL(error, Release);
 
     return hr == D3D_OK;
 }
@@ -148,7 +148,7 @@ static bool R_CreateVertexShaderD3D9(A_INOUT GfxShaderProgram*  prog,
         &prog->vertex_shader.vs
     );
        
-    (*compiled_shader)->lpVtbl->Release(*compiled_shader);
+    D3D_CALL(*compiled_shader, Release);
     *compiled_shader = NULL;
     return true;
 }
@@ -156,11 +156,13 @@ static bool R_CreateVertexShaderD3D9(A_INOUT GfxShaderProgram*  prog,
 static bool R_CreatePixelShaderD3D9(A_INOUT GfxShaderProgram*  prog,
                                     A_IN    GfxCompiledShader* compiled_shader
 ) {
+    void* buffer = D3D_CALL_NO_ERR(*compiled_shader, GetBufferPointer);
+    assert(buffer);
     D3D_CALL(r_d3d9Glob.d3ddev, CreatePixelShader,
-        (*compiled_shader)->lpVtbl->GetBufferPointer(*compiled_shader),
+        buffer,
         &prog->pixel_shader.ps
     );
-    (*compiled_shader)->lpVtbl->Release(*compiled_shader);
+    D3D_CALL(*compiled_shader, Release);
     *compiled_shader = NULL;
     return true;
 }
@@ -1290,14 +1292,10 @@ bool R_DeleteShaderProgram(
     GL_CALL(glDeleteProgram, prog->program);
     prog->program = 0;
 #elif A_RENDER_BACKEND_D3D9
-    prog->vertex_shader.vs->lpVtbl->Release(prog->vertex_shader.vs);
-    prog->vertex_shader.constant_table->lpVtbl->Release(
-        prog->vertex_shader.constant_table
-    );
-    prog->pixel_shader.ps->lpVtbl->Release(prog->pixel_shader.ps);
-    prog->pixel_shader.constant_table->lpVtbl->Release(
-        prog->pixel_shader.constant_table
-    );
+    D3D_CALL(prog->vertex_shader.vs, Release);
+    D3D_CALL(prog->vertex_shader.constant_table, Release);
+    D3D_CALL(prog->pixel_shader.ps, Release);
+    D3D_CALL(prog->pixel_shader.constant_table, Release);
     prog->vertex_shader.vs = NULL;
     prog->pixel_shader.ps  = NULL;
 #endif // A_RENDER_BACKEND_GL

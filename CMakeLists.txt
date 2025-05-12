@@ -62,8 +62,8 @@ add_custom_target(SDL3_lib)
 add_custom_command(
 	TARGET SDL3_lib POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E copy
-	        SDL3_LIB_DIR/SDL3_LIB_NAME
-	        ${CMAKE_CURRENT_BINARY_DIR}/SDL3_LIB_NAME
+	        ${SDL3_LIB_DIR}/${SDL3_LIB_NAME}
+	        ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 set(SDL3_IMAGE_LIB_DIR ${CMAKE_SOURCE_DIR}/deps/SDL_image_build)
@@ -75,9 +75,9 @@ message(STATUS ${SDL3_IMAGE_PATH})
 add_custom_target(SDL3_image_lib)
 add_custom_command(
 	TARGET SDL3_image_lib POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy SDL3_IMAGE_PATH
-	        
-	        ${CMAKE_CURRENT_BINARY_DIR}/SDL3_LIB_NAME
+	COMMAND ${CMAKE_COMMAND} -E copy ${SDL3_IMAGE_PATH}
+	        ${SDL3_IMAGE_LIB_DIR}/${SDL3_IMAGE_LIB_NAME}
+	        ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 set(COMMON_SRC 
@@ -150,6 +150,8 @@ if (DEFINED RENDER_BACKEND_GL)
 	find_package(OpenGL REQUIRED)
 	
 	add_executable(h1_map_viewer_gl ${COMMON_SRC})
+	add_dependencies(h1_map_viewer_gl SDL3_lib)
+	add_dependencies(h1_map_viewer_gl SDL3_image_lib)
 	
 	target_link_libraries(h1_map_viewer_gl PRIVATE ${COMMON_LIBS} ${GL_LIBS})
 	target_include_directories(h1_map_viewer_gl PRIVATE ${COMMON_INCLUDE_DIRS})
@@ -237,6 +239,8 @@ if (DEFINED RENDER_BACKEND_D3D9)
 	set(D3D9_COMPILE_DEFS A_RENDER_BACKEND_GL=0 A_RENDER_BACKEND_D3D9=1)
 
 	add_executable(h1_map_viewer_d3d9 ${COMMON_SRC})
+	add_dependencies(h1_map_viewer_d3d9 SDL3_lib)
+	add_dependencies(h1_map_viewer_d3d9 SDL3_image_lib)
 	
 	if (CMAKE_SIZEOF_VOID_P EQUAL 8)
 		set(DXSDK_LIB_DIR $ENV{DXSDK_DIR}lib\\x64)

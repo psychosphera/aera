@@ -30,6 +30,7 @@
 #include "gfx.h"
 
 #define BSP_MAX_COLLISION_MATERIALS 512
+#define BSP_MAX_SKIES 8
 
 struct MapLoadData {
 	StreamFile  		  f;
@@ -53,6 +54,8 @@ struct MapLoadData {
 	BSPCollisionMaterial* collision_materials;
 	uint32_t              lightmap_count;
 	BSPLightmap*          lightmaps;
+	BSPSky*               skies[BSP_MAX_SKIES];
+	uint32_t              skies_count;
 
 	Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian>* bsp_ptr;
 } g_load;
@@ -101,6 +104,9 @@ static bool CL_LoadMap_CollisionMaterials(
 static size_t CL_BitmapDataSize(const BSPBitmapData* bitmap_data);
 static bool   CL_LoadMap_Bitmap(TagId tag_id);
 size_t CL_BitmapDataFormatBPP(BSPBitmapDataFormat format);
+
+static bool CL_LoadMap_Sky(TagId id);
+static bool CL_LoadMap_Model(TagId id);
 
 //static const void* CL_BitmapOffsetToPointer(size_t off, MapEngine engine, void* bsp_base) {
 //	assert(g_load.bitmaps_map.p);
@@ -168,7 +174,7 @@ bool CL_LoadMap(const char* map_name) {
 	g_load.lightmap_vertices = (BSPLightmapVertex*)bsp_header->lightmap_vertices;
 
 	Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian>* bsp = NULL;
-	if (!CL_LoadMap_BSP(&sbsps[spawns[0].bsp_index], bsp_header, &bsp)) return false;
+	if (!CL_LoadMap_BSP(&sbsps[0], bsp_header, &bsp)) return false;
 	assert(bsp);
 	g_load.bsp_ptr = bsp;
 	g_load.surfs = (BSPSurf*)(uint32_t)bsp->surfaces.pointer.read();
@@ -254,7 +260,7 @@ bool CL_LoadMap(const char* map_name) {
 			for (int32_t k = material->surfaces;
 				k < material->surfaces + material->surface_count;
 				k++
-				) {
+			) {
 				for (int l = 0; l < 3; l++) {
 					if (g_load.surfs[k].verts[l] >= rendered_vertices_count)
 						Com_DPrintln(CON_DEST_CLIENT,
@@ -293,12 +299,22 @@ bool CL_LoadMap(const char* map_name) {
 	}
 	Com_DPrintln(CON_DEST_CLIENT, "CL_LoadMap: Total Vertex Count=%zu.", total_vertex_count);
 
+	TagDependency* sky_dependencies = 
+		(TagDependency*)scenario->skies.pointer.read();
+	for (int i = 0; i < scenario->skies.count.read(); i++) {
+		TagDependency* sky_dependency = &sky_dependencies[i];
+		TagId sky_id = sky_dependency->id;
+		CL_LoadMap_Sky(sky_id);
+		g_load.skies[i] = (BSPSky*)CL_Map_Tag(sky_id)->tag_data;
+	}
+	g_load.skies_count = scenario->skies.count.read();
+
 	R_LoadMap();
 
 	for (size_t localClientNum = 0;
 		localClientNum < MAX_LOCAL_CLIENTS;
 		localClientNum++
-		) {
+	) {
 		CG_Respawn(localClientNum);
 	}
 
@@ -311,6 +327,30 @@ bool CL_UnloadMap(void) {
 
 	if (!g_load.bsp_ptr)
 		return false;
+
+	BSPSky** skies = g_load.skies;
+	for (int i = 0; i < g_load.skies_count; i++) {
+		BSPSky* sky = skies[i];
+		TagId id = sky->model.id;
+		if (id.index == 0xFFFF)
+			continue;
+
+		Tag* model_tag = CL_Map_Tag(id);
+		assert(model_tag->primary_class == TAG_FOURCC_MODEL);
+		BSPModel* model = (BSPModel*)model_tag->tag_data;
+		BSPModelGeometry* geoms = (BSPModelGeometry*)model->geometries.pointer;
+		for (int j = 0; j < model->geometries.count; j++) {
+			BSPModelGeometry* geom = &geoms[j];
+			BSPModelGeometryPart* parts =
+				(BSPModelGeometryPart*)geom->parts.pointer;
+			for (int k = 0; k < geom->parts.count; k++) {
+				BSPModelGeometryPart* part = &parts[k];
+				assert(part->compressed_vertices.count ==
+					part->decompressed_vertices.count);
+				Z_Free(part->decompressed_vertices.pointer);
+			}
+		}
+	}
 
 	Invader::HEK::ScenarioStructureBSPLightmap<Invader::HEK::NativeEndian>* lightmaps =
 		(Invader::HEK::ScenarioStructureBSPLightmap<Invader::HEK::NativeEndian>*)g_load.bsp_ptr->lightmaps.pointer.read();
@@ -855,7 +895,7 @@ static bool CL_LoadMap_CBSP(
 }
 
 static bool CL_LoadMap_CollisionMaterials(
-	const Invader::HEK::ScenarioStructureBSP< Invader::HEK::NativeEndian>* bsp,
+	const Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian>* bsp,
 	A_OUT BSPCollisionMaterial** collision_materials
 ) {
 	*collision_materials =
@@ -909,6 +949,59 @@ static bool CL_LoadMap_Bitmap(TagId tag_id) {
 		bool b = FS_ReadStream(&g_load.f, bitmap_data[i].pixels, bitmap_data->actual_size);
 		assert(b);
 		(void)b;
+	}
+	return true;
+}
+
+static bool CL_LoadMap_Sky(TagId id) {
+	Tag* sky_tag = CL_Map_Tag(id);
+	assert(sky_tag->primary_class == TAG_FOURCC_SKY);
+	BSPSky* sky = (BSPSky*)sky_tag->tag_data;
+	if (sky->model.id.index != 0xFFFF)
+		return CL_LoadMap_Model(sky->model.id);
+	return true;
+}
+
+static void CL_DecompressModelVertex(
+	const BSPModelCompressedVertex* compressed,
+	A_OUT BSPModelDecompressedVertex* decompressed
+) {
+	decompressed->position = compressed->position;
+	CL_DecompressVector(&decompressed->normal, compressed->normal);
+	CL_DecompressVector(&decompressed->binormal, compressed->binormal);
+	CL_DecompressVector(&decompressed->tangent, compressed->tangent);
+	decompressed->texcoords.u = compressed->texcoords.u;
+	decompressed->texcoords.v = compressed->texcoords.v;
+	decompressed->node0_index = compressed->node0_index;
+	decompressed->node1_index = compressed->node1_index;
+	decompressed->node0_weight = compressed->node0_weight;
+	decompressed->node1_weight = compressed->node0_weight;
+}
+
+static bool CL_LoadMap_Model(TagId id) {
+	Tag* model_tag = CL_Map_Tag(id);
+	assert(model_tag->primary_class == TAG_FOURCC_MODEL);
+	BSPModel* model = (BSPModel*)model_tag->tag_data;
+	BSPModelGeometry* geoms = (BSPModelGeometry*)model->geometries.pointer;
+	for (int i = 0; i < model->geometries.count; i++) {
+		BSPModelGeometry* geom = &geoms[i];
+		BSPModelGeometryPart* parts = 
+			(BSPModelGeometryPart*)geom->parts.pointer;
+		for (int j = 0; j < geom->parts.count; j++) {
+			BSPModelGeometryPart* part = &parts[j];
+			assert(part->compressed_vertices.count == 
+				   part->decompressed_vertices.count);
+			BSPModelCompressedVertex* compressed_verts =
+				(BSPModelCompressedVertex*)parts->compressed_vertices.pointer;
+			BSPModelDecompressedVertex* decompressed_verts = 
+				(BSPModelDecompressedVertex*)
+					Z_Alloc(part->decompressed_vertices.count * 
+							sizeof(*decompressed_verts));
+			for (int k = 0; k < part->decompressed_vertices.count; k++) {
+				CL_DecompressModelVertex(&compressed_verts[k], 
+					                     &decompressed_verts[k]);
+			}
+		}
 	}
 	return true;
 }
