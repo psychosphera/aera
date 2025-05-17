@@ -187,6 +187,12 @@ typedef union aquatf_t {
 } aquatf_t;
 A_STATIC_ASSERT(sizeof(aquatf_t) == 16);
 
+typedef union abounds2f_t {
+    struct { float min, max; };
+    float array[2];
+    char bytes[8];
+} abounds2f_t;
+
 A_EXTERN_C const amat4f_t A__priv__mat4f_identity;
 #define A_MAT4F_ZERO      A__priv__mat4f_zero
 #define A_MAT4F_IDENTITY  A__priv__mat4f_identity

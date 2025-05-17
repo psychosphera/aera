@@ -33,29 +33,33 @@
 #define BSP_MAX_SKIES 8
 
 struct MapLoadData {
-	StreamFile  		  f;
-	const char* 		  map_name;
-	void*                 p;
-	size_t      		  n;
-	FileMapping           bitmaps_map;
-
-	Tag*                  tags;
-	uint32_t              tag_count;
-	BSPSurf*              surfs;
-	uint32_t              surf_count;
-	BSPRenderedVertex*    rendered_vertices;
-	BSPLightmapVertex*    lightmap_vertices;
-	BSPCollSurf*          coll_surfs;
-	uint32_t    		  coll_surf_count;
-	BSPCollEdge*          coll_edges;
-	uint32_t    		  coll_edge_count;
-	BSPCollVertex*        coll_vertices;
-	uint32_t    		  coll_vertex_count;
-	BSPCollisionMaterial* collision_materials;
-	uint32_t              lightmap_count;
-	BSPLightmap*          lightmaps;
-	BSPSky*               skies[BSP_MAX_SKIES];
-	uint32_t              skies_count;
+	StreamFile  		      f;
+	const char* 		      map_name;
+	void*                     p;
+	size_t      		      n;
+	FileMapping               bitmaps_map;
+							  
+	Tag*                      tags;
+	uint32_t                  tag_count;
+	BSPModelCompressedVertex* model_vertices;
+	uint16_t*                 model_indices;
+	BSPSurf*                  surfs;
+	uint32_t                  surf_count;
+	BSPRenderedVertex*        rendered_vertices;
+	BSPLightmapVertex*        lightmap_vertices;
+	BSPCollSurf*              coll_surfs;
+	uint32_t    		      coll_surf_count;
+	BSPCollEdge*              coll_edges;
+	uint32_t    		      coll_edge_count;
+	BSPCollVertex*            coll_vertices;
+	uint32_t    		      coll_vertex_count;
+	BSPCollisionMaterial*     collision_materials;
+	uint32_t                  lightmap_count;
+	BSPLightmap*              lightmaps;
+	BSPSky*                   skies[BSP_MAX_SKIES];
+	uint32_t                  skies_count;
+	BSPScenery*               scenery;
+	uint32_t                  scenery_count;
 
 	Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian>* bsp_ptr;
 } g_load;
@@ -107,6 +111,7 @@ size_t CL_BitmapDataFormatBPP(BSPBitmapDataFormat format);
 
 static bool CL_LoadMap_Sky(TagId id);
 static bool CL_LoadMap_Model(TagId id);
+static bool CL_LoadMap_Object(TagId id);
 
 //static const void* CL_BitmapOffsetToPointer(size_t off, MapEngine engine, void* bsp_base) {
 //	assert(g_load.bitmaps_map.p);
@@ -151,6 +156,12 @@ bool CL_LoadMap(const char* map_name) {
 	if (!CL_LoadMap_TagHeader(&header, is_xbox, &tag_header)) return false;
 	g_load.tag_count = tag_header.common.tag_count;
 	if (!CL_LoadMap_TagData(&header, &tag_header, is_xbox)) return false;
+	if (is_xbox) {
+		BSPModelPartVerticesIndirect* vert_ind = (BSPModelPartVerticesIndirect*)tag_header.xbox.vertex_data_ptr;
+		g_load.model_vertices = (BSPModelCompressedVertex*)vert_ind->vertices;
+		BSPModelPartIndicesIndirect* ind_ind = (BSPModelPartIndicesIndirect*)tag_header.xbox.triangle_data_ptr;
+		g_load.model_indices = (uint16_t*)ind_ind->indices;
+	}
 
 	Invader::HEK::Scenario<Invader::HEK::NativeEndian>* scenario = NULL;
 	if (!CL_LoadMap_Scenario(&tag_header, &scenario)) return false;
@@ -309,6 +320,34 @@ bool CL_LoadMap(const char* map_name) {
 	}
 	g_load.skies_count = scenario->skies.count.read();
 
+	BSPScenarioObjectName* object_names = 
+		(BSPScenarioObjectName*)scenario->object_names.pointer.read();
+	for (int i = 0; i < scenario->object_names.count; i++) {
+		Com_Println(CON_DEST_CLIENT,
+					"CL_LoadMap: found object %s (%d) of type %d",
+					object_names[i].name, i, object_names[i].object_type);
+	}
+
+	BSPScenarioSceneryPalette* scenery_palette_tags = 
+		(BSPScenarioSceneryPalette*)scenario->scenery_palette.pointer.read();
+	int scenery_palette_count = scenario->scenery_palette.count;
+	for (int i = 0; i < scenery_palette_count; i++) {
+		BSPScenarioSceneryPalette* scenery_palette_tag = &scenery_palette_tags[i];
+		if (scenery_palette_tag->name.fourcc == 0)
+			continue;
+
+		assert(scenery_palette_tag->name.fourcc == TAG_FOURCC_SCENERY);
+
+		if (scenery_palette_tag->name.id.index == 0xFFFF)
+			continue;
+		Com_Println(CON_DEST_CLIENT,
+					"CL_LoadMap: found scenery %s", 
+					scenery_palette_tag->name.path_pointer);
+
+		bool b = CL_LoadMap_Object(scenery_palette_tag->name.id);
+		assert(b);
+	}
+
 	R_LoadMap();
 
 	for (size_t localClientNum = 0;
@@ -319,6 +358,25 @@ bool CL_LoadMap(const char* map_name) {
 	}
 
 	return true;
+}
+
+void CL_UnloadModel(BSPModel* model) {
+	BSPModelGeometry* geometries = (BSPModelGeometry*)model->geometries.pointer;
+	for (int i = 0; i < model->geometries.count; i++) {
+		BSPModelGeometry* geometry = &geometries[i];
+		BSPModelGeometryPart* parts = (BSPModelGeometryPart*)geometry->parts.pointer;
+		for (int j = 0; j < geometry->parts.count; j++) {
+			BSPModelGeometryPart* part = &parts[i];
+			Z_Free(part->decompressed_vertices.pointer);
+		}
+		
+	}
+}
+
+void CL_UnloadScenery(BSPScenery* scenery) {
+	Tag* model_tag = CL_Map_Tag(scenery->object.model.id);
+	BSPModel* model = (BSPModel*)model_tag->tag_data;
+	CL_UnloadModel(model);
 }
 
 bool CL_UnloadMap(void) {
@@ -411,7 +469,7 @@ bool CL_UnloadMap(void) {
 					for (uint32_t k = 0;
 						k < primary_detail_map_bitmap->bitmap_data.count;
 						k++
-						) {
+					) {
 						if (bitmap_data[k].type !=
 							BSP_BITMAP_DATA_TYPE_2D_TEXTURE &&
 							bitmap_data[k].type !=
@@ -441,7 +499,7 @@ bool CL_UnloadMap(void) {
 					for (uint32_t k = 0;
 						k < secondary_detail_map_bitmap->bitmap_data.count;
 						k++
-						) {
+					) {
 						if (bitmap_data[k].type != BSP_BITMAP_DATA_TYPE_2D_TEXTURE &&
 							bitmap_data[k].type != BSP_BITMAP_DATA_TYPE_3D_TEXTURE
 							) {
@@ -487,6 +545,11 @@ bool CL_UnloadMap(void) {
 		}
 	}
 
+	for (int i = 0; i < g_load.scenery_count; i++) {
+		BSPScenery* scenery = CL_Map_Scenery(i);
+		CL_UnloadScenery(scenery);
+	}
+
 	if (g_load.p && g_load.n > 0) {
 		Z_FreeAt(g_load.p, g_load.n);
 		g_load.p                    = NULL;
@@ -498,6 +561,7 @@ bool CL_UnloadMap(void) {
 		g_load.coll_edges           = NULL;
 		g_load.coll_vertices        = NULL;
 		g_load.lightmaps            = NULL;
+		g_load.scenery              = NULL;
 	}
 
 	return true;
@@ -601,6 +665,16 @@ uint32_t CL_Map_LightmapCount(void) {
 	return g_load.lightmap_count;
 }
 
+BSPScenery* CL_Map_Scenery(uint16_t i) {
+	assert(g_load.scenery);
+	assert(i < g_load.scenery_count);
+	return &g_load.scenery[i];
+}
+
+uint32_t CL_Map_SceneryCount(void) {
+	assert(g_load.scenery);
+	return g_load.scenery_count;
+}
 
 #define CL_DECOMPRESS_FLOAT_SIGN_BIT(bits) (1 << ((bits) - 1))
 #define CL_DECOMPRESS_FLOAT_MASK(bits) (CL_DECOMPRESS_FLOAT_SIGN_BIT(bits) - 1)
@@ -989,21 +1063,29 @@ static bool CL_LoadMap_Model(TagId id) {
 			(BSPModelGeometryPart*)geom->parts.pointer;
 		for (int j = 0; j < geom->parts.count; j++) {
 			BSPModelGeometryPart* part = &parts[j];
-			assert(part->compressed_vertices.count == 
-				   part->decompressed_vertices.count);
-			BSPModelCompressedVertex* compressed_verts =
-				(BSPModelCompressedVertex*)parts->compressed_vertices.pointer;
-			BSPModelDecompressedVertex* decompressed_verts = 
-				(BSPModelDecompressedVertex*)
-					Z_Alloc(part->decompressed_vertices.count * 
-							sizeof(*decompressed_verts));
-			for (int k = 0; k < part->decompressed_vertices.count; k++) {
-				CL_DecompressModelVertex(&compressed_verts[k], 
-					                     &decompressed_verts[k]);
+			BSPModelDecompressedVertex* decompressed_verts = NULL;
+			assert(part->vertex_type == BSP_VERTEX_TYPE_COMPRESSED_MODEL);
+			decompressed_verts = (BSPModelDecompressedVertex*)
+				Z_Alloc(part->tri_count * sizeof(*decompressed_verts));
+			uint16_t* tri_indices = (uint16_t*)part->tri_offset;
+			assert(decompressed_verts);
+			for (int k = 0; k < part->tri_count; k++) {
+				const BSPModelCompressedVertex* compressed_vert = &g_load.model_vertices[tri_indices[k]];
+				BSPModelDecompressedVertex* decompressed_vert = &decompressed_verts[k];
+				CL_DecompressModelVertex(compressed_vert, decompressed_vert);
 			}
+			part->decompressed_vertices.pointer = decompressed_verts;
+			part->decompressed_vertices.count = part->tri_count;
 		}
 	}
 	return true;
+}
+
+static bool CL_LoadMap_Object(TagId id) {
+	Tag* object_tag = CL_Map_Tag(id);
+	assert(object_tag->secondary_class == TAG_FOURCC_OBJECT);
+	BSPObject* object = (BSPObject*)object_tag->tag_data;
+	return CL_LoadMap_Model(object->model.id);
 }
 
 size_t CL_BitmapDataFormatBPP(BSPBitmapDataFormat format) {

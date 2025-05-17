@@ -22,9 +22,35 @@ typedef struct GfxLightmap {
     uint32_t     material_count;
 } GfxLightmap;
 
+typedef struct GfxModelPart {
+    uint32_t vertex_count;
+    BSPModelTriBufferType type;
+    GfxVertexBuffer vb;
+} GfxModelPart;
+
+typedef struct GfxModelGeometry {
+    GfxModelPart* parts;
+    uint32_t      part_count;
+} GfxModelGeometry;
+
+typedef struct GfxModel {
+    GfxModelGeometry* geometries;
+    uint32_t          geometry_count;
+} GfxModel;
+
+typedef struct GfxObject {
+    GfxModel model;
+} GfxObject;
+
+typedef struct GfxScenery {
+    GfxObject obj;
+} GfxScenery;
+
 typedef struct MapRenderGlob {
     GfxLightmap*     lightmaps;
     uint32_t         lightmap_count;
+    GfxScenery*      scenery;
+    uint32_t         scenery_count;
     GfxShaderProgram prog;
 } MapRenderGlob;
 extern MapRenderGlob r_mapGlob;

@@ -570,6 +570,46 @@ static void R_LoadLightmap(const BSPLightmap* bsp_lightmap, GfxLightmap* lightma
     }
 }
 
+static void R_LoadModelPart(const BSPModelGeometryPart* bsp_part, GfxModelPart* part) {
+    BSPModelDecompressedVertex* vertices = bsp_part->decompressed_vertices.pointer;
+    part->vertex_count = bsp_part->decompressed_vertices.count;
+    part->type = bsp_part->tri_buffer_type;
+
+    bool b = R_CreateVertexBuffer(vertices, part->vertex_count, part->vertex_count, 0, sizeof(*vertices), &part->vb);
+    assert(b);
+}
+
+static void R_LoadModelGeometry(const BSPModelGeometry* bsp_geometry, GfxModelGeometry* geometry) {
+    geometry->part_count = bsp_geometry->parts.count;
+    geometry->parts = Z_Zalloc(geometry->part_count * sizeof(*geometry->parts));
+    assert(geometry->parts);
+    BSPModelGeometryPart* bsp_parts = (BSPModelGeometryPart*)bsp_geometry->parts.pointer;
+    for (int i = 0; i < bsp_geometry->parts.count; i++) {
+        R_LoadModelPart(&bsp_parts[i], &geometry->parts[i]);
+    }
+}
+
+static void R_LoadModel(const BSPModel* bsp_model, GfxModel* model) {
+    model->geometry_count = bsp_model->geometries.count;
+    model->geometries = Z_Zalloc(model->geometry_count * sizeof(*model->geometries));
+    assert(model->geometries);
+    BSPModelGeometry* bsp_geometries = (BSPModelGeometry*)bsp_model->geometries.pointer;
+    for (int i = 0; i < bsp_model->geometries.count; i++) {
+        R_LoadModelGeometry(&bsp_geometries[i], &model->geometries[i]);
+    }
+}
+
+static void R_LoadObject(const BSPObject* bsp_object, GfxObject* object) {
+    Tag* model_tag = CL_Map_Tag(bsp_object->model.id);
+    assert(model_tag);
+    BSPModel* bsp_model = (BSPModel*)model_tag->tag_data;
+    R_LoadModel(bsp_model, &object->model);
+}
+
+static void R_LoadScenery(const BSPScenery* bsp_scenery, GfxScenery* scenery) {
+    R_LoadObject(&bsp_scenery->object, &scenery->obj);
+}
+
 void R_LoadMap(void) {
     r_mapGlob.lightmap_count = CL_Map_LightmapCount();
     r_mapGlob.lightmaps = Z_Zalloc(
@@ -579,6 +619,14 @@ void R_LoadMap(void) {
         const BSPLightmap* bsp_lightmap = CL_Map_Lightmap(i);
         GfxLightmap* lightmap = &r_mapGlob.lightmaps[i];
         R_LoadLightmap(bsp_lightmap, lightmap);
+    }
+
+    r_mapGlob.scenery_count = CL_Map_SceneryCount();
+    r_mapGlob.scenery = Z_Zalloc(r_mapGlob.scenery_count * sizeof(*r_mapGlob.scenery));
+    for (uint32_t i = 0; i < r_mapGlob.scenery_count; i++) {
+        const bsp_scenery = CL_Map_Scenery(i);
+        GfxScenery* scenery = &r_mapGlob.scenery[i];
+        R_LoadScenery(bsp_scenery, scenery);
     }
 }
 
@@ -642,6 +690,27 @@ static void R_RenderMaterial(GfxMaterial* material) {
     }
 }
 
+static void R_RenderModelPart(GfxModelPart* part) {
+    bool b = R_BindVertexBuffer(&part->vb, 0);
+    assert(b);
+
+}
+
+static void R_RenderObject(GfxObject* obj) {
+    GfxModelGeometry* geometries = obj->model.geometries;
+    for (int i = 0; i < obj->model.geometry_count; i++) {
+        GfxModelGeometry* geometry = &geometries[i];
+        for (int j = 0; j < geometry->part_count; j++) {
+            GfxModelPart* part = &geometry->parts[j];
+            R_RenderModelPart(part);
+        }
+    }
+}
+
+static void R_RenderScenery(GfxScenery* scenery) {
+    R_RenderObject(&scenery->obj);
+}
+
 static void R_RenderMapInternal(void) {
     R_EnableDepthTest();
     R_EnableBackFaceCulling();
@@ -668,6 +737,11 @@ static void R_RenderMapInternal(void) {
             R_RenderMaterial(material);
         }
     }
+
+    for (uint32_t i = 0; i < r_mapGlob.scenery_count; i++) {
+        R_RenderScenery(&r_mapGlob.scenery[i]);
+    }
+
     R_BindShaderProgram(NULL);
     R_DisableBackFaceCulling();
     R_DisableDepthTest();
@@ -691,6 +765,25 @@ void R_UnloadLightmap(A_IN GfxLightmap* lightmap) {
         R_UnloadMaterial(material);
     }
     Z_Free(lightmap->materials);
+}
+
+void R_UnloadModelPart(A_IN GfxModelPart* part) {
+    R_DeleteVertexBuffer(&part->vb);
+}
+
+void R_UnloadObject(A_IN GfxObject* obj) {
+    GfxModelGeometry* geometries = obj->model.geometries;
+    for (int i = 0; i < obj->model.geometry_count; i++) {
+        GfxModelGeometry* geometry = &geometries[i];
+        for (int j = 0; j < geometry->part_count; j++) {
+            GfxModelPart* part = &geometry->parts[j];
+            R_UnloadModelPart(part);
+        }
+    }
+}
+
+void R_UnloadScenery(A_IN GfxScenery* scenery) {
+    R_UnloadObject(&scenery->obj);
 }
 
 void R_UnloadMap(void) {

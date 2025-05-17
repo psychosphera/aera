@@ -36,7 +36,9 @@ typedef enum TagFourCC {
 	TAG_FOURCC_SHADER             = A_MAKE_FOURCC('s', 'h', 'd', 'r'),
 	TAG_FOURCC_SHADER_ENVIRONMENT = A_MAKE_FOURCC('s', 'e', 'n', 'v'),
 	TAG_FOURCC_SKY                = A_MAKE_FOURCC('s', 'k', 'y', ' '),
-	TAG_FOURCC_MODEL              = A_MAKE_FOURCC('m', 'o', 'd', 'e')
+	TAG_FOURCC_MODEL              = A_MAKE_FOURCC('m', 'o', 'd', 'e'),
+	TAG_FOURCC_SCENERY            = A_MAKE_FOURCC('s', 'c', 'e', 'n'),
+	TAG_FOURCC_OBJECT             = A_MAKE_FOURCC('o', 'b', 'j', 'e')
 } TagFourCC;
 
 A_PACK(struct MapHeader {
@@ -126,6 +128,22 @@ A_PACK(struct TagHeaderCommon {
 });
 typedef struct TagHeaderCommon TagHeaderCommon;
 A_STATIC_ASSERT(sizeof(TagHeaderCommon) == 20);
+
+A_PACK(struct BSPModelPartVerticesIndirect {
+	uint32_t __pad1;
+	uint32_t vertices;
+	uint32_t __pad2;
+});
+typedef struct BSPModelPartVerticesIndirect BSPModelPartVerticesIndirect;
+A_STATIC_ASSERT(sizeof(BSPModelPartVerticesIndirect) == 12);
+
+A_PACK(struct BSPModelPartIndicesIndirect {
+	uint32_t __pad1;
+	uint32_t indices;
+	uint32_t __pad2;
+});
+typedef struct BSPModelPartIndicesIndirect BSPModelPartIndicesIndirect;
+A_STATIC_ASSERT(sizeof(BSPModelPartIndicesIndirect) == 12);
 
 A_PACK(struct ScenarioBSP {
 	uint32_t bsp_start, bsp_size, bsp_address, __pad;
@@ -699,7 +717,7 @@ A_STATIC_ASSERT(sizeof(BSPShaderEnvironment) == 836);
 
 A_PACK(struct BSPSky {
 	TagDependency model;
-	TagDependency animation_graph;
+	TagDependency anim_graph;
 	char          __pad1[24];
 	acolor_rgb_t  indoor_ambient_color;
 	float         indoor_ambient_power;
@@ -718,7 +736,7 @@ A_PACK(struct BSPSky {
 	TagDependency indoor_fog_screen;
 	char          __pad4[4];
 	TagReflexive  shader_functions;
-	TagReflexive  animations;
+	TagReflexive  anims;
 	TagReflexive  lights;
 });
 typedef struct BSPSky BSPSky;
@@ -841,11 +859,15 @@ A_PACK(struct BSPModelGeometryPart {
 	TagReflexive decompressed_vertices;
 	TagReflexive compressed_vertices;
 	TagReflexive triangles;
-	BSPModelTriBufferType tri_buffer_type;
+	// BSPModelTriBufferType
+	uint16_t tri_buffer_type;
+	char __pad1[2];
 	uint32_t tri_count, tri_offset, tri_offset2;
-	BSPVertexType vertex_type;
+	// BSPVertexType
+	uint16_t vertex_type;
+	char __pad2[2];
 	uint32_t vertex_count;
-	char __pad[4];
+	char __pad3[4];
 	uint32_t vertex_pointer;
 	uint32_t vertex_offset;
 });
@@ -899,6 +921,293 @@ A_PACK(struct BSPModel {
 typedef struct BSPModel BSPModel;
 A_STATIC_ASSERT(sizeof(BSPModel) == 232);
 
+typedef enum BSPObjectType {
+	BSP_OBJECT_TYPE_BIPED = 0,
+	BSP_OBJECT_TYPE_VEHICLE = 1,
+	BSP_OBJECT_TYPE_WEAPON = 2,
+	BSP_OBJECT_TYPE_EQUIPMENT = 3,
+	BSP_OBJECT_TYPE_GARBAGE = 4,
+	BSP_OBJECT_TYPE_PROJECTILE = 5,
+	BSP_OBJECT_TYPE_SCENERY = 6,
+	BSP_OBJECT_TYPE_DEVICE_MACHINE = 7,
+	BSP_OBJECT_TYPE_DEVICE_CONTROL = 8,
+	BSP_OBJECT_TYPE_DEVICE_LIGHT_FIXTURE = 9,
+	BSP_OBJECT_TYPE_PLACEHOLDER = 10,
+	BSP_OBJECT_TYPE_SOUND_SCENERY = 11
+} BSPObjectType;
+
+typedef enum BSPObjectFlags {
+	BSP_OBJECT_FLAG_DOES_NOT_CAST_SHADOW = 0x01,
+	BSP_OBJECT_FLAG_TRANSPARENT_SELF_OCCLUSION = 0x02,
+	BSP_OBJECT_FLAG_BRIGHTER_THAN_IT_SHOULD_BE = 0x04,
+	BSP_OBJECT_FLAG_NOT_A_PATHFINDING_OBSTACLE = 0x08,
+	BSP_OBJECT_FLAG_EXTENSION_OF_PARENT = 0x10,
+	BSP_OBJECT_FLAG_CAST_SHADOW_BY_DEFAULT = 0x20,
+	BSP_OBJECT_FLAG_DOES_NOT_HAVE_ANNIVERSARY_GEOMETRY = 0x40
+} BSPObjectFlags;
+
+typedef enum BSPObjectFunctionIn {
+	BSP_OBJECT_FUNCTION_IN_NONE = 0,
+	BSP_OBJECT_FUNCTION_IN_BODY_VITALITY = 1,
+	BSP_OBJECT_FUNCTION_IN_SHIELD_VITALITY = 2,
+	BSP_OBJECT_FUNCTION_IN_RECENT_BODY_DAMAGE = 3,
+	BSP_OBJECT_FUNCTION_IN_RECENT_SHIELD_DAMAGE = 4,
+	BSP_OBJECT_FUNCTION_IN_RANDOM_CONSTANT = 5,
+	BSP_OBJECT_FUNCTION_IN_UMBRELLA_SHIELD_VITALITY = 6,
+	BSP_OBJECT_FUNCTION_IN_SHIELD_STUN = 7,
+	BSP_OBJECT_FUNCTION_IN_RECENT_UMBRELLA_SHIELD_VITALITY = 8,
+	BSP_OBJECT_FUNCTION_IN_UMBRELLA_SHIELD_STUN = 9,
+	BSP_OBJECT_FUNCTION_IN_REGION = 10,
+	BSP_OBJECT_FUNCTION_IN_REGION_1 = 11,
+	BSP_OBJECT_FUNCTION_IN_REGION_2 = 12,
+	BSP_OBJECT_FUNCTION_IN_REGION_3 = 13,
+	BSP_OBJECT_FUNCTION_IN_REGION_4 = 14,
+	BSP_OBJECT_FUNCTION_IN_REGION_5 = 15,
+	BSP_OBJECT_FUNCTION_IN_REGION_6 = 16,
+	BSP_OBJECT_FUNCTION_IN_REGION_7 = 17,
+	BSP_OBJECT_FUNCTION_IN_ALIVE = 18,
+	BSP_OBJECT_FUNCTION_IN_COMPASS = 19
+} BSPObjectFunctionIn;
+
+typedef enum BSPObjectFunctionOut {
+	BSP_OBJECT_FUNCTION_OUT_NONE = 0,
+	BSP_OBJECT_FUNCTION_OUT_A_OUT = 1,
+	BSP_OBJECT_FUNCTION_OUT_B_OUT = 2,
+	BSP_OBJECT_FUNCTION_OUT_C_OUT = 3,
+	BSP_OBJECT_FUNCTION_OUT_D_OUT = 4,
+} BSPObjectFunctionOut;
+
+typedef enum BSPObjectFunctionNameNullable {
+	BSP_OBJECT_FUNCTION_NAME_NULLABLE_NONE,
+	BSP_OBJECT_FUNCTION_NAME_NULLABLE_A,
+	BSP_OBJECT_FUNCTION_NAME_NULLABLE_B,
+	BSP_OBJECT_FUNCTION_NAME_NULLABLE_C,
+	BSP_OBJECT_FUNCTION_NAME_NULLABLE_D,
+} BSPObjectFunctionNameNullable;
+
+A_PACK(struct BSPObjectAttachment {
+	TagDependency type;
+	char marker[32];
+	// BSPObjectFunctionOut
+	uint16_t primary_scale, secondary_scale;
+	// BSPObjectFunctionNameNullable
+	uint16_t change_color;
+	char __pad[18];
+});
+typedef struct BSPObjectAttachment BSPObjectAttachment;
+A_STATIC_ASSERT(sizeof(BSPObjectAttachment) == 72);
+
+A_PACK(struct BSPObjectWidget {
+	TagDependency reference;
+	char __pad[16];
+});
+typedef struct BSPObjectWidget BSPObjectWidget;
+A_STATIC_ASSERT(sizeof(BSPObjectWidget) == 32);
+
+typedef enum BSPObjectFunctionFlags {
+	BSP_OBJECT_FUNCTION_FLAGS_FLAG_INVERT        = 0x01,
+	BSP_OBJECT_FUNCTION_FLAGS_FLAG_ADDITIVE      = 0x02,
+	BSP_OBJECT_FUNCTION_FLAGS_FLAG_ALWAYS_ACTIVE = 0x04,
+} BSPObjectFunctionFlags;
+
+typedef enum BSPObjectFunctionScaleBy {
+	BSP_OBJECT_FUNCTION_SCALE_BY_NONE = 0,
+	BSP_OBJECT_FUNCTION_SCALE_BY_A_IN = 1,
+	BSP_OBJECT_FUNCTION_SCALE_BY_B_IN = 2,
+	BSP_OBJECT_FUNCTION_SCALE_BY_C_IN = 3,
+	BSP_OBJECT_FUNCTION_SCALE_BY_D_IN = 4,
+	BSP_OBJECT_FUNCTION_SCALE_BY_A_OUT = 5,
+	BSP_OBJECT_FUNCTION_SCALE_BY_B_OUT = 6,
+	BSP_OBJECT_FUNCTION_SCALE_BY_C_OUT = 7,
+	BSP_OBJECT_FUNCTION_SCALE_BY_D_OUT = 8
+} BSPObjectFunctionScaleBy;
+
+typedef enum BSPObjectWaveFunction {
+	BSP_OBJECT_WAVE_FUNCTION_ONE,
+	BSP_OBJECT_WAVE_FUNCTION_ZERO,
+	BSP_OBJECT_WAVE_FUNCTION_COSINE,
+	BSP_OBJECT_WAVE_FUNCTION_COSINE_VARIABLE_PERIOD,
+	BSP_OBJECT_WAVE_FUNCTION_DIAGONAL_WAVE,
+	BSP_OBJECT_WAVE_FUNCTION_DIAGONAL_WAVE_VARIABLE_PERIOD,
+	BSP_OBJECT_WAVE_FUNCTION_SLIDE,
+	BSP_OBJECT_WAVE_FUNCTION_SLIDE_VARIABLE_PERIOD,
+	BSP_OBJECT_WAVE_FUNCTION_NOISE,
+	BSP_OBJECT_WAVE_FUNCTION_JITTER,
+	BSP_OBJECT_WAVE_FUNCTION_WANDER,
+	BSP_OBJECT_WAVE_FUNCTION_SPARK
+} BSPObjectWaveFunction;
+
+typedef enum BSPObjectFunctionType {
+	BSP_OBJECT_FUNCTION_TYPE_LINEAR,
+	BSP_OBJECT_FUNCTION_TYPE_EARLY,
+	BSP_OBJECT_FUNCTION_TYPE_VERY_EARLY,
+	BSP_OBJECT_FUNCTION_TYPE_LATE,
+	BSP_OBJECT_FUNCTION_TYPE_VERY_LATE,
+	BSP_OBJECT_FUNCTION_TYPE_COSINE
+} BSPObjectFunctionType;
+
+typedef enum BSPObjectFunctionBoundsMode {
+	BSP_OBJECT_FUNCTION_BOUNDS_MODE_CLIP,
+	BSP_OBJECT_FUNCTION_BOUNDS_MODE_CLIP_AND_NORMALIZE,
+	BSP_OBJECT_FUNCTION_BOUNDS_MODE_SCALE_TO_FIT
+} BSPObjectFunctionBoundsMode;
+
+A_PACK(struct BSPObjectFunction {
+	BSPObjectFunctionFlags flags;
+	float period;
+	// BSPObjectFunctionScaleBy
+	uint16_t scale_period_by;
+	// BSPObjectWaveFunction
+	uint16_t function;
+	// BSPObjectFunctionScaleBy
+	uint16_t scale_function_by;
+	// BSPObjectWaveFunction
+	uint16_t wobble_function;
+	float wobble_period, wobble_magnitude;
+	float square_wave_threshold;
+	uint16_t step_count;
+	// BSPObjectFunctionType
+	uint16_t map_to;
+	uint16_t sawtooth_count;
+	// BSPObjectFunctionScaleBy
+	uint16_t add, scale_result_by;
+	// BSPObjectFunctionBoundsMode
+	uint16_t bounds_mode;
+	abounds2f_t bounds;
+	char __pad1[6];
+	uint16_t turn_off_with;
+	float scale_by;
+	char __pad2[252];
+	float inverse_bounds, inverse_sawtooth, inverse_step, inverse_period;
+	char usage[32];
+});
+typedef struct BSPObjectFunction BSPObjectFunction;
+A_STATIC_ASSERT(sizeof(BSPObjectFunction) == 360);
+
+typedef enum BSPObjectColorInterpolationFlags {
+	BSP_OBJECT_COLOR_INTERPOLATION_FLAG_BLEND_IN_HSV = 0x01,
+	BSP_OBJECT_COLOR_INTERPOLATION_FLAG_MORE_COLORS  = 0x02
+} BSPObjectColorInterpolationFlags;
+
+A_PACK(struct BSPObjectChangeColorsPermutation {
+	float weight;
+	acolor_rgb_t color_lower_bound, color_upper_bound;
+});
+typedef struct BSPObjectChangeColorsPermutation 
+	BSPObjectChangeColorsPermutation;
+A_STATIC_ASSERT(sizeof(BSPObjectChangeColorsPermutation) == 28);
+
+A_PACK(struct BSPObjectChangeColors {
+	// BSPObjectFunctionScaleBy
+	uint16_t darken_by, scale_by;
+	BSPObjectColorInterpolationFlags flags;
+	acolor_rgb_t color_lower_bound, color_upper_bound;
+	TagReflexive permutations;
+});
+typedef struct BSPObjectChangeColors BSPObjectChangeColors;
+A_STATIC_ASSERT(sizeof(BSPObjectChangeColors) == 44);
+
+typedef enum BSPObjectPredictedResourceType {
+	BSP_OBJECT_PREDICTED_RESOURCE_TYPE_BITMAP = 0,
+	BSP_OBJECT_PREDICTED_RESOURCE_TYPE_SOUND = 1
+} BSPObjectPredictedResourceType;
+
+A_PACK(struct BSPObjectPredictedResource {
+	// BSPObjectPredictedResourceType
+	uint16_t type;
+	uint16_t index;
+	TagId id;
+});
+typedef struct BSPObjectPredictedResource BSPObjectPredictedResource;
+A_STATIC_ASSERT(sizeof(BSPObjectPredictedResource) == 8);
+
+A_PACK(struct BSPObject {
+	// BSPObjectType
+	uint16_t type;
+	// BSPObjectFlags
+	uint16_t flags;
+	float bounding_radius;
+	apoint3f_t bounding_offset;
+	apoint3f_t origin_offset;
+	float accel_scale;
+	uint32_t scales_change_colors;
+	TagDependency model;
+	TagDependency anim_graph;
+	char __pad1[40];
+	TagDependency collision_model;
+	TagDependency physics;
+	TagDependency modifier_shader;
+	TagDependency creation_effect;
+	char __pad2[84];
+	float render_bounding_radius;
+	// BSPObjectFunctionIn
+	uint16_t a_in, b_in, c_in, d_in;
+	char __pad3[44];
+	uint16_t hud_message_text_index;
+	uint16_t forced_shader_permutation_index;
+	TagReflexive attachments;
+	TagReflexive widgets;
+	TagReflexive functions;
+	TagReflexive change_colors;
+	TagReflexive predicted_resources;
+});
+typedef struct BSPObject BSPObject;
+A_STATIC_ASSERT(sizeof(BSPObject) == 380);
+
+typedef enum BSPBaseObjectFlags {
+	BSP_BASE_OBJECT_FLAG_OFF_IN_PEGASUS = 0x01
+} BSPBaseObjectFlags;
+
+A_PACK(struct BSPBasicObject {
+	BSPObject object;
+	char __pad1[2];
+	// BSPBaseObjectFlags
+	uint16_t more_flags;
+	char __pad2[124];
+});
+typedef struct BSPBasicObject BSPBasicObject;
+A_STATIC_ASSERT(sizeof(BSPBasicObject) == 508);
+
+typedef BSPBasicObject BSPScenery;
+
+typedef enum BSPScenarioSceneryFlags {
+	BSP_SCENARIO_SCENERY_FLAG_NOT_AUTOMATICALLY_PLACED = 0x01,
+	BSP_SCENARIO_SCENERY_FLAG_PRESENT_ON_EASY          = 0x02,
+	BSP_SCENARIO_SCENERY_FLAG_PRESENT_ON_NORMAL        = 0x04,
+	BSP_SCENARIO_SCENERY_FLAG_PRESENT_ON_HARD          = 0x08
+} BSPScenarioSceneryFlags;
+
+A_PACK(struct BSPScenarioScenery {
+	uint16_t type;
+	uint16_t name_index;
+	// BSPScenarioSceneryFlags
+	uint16_t flags;
+	uint16_t desired_permutation;
+	apoint3f_t pos;
+	float yaw, pitch, roll;
+	uint16_t bsp_indices;
+	char __pad1[2];
+	uint8_t appearance_player_index;
+	char __pad2[35];
+});
+typedef struct BSPScenarioScenery BSPScenarioScenery;
+A_STATIC_ASSERT(sizeof(BSPScenarioScenery) == 72);
+
+A_PACK(struct BSPScenarioObjectName {
+	char name[32];
+	uint16_t object_type;
+	uint16_t object_index;
+});
+typedef struct BSPScenarioObjectName BSPScenarioObjectName;
+A_STATIC_ASSERT(sizeof(BSPScenarioObjectName) == 36);
+
+A_PACK(struct BSPScenarioSceneryPalette {
+	TagDependency name;
+	char __pad[32];
+});
+typedef struct BSPScenarioSceneryPalette BSPScenarioSceneryPalette;
+A_STATIC_ASSERT(sizeof(BSPScenarioSceneryPalette) == 48);
+
 A_EXTERN_C void               CL_InitMap(void);
 A_EXTERN_C bool               CL_LoadMap(const char* map_name);
 A_EXTERN_C bool               CL_UnloadMap(void);
@@ -917,6 +1226,8 @@ A_EXTERN_C BSPCollVertex*     CL_Map_CollVertices(void);
 A_EXTERN_C uint32_t       	  CL_Map_CollVertexCount(void);
 A_EXTERN_C BSPLightmap*       CL_Map_Lightmap(uint16_t i);
 A_EXTERN_C uint32_t           CL_Map_LightmapCount(void);
+A_EXTERN_C BSPScenery*        CL_Map_Scenery(uint16_t i);
+A_EXTERN_C uint32_t           CL_Map_SceneryCount(void);
 
 A_EXTERN_C bool               CL_BitmapDataFormatIsCompressed(BSPBitmapDataFormat format);
 A_EXTERN_C size_t             CL_BitmapDataFormatBPP(BSPBitmapDataFormat format);
