@@ -57,7 +57,7 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
         sizeof(s_subTexDefs),
         0,
         sizeof(GfxSubTexDef),
-        &f->pass.vbs[0]
+        &f->vertex_declaration.vbs[0]
     );
     assert(b);
     if (!b)
@@ -82,12 +82,9 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
         height = A_MAX(height, g->height);
     }
 
-    GfxImage image;
     b = R_CreateImage2D(NULL, 0, width, height, 1, format, true, true, true,
-                        minfilter, magfilter, &image);
-    GfxImage* pImage = R_AddImageToMaterialPass(&f->pass, &image);
+                        minfilter, magfilter, &f->atlas);
     assert(b);
-    assert(pImage);
     GfxShaderUniformDef uniform;
 
     //R_CreateUniformInt("uTex", 0, &uniform);
@@ -114,7 +111,7 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
     assert(pUniform);
 
 #if A_RENDER_BACKEND_GL
-    GL_CALL(glBindVertexArray, f->pass.vbs[0].vao);
+    GL_CALL(glBindVertexArray, f->vertex_declaration.vbs[0].vao);
     GL_CALL(glVertexAttribPointer,
         0, 2, GL_FLOAT, (GLboolean)GL_FALSE,
         (GLsizei)sizeof(GfxSubTexDef), (void*)offsetof(GfxSubTexDef, x)
@@ -151,9 +148,9 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
         D3DDECL_END()
     };
     D3D_CALL(r_d3d9Glob.d3ddev, CreateVertexDeclaration, vertex_elements, 
-                                                         &f->pass.decl);
-    assert(f->pass.decl);
-    if (!f->pass.decl)
+                                                         &f->vertex_declaration.decl);
+    assert(f->vertex_declaration.decl);
+    if (!f->vertex_declaration.decl)
         return false;
 #endif // A_RENDER_BACKEND_GL
     int bpp = R_ImageFormatBPP(format);
@@ -169,7 +166,7 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
 
         if (g->width > 0 && g->height > 0) {
             b = R_ImageSubData(
-                pImage, g->pixels, g->width * g->height * bpp / 8,
+                &f->atlas, g->pixels, g->width * g->height * bpp / 8,
                 width, 0,
                 g->width, g->height, format
             );
@@ -189,7 +186,8 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
 
 void R_DeleteTextureAtlas(A_INOUT FontDef* f) {
     R_DeleteShaderProgram(&f->prog);
-    R_DeleteMaterialPass(&f->pass);
+    R_DeleteImage(&f->atlas);
+    R_DeleteVertexDeclaration(&f->vertex_declaration);
 }
 
 void R_DrawText(
@@ -218,11 +216,11 @@ void R_DrawText(
     assert(b);
     if (!b)
         return;
-    b = R_BindVertexBuffer(&font->pass.vbs[0], 0);
+    b = R_BindVertexBuffer(&font->vertex_declaration.vbs[0], 0);
     assert(b);
     if (!b)
         return;
-    b = R_BindImage(&font->pass.images[0], 0);
+    b = R_BindImage(&font->atlas, 0);
     assert(b);
     if (!b)
         return;
@@ -343,9 +341,9 @@ void R_DrawText(
                                           SHADER_TYPE_PIXEL, atlasCoord);
         }
 
-        R_BindVertexBuffer(&font->pass.vbs[0], 0);
-        R_BindImage(&font->pass.images[0], 0);
-        b = R_DrawTris(2, 0);
+        R_BindVertexBuffer(&font->vertex_declaration.vbs[0], 0);
+        R_BindImage(&font->atlas, 0);
+        b = R_DrawPrimitives(PRIMITIVE_TYPE_TRI, 2, 0);
         assert(b);
         if (!b)
             return;

@@ -26,7 +26,6 @@ bool    uWireframe;
 int     uType;
 int     uDetailMapFunction;
 int     uMicroDetailMapFunction;
-float4  uMaterialColor;
 float4  uAmbientColor;
 float4  uDistantLight0Dir;
 float4  uDistantLight1Dir;
@@ -62,7 +61,7 @@ float3 ShaderDetailMap(float3 Base, float3 Detail, float3 DetailMask, int Fn) {
 */
 
 float4 main(PS_INPUT Input) : COLOR0 {
-    if (uWireframe) {
+    if (!uWireframe) {
         float4 BaseColor = tex2D(uBaseMap, Input.TexCoords);
     /*
     float4 PrimaryDetailColor   = 1.0f;

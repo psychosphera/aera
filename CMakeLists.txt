@@ -52,34 +52,6 @@ add_subdirectory(
 	${CMAKE_SOURCE_DIR}/deps/SDL_image_build
 )
 
-set(SDL3_LIB_DIR ${CMAKE_SOURCE_DIR}/deps/SDL_image/external/SDL_build)
-set(SDL3_LIB_NAME 
-	${CMAKE_SHARED_LIBRARY_PREFIX}SDL3${CMAKE_SHARED_LIBRARY_SUFFIX}
-)
-set(SDL3_PATH ${SDL3_LIB_DIR}/${SDL3_LIB_NAME})
-message(STATUS ${SDL3_PATH})
-add_custom_target(SDL3_lib)
-add_custom_command(
-	TARGET SDL3_lib POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy
-	        ${SDL3_LIB_DIR}/${SDL3_LIB_NAME}
-	        ${CMAKE_CURRENT_BINARY_DIR}
-)
-
-set(SDL3_IMAGE_LIB_DIR ${CMAKE_SOURCE_DIR}/deps/SDL_image_build)
-set(SDL3_IMAGE_LIB_NAME 
-	${CMAKE_SHARED_LIBRARY_PREFIX}SDL3_image${CMAKE_SHARED_LIBRARY_SUFFIX}
-)
-set(SDL3_IMAGE_PATH ${SDL3_IMAGE_LIB_DIR}/${SDL3_IMAGE_LIB_NAME})
-message(STATUS ${SDL3_IMAGE_PATH})
-add_custom_target(SDL3_image_lib)
-add_custom_command(
-	TARGET SDL3_image_lib POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy ${SDL3_IMAGE_PATH}
-	        ${SDL3_IMAGE_LIB_DIR}/${SDL3_IMAGE_LIB_NAME}
-	        ${CMAKE_CURRENT_BINARY_DIR}
-)
-
 set(COMMON_SRC 
 	src/acommon/a_common.c src/acommon/a_io.c src/acommon/a_math.c 
 	src/acommon/a_string.c src/acommon/a_type.c 
@@ -150,8 +122,6 @@ if (DEFINED RENDER_BACKEND_GL)
 	find_package(OpenGL REQUIRED)
 	
 	add_executable(h1_map_viewer_gl ${COMMON_SRC})
-	add_dependencies(h1_map_viewer_gl SDL3_lib)
-	add_dependencies(h1_map_viewer_gl SDL3_image_lib)
 	
 	target_link_libraries(h1_map_viewer_gl PRIVATE ${COMMON_LIBS} ${GL_LIBS})
 	target_include_directories(h1_map_viewer_gl PRIVATE ${COMMON_INCLUDE_DIRS})

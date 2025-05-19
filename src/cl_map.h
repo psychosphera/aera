@@ -35,6 +35,7 @@ typedef enum TagFourCC {
 	TAG_FOURCC_BITMAP             = A_MAKE_FOURCC('b', 'i', 't', 'm'),
 	TAG_FOURCC_SHADER             = A_MAKE_FOURCC('s', 'h', 'd', 'r'),
 	TAG_FOURCC_SHADER_ENVIRONMENT = A_MAKE_FOURCC('s', 'e', 'n', 'v'),
+	TAG_FOURCC_SHADER_MODEL       = A_MAKE_FOURCC('s', 'o', 's', 'o'),
 	TAG_FOURCC_SKY                = A_MAKE_FOURCC('s', 'k', 'y', ' '),
 	TAG_FOURCC_MODEL              = A_MAKE_FOURCC('m', 'o', 'd', 'e'),
 	TAG_FOURCC_SCENERY            = A_MAKE_FOURCC('s', 'c', 'e', 'n'),
@@ -715,6 +716,88 @@ A_PACK(struct BSPShaderEnvironment {
 typedef struct BSPShaderEnvironment BSPShaderEnvironment;
 A_STATIC_ASSERT(sizeof(BSPShaderEnvironment) == 836);
 
+typedef enum BSPShaderModelFlags {
+	BSP_SHADER_MODEL_FLAGS_FLAG_DETAIL_AFTER_REFLECTION             = 0x01,
+	BSP_SHADER_MODEL_FLAGS_FLAG_TWO_SIDED                           = 0x02,
+	BSP_SHADER_MODEL_FLAGS_FLAG_NOT_ALPHA_TESTED                    = 0x04,
+	BSP_SHADER_MODEL_FLAGS_FLAG_ALPHA_BLENDED_DECAL                 = 0x08,
+	BSP_SHADER_MODEL_FLAGS_FLAG_TRUE_ATMOSPHERIC_FOG                = 0x10,
+	BSP_SHADER_MODEL_FLAGS_FLAG_DISABLE_TWO_SIDED_CULLING           = 0x20,
+	BSP_SHADER_MODEL_FLAGS_FLAG_USE_XBOX_MULTIPURPOSE_CHANNEL_ORDER = 0x40
+} BSPShaderModelFlags;
+
+typedef enum BSPShaderModelDetailMask {
+	BSP_SHADER_MODEL_DETAIL_MASK_NONE                           = 0,
+	BSP_SHADER_MODEL_DETAIL_MASK_REFLECTION_MASK_INVERSE        = 1,
+	BSP_SHADER_MODEL_DETAIL_MASK_REFLECTION_MASK                = 2,
+	BSP_SHADER_MODEL_DETAIL_MASK_SELF_ILLUMINATION_MASK_INVERSE = 3,
+	BSP_SHADER_MODEL_DETAIL_MASK_SELF_ILLUMINATION_MASK         = 4,
+	BSP_SHADER_MODEL_DETAIL_MASK_CHANGE_COLOR_MASK_INVERSE      = 5,
+	BSP_SHADER_MODEL_DETAIL_MASK_CHANGE_COLOR_MASK              = 6,
+	BSP_SHADER_MODEL_DETAIL_MASK_AUXILIARY_MASK_INVERSE         = 7,
+	BSP_SHADER_MODEL_DETAIL_MASK_AUXILIARY_MASK                 = 8,
+} BSPShaderModelDetailMask;
+
+A_PACK(struct BSPShaderModel {
+	BSPShader base;
+	// BSPShaderModelFlags
+	uint16_t flags;
+	char __pad1[14];
+	float translucency;
+	char __pad2[16];
+	// BSPObjectFunctionNameNullable
+	uint16_t change_color_sequence;
+	char __pad3[30];
+	uint16_t more_flags;
+	char __pad4[2];
+	// BSPObjectFunctionNameNullable
+	uint16_t color_sequence;
+	// BSPObjectWaveFunction
+	uint16_t animation_function;
+	float anumation_period;
+	acolor_rgb_t animation_color_upper_bound, animation_color_lower_bound;
+	char __pad5[12];
+	float map_u_scale, map_v_scale;
+	TagDependency base_map;
+	char __pad6[8];
+	TagDependency multipurpose_map;
+	char __pad7[8];
+	// BSPShaderDetailFunction
+	uint16_t detail_function;
+	// BSPShaderModelDetailMask
+	uint16_t detail_mask;
+	float detail_map_scale;
+	TagDependency detail_map;
+	float detail_map_v_scale;
+	char __pad8[12];
+	// BSPObjectFunctionOut 
+	uint16_t u_animation_source;
+	// BSPObjectWaveFunction
+	uint16_t u_anumation_function;
+	float u_animation_period, u_animation_phase, u_animation_scale;
+	// BSPObjectFunctionOut 
+	uint16_t v_animation_source;
+	// BSPObjectWaveFunction
+	uint16_t v_anumation_function;
+	float v_animation_period, v_animation_phase, v_animation_scale;
+	// BSPObjectFunctionOut 
+	uint16_t rotation_animation_source;
+	// BSPObjectWaveFunction
+	uint16_t rotation_anumation_function;
+	float rotation_animation_period, rotation_animation_phase, rotation_animation_scale;
+	apoint2f_t rotation_animation_center;
+	char __pad9[8];
+	float reflection_falloff_distance, reflextion_curoff_distance;
+	float perpendicular_brightness;
+	acolor_rgb_t perpendicular_tint_color;
+	float parallel_brightness;
+	acolor_rgb_t parallel_tint_color;
+	TagDependency reflection_cube_map;
+	char __pad10[68];
+});
+typedef struct BSPShaderModel BSPShaderModel;
+A_STATIC_ASSERT(sizeof(BSPShaderModel) == 440);
+
 A_PACK(struct BSPSky {
 	TagDependency model;
 	TagDependency anim_graph;
@@ -1208,26 +1291,28 @@ A_PACK(struct BSPScenarioSceneryPalette {
 typedef struct BSPScenarioSceneryPalette BSPScenarioSceneryPalette;
 A_STATIC_ASSERT(sizeof(BSPScenarioSceneryPalette) == 48);
 
-A_EXTERN_C void               CL_InitMap(void);
-A_EXTERN_C bool               CL_LoadMap(const char* map_name);
-A_EXTERN_C bool               CL_UnloadMap(void);
-A_EXTERN_C void               CL_ShutdownMap(void);
+A_EXTERN_C void                       CL_InitMap(void);
+A_EXTERN_C bool                       CL_LoadMap(const char* map_name);
+A_EXTERN_C bool                       CL_UnloadMap(void);
+A_EXTERN_C void                       CL_ShutdownMap(void);
+							          
+A_EXTERN_C Tag*                       CL_Map_Tag(TagId id);
+A_EXTERN_C BSPSurf*                   CL_Map_Surfs(void);
+A_EXTERN_C uint32_t       	          CL_Map_SurfCount(void);
+A_EXTERN_C BSPRenderedVertex*         CL_Map_RenderedVertices(void);
+A_EXTERN_C BSPLightmapVertex*         CL_Map_LightmapVertices(void);
+A_EXTERN_C BSPCollSurf*               CL_Map_CollSurfs(void);
+A_EXTERN_C uint32_t       	          CL_Map_CollSurfCount(void);
+A_EXTERN_C BSPCollEdge*               CL_Map_CollEdges(void);
+A_EXTERN_C uint32_t        	          CL_Map_CollEdgeCount(void);
+A_EXTERN_C BSPCollVertex*             CL_Map_CollVertices(void);
+A_EXTERN_C uint32_t       	          CL_Map_CollVertexCount(void);
+A_EXTERN_C BSPLightmap*               CL_Map_Lightmap(uint16_t i);
+A_EXTERN_C uint32_t                   CL_Map_LightmapCount(void);
+A_EXTERN_C BSPScenarioScenery*        CL_Map_ScenarioScenery(uint16_t i);
+A_EXTERN_C uint32_t                   CL_Map_ScenarioSceneryCount(void);
+A_EXTERN_C BSPScenarioSceneryPalette* CL_Map_ScenarioSceneryPalette(uint16_t i);
+A_EXTERN_C uint32_t                   CL_Map_ScenarioSceneryPaletteCount(void);
 
-A_EXTERN_C Tag*               CL_Map_Tag(TagId id);
-A_EXTERN_C BSPSurf*           CL_Map_Surfs(void);
-A_EXTERN_C uint32_t       	  CL_Map_SurfCount(void);
-A_EXTERN_C BSPRenderedVertex* CL_Map_RenderedVertices(void);
-A_EXTERN_C BSPLightmapVertex* CL_Map_LightmapVertices(void);
-A_EXTERN_C BSPCollSurf*       CL_Map_CollSurfs(void);
-A_EXTERN_C uint32_t       	  CL_Map_CollSurfCount(void);
-A_EXTERN_C BSPCollEdge*       CL_Map_CollEdges(void);
-A_EXTERN_C uint32_t        	  CL_Map_CollEdgeCount(void);
-A_EXTERN_C BSPCollVertex*     CL_Map_CollVertices(void);
-A_EXTERN_C uint32_t       	  CL_Map_CollVertexCount(void);
-A_EXTERN_C BSPLightmap*       CL_Map_Lightmap(uint16_t i);
-A_EXTERN_C uint32_t           CL_Map_LightmapCount(void);
-A_EXTERN_C BSPScenery*        CL_Map_Scenery(uint16_t i);
-A_EXTERN_C uint32_t           CL_Map_SceneryCount(void);
-
-A_EXTERN_C bool               CL_BitmapDataFormatIsCompressed(BSPBitmapDataFormat format);
-A_EXTERN_C size_t             CL_BitmapDataFormatBPP(BSPBitmapDataFormat format);
+A_EXTERN_C bool                CL_BitmapDataFormatIsCompressed(BSPBitmapDataFormat format);
+A_EXTERN_C size_t              CL_BitmapDataFormatBPP(BSPBitmapDataFormat format);

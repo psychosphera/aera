@@ -55,7 +55,7 @@ A_EXTERN_C bool R_BindVertexBuffer(const GfxVertexBuffer* vb,
                                    int stream);
 A_EXTERN_C bool R_BindImage(A_INOUT GfxImage* image, int index);
 A_EXTERN_C bool R_BindShaderProgram(const GfxShaderProgram* prog);
-A_EXTERN_C bool R_DrawTris(int tri_count, int tri_off);
+A_EXTERN_C bool R_DrawPrimitives(GfxPrimitiveType type, int primitive_count, int primitive_off);
 
 A_EXTERN_C void R_DrawTextDrawDefs(size_t localClientNum);
 A_EXTERN_C void R_ClearTextDrawDefs(size_t localClientNum);

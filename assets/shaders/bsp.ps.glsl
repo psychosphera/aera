@@ -20,7 +20,6 @@ uniform sampler2D uMap;
 uniform int       uDetailMapFunction;
 uniform int       uMicroDetailMapFunction;
 */
-uniform vec4      uMaterialColor;
 uniform vec4      uAmbientColor;
 /*
 uniform vec4      uDistantLight0Dir;
@@ -82,7 +81,6 @@ void main() {
 		if (HasBumpMap)
 			BumpColor = texture(uBumpMap, lightmap_tex_coords);
 		*/
-		vec4 Ambient = clamp(uAmbientColor * uMaterialColor, 0.0f, 1.0f);
 		
 		//float DistantLight0Diff = max(dot(normal, uDistantLight0Dir.xyz), 0.0);
 		//float DistantLight1Diff = max(dot(normal, uDistantLight1Dir.xyz), 0.0);
@@ -123,7 +121,7 @@ void main() {
 			FragColor = vec4(clamp(
 				 Color.rgb * // MapColor.rgb * //PrimaryDetailColor.rgb * 
 				//SecondaryDetailColor.rgb * MicroDetailColor.rgb * BumpColor.rgb *
-				(Ambient.rgb + Diffuse.rgb), 
+				(uAmbientColor.rgb + Diffuse.rgb), 
 				0.0f, 1.0f
 			), 1.0f);
 		//}

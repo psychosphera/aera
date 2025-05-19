@@ -145,90 +145,17 @@ bool R_AppendVertexData(A_INOUT GfxVertexBuffer* vb,
     return true;
 }
 
-GfxImage* R_AddImageToMaterialPass(A_INOUT GfxMaterialPass* pass, 
-                                   A_IN    GfxImage*        image
+GfxVertexBuffer* R_AddVertexBufferToVertexDeclaration(A_INOUT GfxVertexDeclaration* decl,
+                                                      A_IN GfxVertexBuffer* vb
 ) {
-    assert(pass);
-    assert(image);
-    assert(pass->current_image < A_countof(pass->images));
-
-    pass->images[pass->current_image] = *image;
-    int i = pass->current_image;
-    pass->current_image++;
-    A_memset(image, 0, sizeof(*image));
-    return &pass->images[i];
-}
-
-GfxImage* R_GetMaterialPassImage(A_INOUT GfxMaterialPass* pass, int i) {
-    assert(i < pass->current_image);
-    return &pass->images[i];
-}
-
-GfxVertexBuffer* R_AddVertexBufferToMaterialPass(A_INOUT GfxMaterialPass* pass,
-                                                 A_IN GfxVertexBuffer* vb
-) {
-    assert(pass);
+    assert(decl);
     assert(vb);
-    assert(pass->vb_count < A_countof(pass->vbs));
-    pass->vbs[pass->vb_count] = *vb;
-    GfxVertexBuffer* ret = &pass->vbs[pass->vb_count];
-    pass->vb_count++;
+    assert(decl->vb_count < A_countof(decl->vbs));
+    decl->vbs[decl->vb_count] = *vb;
+    GfxVertexBuffer* ret = &decl->vbs[decl->vb_count];
+    decl->vb_count++;
     A_memset(vb, 0, sizeof(*vb));
     return ret;
-}
-
-bool R_RenderMaterialPass(A_INOUT GfxMaterialPass* pass, 
-                          size_t vertices_count, size_t off, 
-                          GfxPolygonMode mode
-) {
-    assert(pass);
-    if (!pass)
-        return false;
-
-    assert(pass->vb_count > 0);
-    if (pass->vb_count < 1)
-        return false;
-    
-    assert(vertices_count > 0);
-#if A_RENDER_BACKEND_GL
-    assert(pass->vb_count == 1 && 
-           "R_RenderVertexBuffer: GL backend only supports one vertex buffer at a time");
-#elif A_RENDER_BACKEND_D3D9
-    assert(pass->decl);
-    D3D_CALL(r_d3d9Glob.d3ddev, SetVertexDeclaration, pass->decl);
-#endif
-
-    bool b = true;
-    for (int i = 0; i < pass->vb_count; i++) {
-        b = R_BindVertexBuffer(&pass->vbs[i], i);
-        assert(b);
-        if (!b)
-            return false;
-    }
-
-    for (int i = 0; i < pass->current_image; i++) {
-        GfxImage* image = &pass->images[i];
-        b = R_BindImage(image, i);
-        assert(b);
-        if (!b)
-            return false;
-    }
-
-    b = R_SetPolygonMode(mode);
-    assert(b);
-    if (!b)
-        return false;
-    
-    b = R_DrawTris(vertices_count / 3, off / 3);
-    assert(b);
-    if (!b)
-        return false;
-
-    b = R_SetPolygonMode(R_POLYGON_MODE_FILL);
-    assert(b);
-    
-    return b;
-
 }
 
 bool R_DeleteVertexBuffer(A_INOUT GfxVertexBuffer* vb) {
@@ -259,22 +186,18 @@ bool R_DeleteVertexBuffer(A_INOUT GfxVertexBuffer* vb) {
     return true;
 }
 
-bool R_DeleteMaterialPass(A_IN GfxMaterialPass* pass) {
-    assert(pass);
-    if (!pass)
+bool R_DeleteVertexDeclaration(A_IN GfxVertexDeclaration* vertex_declaration) {
+    assert(vertex_declaration);
+    if (!vertex_declaration)
         return false;
 
-    for (int i = 0; i < pass->vb_count; i++) 
-        R_DeleteVertexBuffer(&pass->vbs[i]);    
- 
-    for (int i = 0; i < pass->current_image; i++)
-        R_DeleteImage(&pass->images[i]);
+    for (int i = 0; i < vertex_declaration->vb_count; i++)
+        R_DeleteVertexBuffer(&vertex_declaration->vbs[i]);
 
 #if A_RENDER_BACKEND_D3D9
-    if (pass->decl)
-        D3D_CALL(pass->decl, Release);
+    if (vertex_declaration->decl)
+        D3D_CALL(vertex_declaration->decl, Release);
 #endif // A_RENDER_BACKEND_D3D9
-    A_memset(pass, 0, sizeof(*pass));
     return true;
 }
 
@@ -291,6 +214,7 @@ A_NO_DISCARD GLenum R_ImageFormatToGL(ImageFormat format) {
     case R_IMAGE_FORMAT_RGB565:
        /* gl_format = GL_RGB565;
         break;*/
+       // Intentional fallthrough
     case R_IMAGE_FORMAT_RGB888:
         gl_format = GL_RGB;
         break;
@@ -303,7 +227,11 @@ A_NO_DISCARD GLenum R_ImageFormatToGL(ImageFormat format) {
     case R_IMAGE_FORMAT_DXT5:
         gl_format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
         break;
+    case R_IMAGE_FORMAT_P8:
+        gl_format = GL_ALPHA8;
+        break;
     default:
+        assert(false && "R_ImageFormatToGL: Unimplemented ImageFormat");
         Com_Errorln(
             -1, 
             "R_ImageFormatToGL: Unimplemented ImageFormat %d.", 
@@ -343,7 +271,7 @@ A_NO_DISCARD D3DFORMAT R_ImageFormatToD3D(ImageFormat format) {
 #endif // A_RENDER_BACKEND_GL
 
 #if A_RENDER_BACKEND_GL
-A_NO_DISCARD ImageFormat R_ImageFormatFromGl(GLenum format) {
+A_NO_DISCARD ImageFormat R_ImageFormatFromGL(GLenum format) {
     ImageFormat img_format = R_IMAGE_FORMAT_UNKNOWN;
     switch (format) {
     case GL_ALPHA8:
@@ -367,11 +295,13 @@ A_NO_DISCARD ImageFormat R_ImageFormatFromGl(GLenum format) {
     case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
         img_format = R_IMAGE_FORMAT_DXT5;
         break;
+    case GL_PALETTE8_RGB8_OES:
+        img_format = R_IMAGE_FORMAT_P8;
     default:
         assert(false && "Unimplemented GL format");
         Com_Errorln(
             -1, 
-            "R_ImageFormatToGL: Unimplemented GL format %d.", 
+            "R_ImageFormatFromGL: Unimplemented GL format %d.", 
             format);
     };
 

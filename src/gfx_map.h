@@ -4,17 +4,42 @@
 #include "gfx_defs.h"
 #include "gfx_shader.h"
 
-typedef struct GfxMaterial {
-    GfxMaterialPass         pass;
-    size_t                  vertices_count;
+#define R_MODEL_MAX_SHADERS 32
+
+typedef struct GfxShaderEnvironment {
+    GfxImage                base_map, primary_detail_map, secondary_detail_map;
+    GfxImage                micro_detail_map, bump_map, map;
     bool                    alpha_tested;
     BSPShaderDetailFunction detail_map_function, micro_detail_map_function;
-    acolor_rgb_t            color;
-    acolor_rgb_t            ambient_color;
-    avec3f_t                distant_light_0_dir;
-    avec3f_t                distant_light_1_dir;
-    acolor_rgb_t            distant_light_0_color;
-    acolor_rgb_t            distant_light_1_color;
+} GfxShaderEnvironment;
+
+typedef struct GfxShaderModel {
+    GfxImage                base_map, multipurpose_map, detail_map;
+    BSPShaderDetailFunction detail_function;
+} GfxShaderModel;
+
+typedef enum GfxShaderType {
+    SHADER_TYPE_ENVIRONMENT,
+    SHADER_TYPE_MODEL
+} GfxShaderType;
+
+typedef struct GfxShader {
+    GfxShaderType type;
+    union {
+        GfxShaderEnvironment environment;
+        GfxShaderModel       model;
+    };
+} GfxShader;
+
+typedef struct GfxMaterial {
+    size_t               vertices_count;
+    GfxVertexDeclaration vertex_declaration;
+    GfxShader            shader;
+    acolor_rgb_t         ambient_color;
+    avec3f_t             distant_light_0_dir;
+    avec3f_t             distant_light_1_dir;
+    acolor_rgb_t         distant_light_0_color;
+    acolor_rgb_t         distant_light_1_color;
 } GfxMaterial;
 
 typedef struct GfxLightmap {
@@ -23,9 +48,9 @@ typedef struct GfxLightmap {
 } GfxLightmap;
 
 typedef struct GfxModelPart {
-    uint32_t vertex_count;
-    BSPModelTriBufferType type;
-    GfxVertexBuffer vb;
+    GfxPrimitiveType     primitive_type;
+    GfxVertexDeclaration vertex_declaration;
+    uint32_t             shader_index;
 } GfxModelPart;
 
 typedef struct GfxModelGeometry {
@@ -34,6 +59,7 @@ typedef struct GfxModelGeometry {
 } GfxModelGeometry;
 
 typedef struct GfxModel {
+    GfxShader         shaders[R_MODEL_MAX_SHADERS];
     GfxModelGeometry* geometries;
     uint32_t          geometry_count;
 } GfxModel;
@@ -43,15 +69,24 @@ typedef struct GfxObject {
 } GfxObject;
 
 typedef struct GfxScenery {
-    GfxObject obj;
+    apoint3f_t pos;
+    avec3f_t   rotation;
+    uint16_t   palette_index;
 } GfxScenery;
 
+typedef struct GfxSceneryPalette {
+    GfxObject obj;
+} GfxSceneryPalette;
+
 typedef struct MapRenderGlob {
-    GfxLightmap*     lightmaps;
-    uint32_t         lightmap_count;
-    GfxScenery*      scenery;
-    uint32_t         scenery_count;
-    GfxShaderProgram prog;
+    GfxLightmap*       lightmaps;
+    uint32_t           lightmap_count;
+    GfxScenery*        scenery;
+    uint32_t           scenery_count;
+    GfxSceneryPalette* scenery_palette;
+    uint32_t           scenery_palette_count;
+    GfxShaderProgram   prog;
+    GfxShaderProgram   model_prog;
 } MapRenderGlob;
 extern MapRenderGlob r_mapGlob;
 

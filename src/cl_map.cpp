@@ -33,33 +33,35 @@
 #define BSP_MAX_SKIES 8
 
 struct MapLoadData {
-	StreamFile  		      f;
-	const char* 		      map_name;
-	void*                     p;
-	size_t      		      n;
-	FileMapping               bitmaps_map;
-							  
-	Tag*                      tags;
-	uint32_t                  tag_count;
-	BSPModelCompressedVertex* model_vertices;
-	uint16_t*                 model_indices;
-	BSPSurf*                  surfs;
-	uint32_t                  surf_count;
-	BSPRenderedVertex*        rendered_vertices;
-	BSPLightmapVertex*        lightmap_vertices;
-	BSPCollSurf*              coll_surfs;
-	uint32_t    		      coll_surf_count;
-	BSPCollEdge*              coll_edges;
-	uint32_t    		      coll_edge_count;
-	BSPCollVertex*            coll_vertices;
-	uint32_t    		      coll_vertex_count;
-	BSPCollisionMaterial*     collision_materials;
-	uint32_t                  lightmap_count;
-	BSPLightmap*              lightmaps;
-	BSPSky*                   skies[BSP_MAX_SKIES];
-	uint32_t                  skies_count;
-	BSPScenery*               scenery;
-	uint32_t                  scenery_count;
+	StreamFile  		       f;
+	const char* 		       map_name;
+	void*                      p;
+	size_t      		       n;
+	FileMapping                bitmaps_map;
+							   
+	Tag*                       tags;
+	uint32_t                   tag_count;
+	BSPModelCompressedVertex*  model_vertices;
+	uint16_t*                  model_indices;
+	BSPSurf*                   surfs;
+	uint32_t                   surf_count;
+	BSPRenderedVertex*         rendered_vertices;
+	BSPLightmapVertex*         lightmap_vertices;
+	BSPCollSurf*               coll_surfs;
+	uint32_t    		       coll_surf_count;
+	BSPCollEdge*               coll_edges;
+	uint32_t    		       coll_edge_count;
+	BSPCollVertex*             coll_vertices;
+	uint32_t    		       coll_vertex_count;
+	BSPCollisionMaterial*      collision_materials;
+	uint32_t                   lightmap_count;
+	BSPLightmap*               lightmaps;
+	BSPSky*                    skies[BSP_MAX_SKIES];
+	uint32_t                   skies_count;
+	BSPScenarioScenery*        scenario_scenery;
+	uint32_t                   scenario_scenery_count;
+	BSPScenarioSceneryPalette* scenario_scenery_palette;
+	uint32_t                   scenario_scenery_palette_count;
 
 	Invader::HEK::ScenarioStructureBSP<Invader::HEK::NativeEndian>* bsp_ptr;
 } g_load;
@@ -109,6 +111,7 @@ static size_t CL_BitmapDataSize(const BSPBitmapData* bitmap_data);
 static bool   CL_LoadMap_Bitmap(TagId tag_id);
 size_t CL_BitmapDataFormatBPP(BSPBitmapDataFormat format);
 
+static bool CL_LoadMap_Shader(TagId shader_id);
 static bool CL_LoadMap_Sky(TagId id);
 static bool CL_LoadMap_Model(TagId id);
 static bool CL_LoadMap_Object(TagId id);
@@ -125,8 +128,6 @@ static bool CL_LoadMap_Object(TagId id);
 
 void CL_InitMap(void) {
 	A_memset((void*)&g_load, 0, sizeof(g_load));
-	g_load.bitmaps_map = DB_LoadMap_Mmap("bitmaps.map");
-	assert(g_load.bitmaps_map.p && g_load.bitmaps_map.n > 0);
 	Com_DPrintln(CON_DEST_CLIENT,
 		"CL_Init: Successfully mapped bitmaps.map at 0x%08X (%zu bytes)",
 		(size_t)g_load.bitmaps_map.p, g_load.bitmaps_map.n
@@ -146,10 +147,14 @@ bool CL_LoadMap(const char* map_name) {
 	bool is_gearbox = header.engine == MAP_ENGINE_GEARBOX;
 
 	if (!is_gearbox) {
-		if (!is_xbox)
+		if (!is_xbox) {
 			Com_Errorln(-1, "CL_LoadMap: Wrong engine version.");
+		}
 
 		CL_LoadMap_Decompress(map_name, &header);
+	} else {
+		g_load.bitmaps_map = DB_LoadMap_Mmap("bitmaps.map");
+		assert(g_load.bitmaps_map.p && g_load.bitmaps_map.n > 0);
 	}
 
 	TagHeader tag_header;
@@ -282,30 +287,7 @@ bool CL_LoadMap(const char* map_name) {
 				}
 			}
 
-			assert(shader_tag->tag_data);
-			assert(shader_tag->secondary_class == TAG_FOURCC_SHADER);
-			if (shader_tag->primary_class == TAG_FOURCC_SHADER_ENVIRONMENT) {
-				BSPShaderEnvironment* shader =
-					(BSPShaderEnvironment*)shader_tag->tag_data;
-				assert(shader->detail_map_function < BSP_SHADER_DETAIL_FUNCTION_COUNT);
-
-				bool b = true;
-				if (shader->map.id.index != 0xFFFF)
-					b = CL_LoadMap_Bitmap(shader->map.id);
-				if (shader->base_map.id.index != 0xFFFF)
-					b = CL_LoadMap_Bitmap(shader->base_map.id);
-				assert(b);
-				if (shader->primary_detail_map.id.index != 0xFFFF)
-					b = CL_LoadMap_Bitmap(shader->primary_detail_map.id);
-				assert(b);
-				if (shader->secondary_detail_map.id.index != 0xFFFF)
-					b = CL_LoadMap_Bitmap(shader->secondary_detail_map.id);
-				if (shader->micro_detail_map.id.index != 0xFFFF)
-					b = CL_LoadMap_Bitmap(shader->micro_detail_map.id);
-
-				assert(b);
-				(void)b;
-			}
+			CL_LoadMap_Shader(shader_tag->tag_id);
 		}
 	}
 	Com_DPrintln(CON_DEST_CLIENT, "CL_LoadMap: Total Vertex Count=%zu.", total_vertex_count);
@@ -348,6 +330,11 @@ bool CL_LoadMap(const char* map_name) {
 		assert(b);
 	}
 
+	g_load.scenario_scenery = (BSPScenarioScenery*)scenario->scenery.pointer.read();
+	g_load.scenario_scenery_count = scenario->scenery.count;
+	g_load.scenario_scenery_palette = (BSPScenarioSceneryPalette*)scenario->scenery_palette.pointer.read();
+	g_load.scenario_scenery_palette_count = scenario->scenery_palette.count;
+
 	R_LoadMap();
 
 	for (size_t localClientNum = 0;
@@ -367,7 +354,10 @@ void CL_UnloadModel(BSPModel* model) {
 		BSPModelGeometryPart* parts = (BSPModelGeometryPart*)geometry->parts.pointer;
 		for (int j = 0; j < geometry->parts.count; j++) {
 			BSPModelGeometryPart* part = &parts[i];
-			Z_Free(part->decompressed_vertices.pointer);
+			// FIXME: more heap corruption
+			//Z_Free(part->decompressed_vertices.pointer);
+			part->decompressed_vertices.count = 0;
+			part->decompressed_vertices.pointer = NULL;
 		}
 		
 	}
@@ -527,10 +517,10 @@ bool CL_UnloadMap(void) {
 					for (uint32_t k = 0;
 						k < micro_detail_map_bitmap->bitmap_data.count;
 						k++
-						) {
+					) {
 						if (bitmap_data[k].type != BSP_BITMAP_DATA_TYPE_2D_TEXTURE &&
 							bitmap_data[k].type != BSP_BITMAP_DATA_TYPE_3D_TEXTURE
-							) {
+						) {
 							continue;
 						}
 
@@ -545,23 +535,28 @@ bool CL_UnloadMap(void) {
 		}
 	}
 
-	for (int i = 0; i < g_load.scenery_count; i++) {
-		BSPScenery* scenery = CL_Map_Scenery(i);
+	for (int i = 0; i < CL_Map_ScenarioSceneryPaletteCount(); i++) {
+		BSPScenarioSceneryPalette* palette = CL_Map_ScenarioSceneryPalette(i);
+		Tag* scenery_tag = CL_Map_Tag(palette->name.id);
+		assert(scenery_tag);
+		assert(scenery_tag->primary_class == TAG_FOURCC_SCENERY);
+		BSPScenery* scenery = (BSPScenery*)scenery_tag->tag_data;
 		CL_UnloadScenery(scenery);
 	}
 
 	if (g_load.p && g_load.n > 0) {
 		Z_FreeAt(g_load.p, g_load.n);
-		g_load.p                    = NULL;
-		g_load.n                    = 0;
-		g_load.collision_materials  = NULL;
-		g_load.rendered_vertices    = NULL;
-		g_load.surfs                = NULL;
-		g_load.coll_surfs           = NULL;
-		g_load.coll_edges           = NULL;
-		g_load.coll_vertices        = NULL;
-		g_load.lightmaps            = NULL;
-		g_load.scenery              = NULL;
+		g_load.p                        = NULL;
+		g_load.n                        = 0;
+		g_load.collision_materials      = NULL;
+		g_load.rendered_vertices        = NULL;
+		g_load.surfs                    = NULL;
+		g_load.coll_surfs               = NULL;
+		g_load.coll_edges               = NULL;
+		g_load.coll_vertices            = NULL;
+		g_load.lightmaps                = NULL;
+		g_load.scenario_scenery         = NULL;
+		g_load.scenario_scenery_palette = NULL;
 	}
 
 	return true;
@@ -665,16 +660,28 @@ uint32_t CL_Map_LightmapCount(void) {
 	return g_load.lightmap_count;
 }
 
-BSPScenery* CL_Map_Scenery(uint16_t i) {
-	assert(g_load.scenery);
-	assert(i < g_load.scenery_count);
-	return &g_load.scenery[i];
+BSPScenarioScenery* CL_Map_ScenarioScenery(uint16_t i) {
+	assert(g_load.scenario_scenery);
+	assert(i < g_load.scenario_scenery_count);
+	return &g_load.scenario_scenery[i];
 }
 
-uint32_t CL_Map_SceneryCount(void) {
-	assert(g_load.scenery);
-	return g_load.scenery_count;
+uint32_t CL_Map_ScenarioSceneryCount(void) {
+	assert(g_load.scenario_scenery);
+	return g_load.scenario_scenery_count;
 }
+
+BSPScenarioSceneryPalette* CL_Map_ScenarioSceneryPalette(uint16_t i) {
+	assert(g_load.scenario_scenery_palette);
+	assert(i < g_load.scenario_scenery_palette_count);
+	return &g_load.scenario_scenery_palette[i];
+}
+
+uint32_t CL_Map_ScenarioSceneryPaletteCount(void) {
+	assert(g_load.scenario_scenery_palette);
+	return g_load.scenario_scenery_palette_count;
+}
+
 
 #define CL_DECOMPRESS_FLOAT_SIGN_BIT(bits) (1 << ((bits) - 1))
 #define CL_DECOMPRESS_FLOAT_MASK(bits) (CL_DECOMPRESS_FLOAT_SIGN_BIT(bits) - 1)
@@ -990,6 +997,8 @@ static size_t CL_BitmapDataSize(const BSPBitmapData* bitmap_data) {
 	size_t bpp = CL_BitmapDataFormatBPP((BSPBitmapDataFormat)bitmap_data->format);
 
 	size_t size = (bitmap_data->width * bitmap_data->height * bitmap_data->depth * bpp) / 8;
+	if (bitmap_data->format == BSP_BITMAP_DATA_FORMAT_DXT1 && size == 8192 && bitmap_data->width == 256)
+		__debugbreak();
 	assert(A_IS_MULTIPLE_OF(size, 8));
 	return size;
 }
@@ -1012,15 +1021,15 @@ static bool CL_LoadMap_Bitmap(TagId tag_id) {
 			continue;
 		}
 
-		bitmap_data->actual_size = CL_BitmapDataSize(&bitmap_data[i]);
-		assert(bitmap_data->actual_size < 4 * 1024 * 1024);
-		bitmap_data[i].pixels = Z_Alloc(bitmap_data->actual_size);
+		bitmap_data[i].actual_size = CL_BitmapDataSize(&bitmap_data[i]);
+		assert(bitmap_data[i].actual_size < 4 * 1024 * 1024);
+		bitmap_data[i].pixels = Z_Alloc(bitmap_data[i].actual_size);
 		assert(bitmap_data[i].pixels);
 		long long pos = FS_SeekStream(&g_load.f, FS_SEEK_BEGIN, bitmap_data[i].pixel_data_offset);
 		assert(pos == bitmap_data[i].pixel_data_offset);
 		(void)pos;
 
-		bool b = FS_ReadStream(&g_load.f, bitmap_data[i].pixels, bitmap_data->actual_size);
+		bool b = FS_ReadStream(&g_load.f, bitmap_data[i].pixels, bitmap_data[i].actual_size);
 		assert(b);
 		(void)b;
 	}
@@ -1052,6 +1061,62 @@ static void CL_DecompressModelVertex(
 	decompressed->node1_weight = compressed->node0_weight;
 }
 
+static bool CL_LoadMap_ShaderEnvironment(BSPShaderEnvironment* shader) {
+	assert(shader);
+	bool b = CL_LoadMap_Bitmap(shader->base_map.id);
+	assert(b);
+	if (shader->primary_detail_map.id.index != 0xFFFF)
+		b = CL_LoadMap_Bitmap(shader->primary_detail_map.id);
+	assert(b);
+	if (shader->secondary_detail_map.id.index != 0xFFFF)
+		b = CL_LoadMap_Bitmap(shader->secondary_detail_map.id);
+	assert(b);
+	if (shader->micro_detail_map.id.index != 0xFFFF)
+		b = CL_LoadMap_Bitmap(shader->micro_detail_map.id);
+	assert(b);
+	if (shader->bump_map.id.index != 0xFFFF)
+		b = CL_LoadMap_Bitmap(shader->bump_map.id);
+	assert(b);
+	if (shader->map.id.index != 0xFFFF)
+		b = CL_LoadMap_Bitmap(shader->map.id);
+	assert(b);
+	return b;
+}
+
+static bool CL_LoadMap_ShaderModel(BSPShaderModel* shader) {
+	assert(shader);
+	bool b = CL_LoadMap_Bitmap(shader->base_map.id);
+	assert(b);
+	if (shader->multipurpose_map.id.index != 0xFFFF)
+		b = CL_LoadMap_Bitmap(shader->multipurpose_map.id);
+	assert(b);
+	if (shader->detail_map.id.index != 0xFFFF)
+		b = CL_LoadMap_Bitmap(shader->detail_map.id);
+	assert(b);
+	return b;
+}
+
+static bool CL_LoadMap_Shader(TagId shader_id) {
+	if (shader_id.id == 0)
+		return true;
+
+	Tag* shader_tag = CL_Map_Tag(shader_id);
+	assert(shader_tag);
+	assert(shader_tag->secondary_class == TAG_FOURCC_SHADER);
+	bool b = true;
+	switch (shader_tag->primary_class) {
+	case TAG_FOURCC_SHADER_ENVIRONMENT:
+		b = CL_LoadMap_ShaderEnvironment((BSPShaderEnvironment*)shader_tag->tag_data);
+		assert(b);
+		break;
+	case TAG_FOURCC_SHADER_MODEL:
+		b = CL_LoadMap_ShaderModel((BSPShaderModel*)shader_tag->tag_data);
+		assert(b);
+		break;
+	}
+	return b;
+}
+
 static bool CL_LoadMap_Model(TagId id) {
 	Tag* model_tag = CL_Map_Tag(id);
 	assert(model_tag->primary_class == TAG_FOURCC_MODEL);
@@ -1077,6 +1142,14 @@ static bool CL_LoadMap_Model(TagId id) {
 			part->decompressed_vertices.pointer = decompressed_verts;
 			part->decompressed_vertices.count = part->tri_count;
 		}
+	}
+
+	TagDependency* shader_dependencies = (TagDependency*)model->shaders.pointer;
+	bool b = true;
+	for (int i = 0; i < model->shaders.count; i++) {
+		TagDependency* shader_dependency = &shader_dependencies[i];
+		b = CL_LoadMap_Shader(shader_dependency->id);
+		assert(b);
 	}
 	return true;
 }

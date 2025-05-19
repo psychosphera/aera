@@ -18,10 +18,11 @@ typedef struct GlyphDef {
 } GlyphDef;
 
 typedef struct FontDef {
-    int atlas_width, atlas_height;
-    GfxShaderProgram prog;
-    GfxMaterialPass  pass;
-    GlyphDef         glyphs[95];
+    int atlas_width,     atlas_height;
+    GfxShaderProgram     prog;
+	GfxVertexDeclaration vertex_declaration;
+	GfxImage             atlas;
+    GlyphDef             glyphs[95];
 } FontDef;
 
 A_EXTERN_C void Font_Init(void);

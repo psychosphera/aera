@@ -509,6 +509,7 @@ static GLint R_ImageFormatToTypeGL(ImageFormat format) {
     switch (format) {
     case R_IMAGE_FORMAT_A8:
     case R_IMAGE_FORMAT_R8:
+    case R_IMAGE_FORMAT_P8:
         return GL_UNSIGNED_BYTE;
     case R_IMAGE_FORMAT_RGB565:
         return GL_UNSIGNED_SHORT_5_6_5;
@@ -569,7 +570,10 @@ A_NO_DISCARD bool R_CreateImage2D(const void* pixels, size_t pixels_size,
 
     GL_CALL(glTexParameteri, target, GL_TEXTURE_MIN_FILTER, gl_minfilter);
     GL_CALL(glTexParameteri, target, GL_TEXTURE_MAG_FILTER, gl_magfilter);
-                                                            
+    
+    if (format == R_IMAGE_FORMAT_A8)
+        format = R_IMAGE_FORMAT_R8;
+
     bool compressed  = R_ImageFormatIsCompressed(format);
     GLenum gl_format = R_ImageFormatToGL(format);
     ImageFormat internal_format = format;
@@ -981,13 +985,51 @@ bool R_BindShaderProgram(const GfxShaderProgram* prog) {
     return true;
 }
 
-bool R_DrawTris(int tri_count, int tri_off) {
 #if A_RENDER_BACKEND_GL
-    GL_CALL(glDrawArrays, GL_TRIANGLES, tri_off * 3, tri_count * 3);
+static GLenum R_PrimitiveTypeToGL(GfxPrimitiveType type) {
+    switch (type) {
+    case PRIMITIVE_TYPE_TRI:
+        return GL_TRIANGLES;
+    case PRIMITIVE_TYPE_TRI_STRIP:
+        return GL_TRIANGLE_STRIP;
+    default:
+        assert(false && "R_PrimitiveTypeToGL: invalid GfxPrimitiveType");
+        Com_Errorln(
+            -1,
+            "R_PrimitiveTypeToGL: invalid GfxPrimitiveType %d",
+            type
+        );
+    }
+}
 #elif A_RENDER_BACKEND_D3D9
-    D3D_CALL(r_d3d9Glob.d3ddev, DrawPrimitive, D3DPT_TRIANGLELIST, 
-                                               tri_off * 3,
-                                               tri_count);
+static DWORD R_PrimitiveTypeToD3D9(GfxPrimitiveType type) {
+    switch (type) {
+    case PRIMITIVE_TYPE_TRI:
+        return D3DPT_TRIANGLELIST;
+    case PRIMITIVE_TYPE_TRI_STRIP:
+        return D3DPT_TRIANGLESTRIP;
+    default:
+        assert(false && "R_PrimitiveTypeToGL: invalid GfxPrimitiveType");
+        Com_Errorln(
+            -1,
+            "R_PrimitiveTypeToGL: invalid GfxPrimitiveType %d",
+            type
+        );
+    }
+}
+#endif // A_RENDER_BACKEND_GL
+
+bool R_DrawPrimitives(GfxPrimitiveType type, int primitive_count, int primitive_off) {
+    int off = type == PRIMITIVE_TYPE_TRI ? 3 * primitive_off : type == PRIMITIVE_TYPE_TRI_STRIP ? 1 * primitive_off : -1;
+#if A_RENDER_BACKEND_GL
+    GLenum mode = R_PrimitiveTypeToGL(type);
+    GLsizei count = type == PRIMITIVE_TYPE_TRI ? primitive_count * 3 : type == PRIMITIVE_TYPE_TRI_STRIP ? primitive_count + 2 : -1;
+    GL_CALL(glDrawArrays, mode, off, count);
+#elif A_RENDER_BACKEND_D3D9
+    DWORD primitive_type = R_PrimitiveTypeToD3D9(type);
+    D3D_CALL(r_d3d9Glob.d3ddev, DrawPrimitive, primitive_type,
+        primitive_count,
+        off);
 #endif // A_RENDER_BACKEND_GL
     return true;
 }

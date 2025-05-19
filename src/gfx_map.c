@@ -2,6 +2,8 @@
 
 #include <assert.h>
 
+#include <cglm/cglm.h>
+
 #include "acommon/a_string.h"
 #include "acommon/z_mem.h"
 
@@ -37,7 +39,11 @@ static ImageFormat R_BSPGetImageFormat(BSPBitmapDataFormat format) {
     case BSP_BITMAP_DATA_FORMAT_DXT5:
         img_format = R_IMAGE_FORMAT_DXT5;
         break;
+    case BSP_BITMAP_DATA_FORMAT_P8_BUMP:
+        img_format = R_IMAGE_FORMAT_A8;
+        break;
     default:
+        assert(false && "R_BSPGetImageFormat: Unimplemented BSPBitmapDataFormat");
         Com_Errorln(-1,
             "R_BSPGetImageFormat: Unimplemented BSPBitmapDataFormat %d.",
             (int)format
@@ -100,6 +106,15 @@ void R_InitMap(void) {
 
     bool b = R_CreateShaderProgram(vertSource, pixelSource, &r_mapGlob.prog);
     assert(b);
+    DB_UnloadShader(vertSource);
+    DB_UnloadShader(pixelSource);
+
+    vertSource = DB_LoadShader("model.vs");
+    pixelSource = DB_LoadShader("model.ps");
+    b = R_CreateShaderProgram(vertSource, pixelSource, &r_mapGlob.model_prog);
+    DB_UnloadShader(vertSource);
+    DB_UnloadShader(pixelSource);
+
     GfxShaderUniformDef uniform;
 
     R_CreateUniformMat4f("uModel", A_MAT4F_IDENTITY, &uniform);
@@ -107,17 +122,23 @@ void R_InitMap(void) {
                                                       SHADER_TYPE_VERTEX, 
                                                       &uniform);
     assert(pUniform);
+    pUniform = R_ShaderAddUniform(&r_mapGlob.model_prog, SHADER_TYPE_VERTEX, &uniform);
+    assert(pUniform);
 
     R_CreateUniformMat4f("uView", A_MAT4F_IDENTITY, &uniform);
     pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
                                   SHADER_TYPE_VERTEX, 
                                   &uniform);
     assert(pUniform);
+    pUniform = R_ShaderAddUniform(&r_mapGlob.model_prog, SHADER_TYPE_VERTEX, &uniform);
+    assert(pUniform);
 
     R_CreateUniformMat4f("uPerspectiveProjection", A_MAT4F_IDENTITY, &uniform);
     pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
                                   SHADER_TYPE_VERTEX, 
                                   &uniform);
+    assert(pUniform);
+    pUniform = R_ShaderAddUniform(&r_mapGlob.model_prog, SHADER_TYPE_VERTEX, &uniform);
     assert(pUniform);
 
     //R_CreateUniformBool("uAlphaTested", false, &uniform);
@@ -131,8 +152,9 @@ void R_InitMap(void) {
                                   SHADER_TYPE_PIXEL, 
                                   &uniform);
     assert(pUniform);
+    pUniform = R_ShaderAddUniform(&r_mapGlob.model_prog, SHADER_TYPE_PIXEL, &uniform);
+    assert(pUniform);
 
-#if A_RENDER_BACKEND_GL
     //R_CreateUniformInt("uMap", 0, &uniform);
     //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
     //                              SHADER_TYPE_PIXEL, 
@@ -143,6 +165,8 @@ void R_InitMap(void) {
     pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
                                   SHADER_TYPE_PIXEL, 
                                   &uniform);
+    assert(pUniform);
+    pUniform = R_ShaderAddUniform(&r_mapGlob.model_prog, SHADER_TYPE_PIXEL, &uniform);
     assert(pUniform);
 
     //R_CreateUniformInt("uPrimaryDetailMap", 0, &uniform);
@@ -168,7 +192,6 @@ void R_InitMap(void) {
     //                              SHADER_TYPE_PIXEL, 
     //                              &uniform);
     //assert(pUniform);
-#endif // A_RENDER_BACKEND_GL
 
     //R_CreateUniformInt("uDetailMapFunction", 0, &uniform);
     //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
@@ -181,12 +204,6 @@ void R_InitMap(void) {
     //                              SHADER_TYPE_PIXEL, 
     //                              &uniform);
     //assert(pUniform);
-
-    R_CreateUniformVec4f("uMaterialColor", A_VEC4F_ZERO, &uniform);
-    pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
-                                  SHADER_TYPE_PIXEL, 
-                                  &uniform);
-    assert(pUniform);
 
     R_CreateUniformVec4f("uAmbientColor", A_VEC4F_ZERO, &uniform);
     pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
@@ -219,8 +236,6 @@ void R_InitMap(void) {
     //assert(pUniform);
 
     assert(b);
-    DB_UnloadShader(vertSource);
-    DB_UnloadShader(pixelSource);
 }
 
 static void R_SwapYZPoint3(A_INOUT apoint3f_t* p) {
@@ -287,6 +302,100 @@ static bool R_LoadBitmap(TagId tag_id, A_OUT GfxImage* image) {
     return true;
 }
 
+static void R_LoadShaderEnvironment(BSPShaderEnvironment* bsp_shader, 
+                                    A_OUT GfxShaderEnvironment* shader) {
+    bool b = true;
+    assert(bsp_shader->base_map.fourcc == TAG_FOURCC_BITMAP);
+    if (bsp_shader->base_map.id.index != 0xFFFF) {
+        b = R_LoadBitmap(bsp_shader->base_map.id, &shader->base_map);
+    }
+
+    assert(b);
+    assert(bsp_shader->primary_detail_map.fourcc == TAG_FOURCC_BITMAP);
+    if (bsp_shader->primary_detail_map.id.index != 0xFFFF) {
+        b = R_LoadBitmap(bsp_shader->primary_detail_map.id, &shader->primary_detail_map);
+    }
+    assert(b);
+    assert(bsp_shader->secondary_detail_map.fourcc == TAG_FOURCC_BITMAP);
+    if (bsp_shader->secondary_detail_map.id.index != 0xFFFF) {
+        b = R_LoadBitmap(bsp_shader->secondary_detail_map.id, &shader->secondary_detail_map);
+    }
+    assert(b);
+    assert(bsp_shader->micro_detail_map.fourcc == TAG_FOURCC_BITMAP);
+    if (bsp_shader->micro_detail_map.id.index != 0xFFFF) {
+        b = R_LoadBitmap(bsp_shader->micro_detail_map.id, &shader->micro_detail_map);
+    }
+    assert(b);
+    assert(bsp_shader->bump_map.fourcc == TAG_FOURCC_BITMAP);
+    if (bsp_shader->bump_map.id.index != 0xFFFF) {
+        b = R_LoadBitmap(bsp_shader->bump_map.id, &shader->bump_map);
+    }
+
+    assert(bsp_shader->map.fourcc == TAG_FOURCC_BITMAP);
+    if (bsp_shader->map.id.index != 0xFFFF) {
+        b = R_LoadBitmap(bsp_shader->map.id, &shader->map);
+    }
+
+    assert(b);
+    shader->detail_map_function =
+        shader->detail_map_function;
+    shader->micro_detail_map_function =
+        shader->micro_detail_map_function;
+    (void)b;
+}
+
+static void R_LoadShaderModel(BSPShaderModel* bsp_shader,
+                              A_OUT GfxShaderModel* shader
+) {
+
+    bool b = true;
+    assert(bsp_shader->base_map.fourcc == TAG_FOURCC_BITMAP);
+    if (bsp_shader->base_map.id.index != 0xFFFF) {
+        b = R_LoadBitmap(bsp_shader->base_map.id, &shader->base_map);
+    }
+
+    assert(b);
+    assert(bsp_shader->detail_map.fourcc == TAG_FOURCC_BITMAP);
+    if (bsp_shader->detail_map.id.index != 0xFFFF) {
+        b = R_LoadBitmap(bsp_shader->detail_map.id, &shader->detail_map);
+    }
+    assert(b);
+    assert(bsp_shader->multipurpose_map.fourcc == TAG_FOURCC_BITMAP);
+    if (bsp_shader->multipurpose_map.id.index != 0xFFFF) {
+        b = R_LoadBitmap(bsp_shader->multipurpose_map.id, &shader->multipurpose_map);
+    }
+    assert(b);
+    (void)b;
+    shader->detail_function = bsp_shader->detail_function;
+}
+
+static void R_LoadShader(TagId shader_id, GfxShader* shader) {
+    Tag* shader_tag = CL_Map_Tag(shader_id);
+    assert(shader_tag);
+    assert(shader_tag->secondary_class == TAG_FOURCC_SHADER);
+    if (shader_tag->primary_class == TAG_FOURCC_SHADER_ENVIRONMENT) {
+        BSPShaderEnvironment* shader_environment =
+            (BSPShaderEnvironment*)shader_tag->tag_data;
+        assert(shader);
+        shader->type = SHADER_TYPE_ENVIRONMENT;
+        R_LoadShaderEnvironment(shader_environment, &shader->environment);
+    }
+    else if (shader_tag->primary_class == TAG_FOURCC_SHADER_MODEL) {
+        BSPShaderModel* shader_model =
+            (BSPShaderModel*)shader_tag->tag_data;
+        assert(shader);
+        shader->type = SHADER_TYPE_MODEL;
+        R_LoadShaderModel(shader_model, &shader->model);
+    }
+    else {
+        const char* shader_path = (const char*)shader_tag->tag_path;
+        Com_DPrintln(CON_DEST_CLIENT,
+            "R_LoadMap: Cannot create shader %s: shader type 0x%08X unsupported.",
+            shader_path, (uint32_t)shader_tag->primary_class
+        );
+    }
+}
+
 static void R_LoadMaterial(const BSPMaterial* bsp_material, 
                            A_OUT GfxMaterial* material
 ) {
@@ -332,9 +441,8 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
         }
     }
     
-    material->vertices_count = surf_count * 3;
+    size_t vertices_count = surf_count * 3;
 
-    material->color = bsp_material->ambient_color;
     material->ambient_color = bsp_material->ambient_color;
 
     material->distant_light_0_dir = bsp_material->distant_light_0_direction;
@@ -342,83 +450,11 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
     material->distant_light_0_color = bsp_material->distant_light_0_color;
     material->distant_light_1_color = bsp_material->distant_light_1_color;
 
-    Tag* shader_tag = CL_Map_Tag(bsp_material->shader.id);
-    assert(shader_tag);
-    assert(shader_tag->secondary_class == TAG_FOURCC_SHADER);
-    if (shader_tag->primary_class == TAG_FOURCC_SHADER_ENVIRONMENT) {
-        BSPShaderEnvironment* shader =
-            (BSPShaderEnvironment*)shader_tag->tag_data;
-        assert(shader);
-        material->alpha_tested = shader->flags & 0x01;
-        
-        bool b = true;
-        assert(shader->base_map.fourcc == TAG_FOURCC_BITMAP);
-        if (shader->base_map.id.index != 0xFFFF) {
-            GfxImage base_map;
-            b = R_LoadBitmap(shader->base_map.id, &base_map);
-            if (R_AddImageToMaterialPass(&material->pass, &base_map) == NULL)
-                b = false;
-        }
-     
-        assert(b);
-        assert(shader->primary_detail_map.fourcc == TAG_FOURCC_BITMAP);
-        if (shader->primary_detail_map.id.index != 0xFFFF) {
-            GfxImage primary_detail_map;
-            b = R_LoadBitmap(shader->primary_detail_map.id, &primary_detail_map);
-            if (R_AddImageToMaterialPass(&material->pass, &primary_detail_map) == NULL)
-                b = false;
-        }
-        assert(b);
-        assert(shader->secondary_detail_map.fourcc == TAG_FOURCC_BITMAP);
-        if (shader->secondary_detail_map.id.index != 0xFFFF) {
-            GfxImage secondary_detail_map;
-            b = R_LoadBitmap(shader->secondary_detail_map.id, &secondary_detail_map);
-            if (R_AddImageToMaterialPass(&material->pass, &secondary_detail_map) == NULL)
-                b = false;
-        }
-        assert(b);
-        assert(shader->micro_detail_map.fourcc == TAG_FOURCC_BITMAP);
-        if (shader->micro_detail_map.id.index != 0xFFFF) {
-            GfxImage micro_detail_map;
-            b = R_LoadBitmap(shader->micro_detail_map.id, &micro_detail_map);
-            if (R_AddImageToMaterialPass(&material->pass, &micro_detail_map) == NULL)
-                b = false;
-        }
-        assert(b);
-        assert(shader->bump_map.fourcc == TAG_FOURCC_BITMAP);
-        if (shader->bump_map.id.index != 0xFFFF) {
-            GfxImage bump_map;
-            b = R_LoadBitmap(shader->bump_map.id, &bump_map);
-            if (R_AddImageToMaterialPass(&material->pass, &bump_map) == NULL)
-                b = false;
-        }
+    R_LoadShader(bsp_material->shader.id, &material->shader);
 
-        assert(shader->map.fourcc == TAG_FOURCC_BITMAP);
-        if (shader->map.id.index != 0xFFFF) {
-            GfxImage map;
-            b = R_LoadBitmap(shader->map.id, &map);
-            if (R_AddImageToMaterialPass(&material->pass, &map) == NULL)
-                b = false;
-        }
-       
-        assert(b);
-        material->detail_map_function = 
-            shader->detail_map_function;
-        material->micro_detail_map_function = 
-            shader->micro_detail_map_function;
-        (void)b;
-    } else {
-        const char* shader_path = (const char*)shader_tag->tag_path;
-        Com_DPrintln(CON_DEST_CLIENT,
-            "R_LoadMap: Cannot create shader %s: shader type 0x%08X unsupported.",
-            shader_path, (uint32_t)shader_tag->primary_class
-        );
-    }
-
-    size_t rendered_vertices_size =
-        material->vertices_count * sizeof(BSPRenderedVertex);
-    size_t lightmap_vertices_size = bsp_material->lightmap_vertices_count > 0 ?
-        material->vertices_count * sizeof(BSPLightmapVertex) : 0;
+    size_t rendered_vertices_size = vertices_count * sizeof(BSPRenderedVertex);
+    size_t lightmap_vertices_size = bsp_material->lightmap_vertices_count > 0 ? 
+        vertices_count * sizeof(BSPLightmapVertex) : 0;
     size_t vertices_size = rendered_vertices_size + lightmap_vertices_size;
 
     GfxVertexBuffer vb;
@@ -428,15 +464,17 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
                                   sizeof(BSPRenderedVertex),      
                                   &vb);
     assert(b);
-    GfxVertexBuffer* pVb = R_AddVertexBufferToMaterialPass(&material->pass, 
-                                                           &vb);
+    GfxVertexBuffer* pVb = R_AddVertexBufferToVertexDeclaration(&material->vertex_declaration, &vb);
     assert(pVb);
+    (void)pVb;
+    material->vertex_declaration.vertices_count = vertices_count;
 #if A_RENDER_BACKEND_GL
     if (bsp_material->lightmap_vertices_count > 0) {
-        R_AppendVertexData(&material->pass.vbs[0],
-                           lightmap_vertices, lightmap_vertices_size);
+        b = R_AppendVertexData(&material->vertex_declaration.vbs[0],
+                               lightmap_vertices, lightmap_vertices_size);
+        assert(b);
     }
-    GL_CALL(glBindVertexArray, material->pass.vbs[0].vao);
+    GL_CALL(glBindVertexArray, material->vertex_declaration.vbs[0].vao);
     GL_CALL(glVertexAttribPointer,
         0, 3, GL_FLOAT, GL_FALSE, sizeof(BSPRenderedVertex),
         (const void*)offsetof(BSPRenderedVertex, pos)
@@ -483,8 +521,9 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
                                  sizeof(BSPLightmapVertex),
                                  &vb);
         assert(b);
-        pVb = R_AddVertexBufferToMaterialPass(&material->pass, &vb);
+        pVb = R_AddVertexBufferToVertexDeclaration(&material->vertex_declaration, &vb);
         assert(pVb);
+        (void)pVb;
     }
     D3DVERTEXELEMENT9 vertex_elements[] = {
         {
@@ -549,7 +588,7 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
     D3D_CALL(r_d3d9Glob.d3ddev, CreateVertexDeclaration, vertex_elements, 
                                                          &decl);
     assert(decl);
-    material->pass.decl = decl;
+    material->vertex_declaration.decl = decl;
 #endif // A_RENDER_BACKEND_GL
     Z_Free(rendered_vertices);
     Z_Free(lightmap_vertices);
@@ -570,13 +609,112 @@ static void R_LoadLightmap(const BSPLightmap* bsp_lightmap, GfxLightmap* lightma
     }
 }
 
+static GfxPrimitiveType R_PrimitiveTypeFromBSP(BSPModelTriBufferType type) {
+    switch (type) {
+    case BSP_MODEL_TRI_BUFFER_TYPE_TRIANGLE_LIST:
+        return PRIMITIVE_TYPE_TRI;
+    case BSP_MODEL_TRI_BUFFER_TYPE_TRIANGLE_STRIP:
+        return PRIMITIVE_TYPE_TRI_STRIP;
+    default:
+        assert(false && "R_PrimitiveTypeFromBSP: invalid BSPModelTriBufferType");
+        Com_Errorln(
+            -1,
+            "R_PrimitiveTypeFromBSP: invalid BSPModelTriBufferType %d",
+            type
+        );
+    }
+}
+
 static void R_LoadModelPart(const BSPModelGeometryPart* bsp_part, GfxModelPart* part) {
     BSPModelDecompressedVertex* vertices = bsp_part->decompressed_vertices.pointer;
-    part->vertex_count = bsp_part->decompressed_vertices.count;
-    part->type = bsp_part->tri_buffer_type;
+    int vertex_count = bsp_part->decompressed_vertices.count;
+    part->primitive_type = R_PrimitiveTypeFromBSP(bsp_part->tri_buffer_type);
 
-    bool b = R_CreateVertexBuffer(vertices, part->vertex_count, part->vertex_count, 0, sizeof(*vertices), &part->vb);
+    GfxVertexBuffer vb;
+    bool b = R_CreateVertexBuffer(vertices, vertex_count, vertex_count, 0, sizeof(*vertices), &vb);
     assert(b);
+    GfxVertexBuffer* pVb = R_AddVertexBufferToVertexDeclaration(&part->vertex_declaration, &vb);
+    assert(pVb);
+    (void)pVb;
+    part->vertex_declaration.vertices_count = vertex_count;
+#if A_RENDER_BACKEND_GL
+    GL_CALL(glBindVertexArray, part->vertex_declaration.vbs[0].vao);
+    GL_CALL(glVertexAttribPointer,
+        0, 3, GL_FLOAT, GL_FALSE, sizeof(BSPModelDecompressedVertex),
+        (const void*)offsetof(BSPModelDecompressedVertex, position)
+    );
+    GL_CALL(glVertexAttribPointer,
+        1, 3, GL_FLOAT, GL_FALSE, sizeof(BSPModelDecompressedVertex),
+        (const void*)offsetof(BSPModelDecompressedVertex, normal)
+    );
+    GL_CALL(glVertexAttribPointer,
+        2, 3, GL_FLOAT, GL_FALSE, sizeof(BSPModelDecompressedVertex),
+        (const void*)offsetof(BSPModelDecompressedVertex, binormal)
+    );
+    GL_CALL(glVertexAttribPointer,
+        3, 3, GL_FLOAT, GL_FALSE, sizeof(BSPModelDecompressedVertex),
+        (const void*)offsetof(BSPModelDecompressedVertex, tangent)
+    );
+    GL_CALL(glVertexAttribPointer,
+        4, 2, GL_FLOAT, GL_FALSE, sizeof(BSPModelDecompressedVertex),
+        (const void*)offsetof(BSPModelDecompressedVertex, texcoords)
+    );
+
+    GL_CALL(glEnableVertexAttribArray, 0);
+    GL_CALL(glEnableVertexAttribArray, 1);
+    GL_CALL(glEnableVertexAttribArray, 2);
+    GL_CALL(glEnableVertexAttribArray, 3);
+    GL_CALL(glEnableVertexAttribArray, 4);
+#elif A_RENDER_BACKEND_D3D9 
+    D3DVERTEXELEMENT9 vertex_elements[] = {
+        {
+            .Stream = 0,
+            .Offset = offsetof(BSPModelDecompressedVertex, position),
+            .Type = D3DDECLTYPE_FLOAT3,
+            .Method = D3DDECLMETHOD_DEFAULT,
+            .Usage = D3DDECLUSAGE_POSITION,
+            .UsageIndex = 0
+        },
+        {
+            .Stream = 0,
+            .Offset = offsetof(BSPModelDecompressedVertex, normal),
+            .Type = D3DDECLTYPE_FLOAT3,
+            .Method = D3DDECLMETHOD_DEFAULT,
+            .Usage = D3DDECLUSAGE_NORMAL,
+            .UsageIndex = 0
+        },
+        {
+            .Stream = 0,
+            .Offset = offsetof(BSPModelDecompressedVertex, binormal),
+            .Type = D3DDECLTYPE_FLOAT3,
+            .Method = D3DDECLMETHOD_DEFAULT,
+            .Usage = D3DDECLUSAGE_BINORMAL,
+            .UsageIndex = 0
+        },
+        {
+            .Stream = 0,
+            .Offset = offsetof(BSPModelDecompressedVertex, tangent),
+            .Type = D3DDECLTYPE_FLOAT3,
+            .Method = D3DDECLMETHOD_DEFAULT,
+            .Usage = D3DDECLUSAGE_TANGENT,
+            .UsageIndex = 0
+        },
+        {
+            .Stream = 0,
+            .Offset = offsetof(BSPModelDecompressedVertex, texcoords),
+            .Type = D3DDECLTYPE_FLOAT2,
+            .Method = D3DDECLMETHOD_DEFAULT,
+            .Usage = D3DDECLUSAGE_TEXCOORD,
+            .UsageIndex = 0
+        },
+        D3DDECL_END()
+    };
+    IDirect3DVertexDeclaration9* decl = NULL;
+    D3D_CALL(r_d3d9Glob.d3ddev, CreateVertexDeclaration, vertex_elements,
+        &decl);
+    assert(decl);
+    part->vertex_declaration.decl = decl;
+#endif // A_RENDER_BACKEND_GL
 }
 
 static void R_LoadModelGeometry(const BSPModelGeometry* bsp_geometry, GfxModelGeometry* geometry) {
@@ -597,6 +735,11 @@ static void R_LoadModel(const BSPModel* bsp_model, GfxModel* model) {
     for (int i = 0; i < bsp_model->geometries.count; i++) {
         R_LoadModelGeometry(&bsp_geometries[i], &model->geometries[i]);
     }
+    BSPModelShaderReference* shader_refs = (BSPModelShaderReference*)bsp_model->shaders.pointer;
+    for (int i = 0; i < bsp_model->shaders.count; i++) {
+        BSPModelShaderReference* shader_ref = &shader_refs[i];
+        R_LoadShader(shader_ref->shader.id, &model->shaders[i]);
+    }
 }
 
 static void R_LoadObject(const BSPObject* bsp_object, GfxObject* object) {
@@ -606,8 +749,19 @@ static void R_LoadObject(const BSPObject* bsp_object, GfxObject* object) {
     R_LoadModel(bsp_model, &object->model);
 }
 
-static void R_LoadScenery(const BSPScenery* bsp_scenery, GfxScenery* scenery) {
-    R_LoadObject(&bsp_scenery->object, &scenery->obj);
+static void R_LoadScenarioScenery(const BSPScenarioScenery* bsp_scenario_scenery, GfxScenery* scenery) {
+    scenery->pos = bsp_scenario_scenery->pos;
+    scenery->rotation.x = bsp_scenario_scenery->yaw;
+    scenery->rotation.y = bsp_scenario_scenery->pitch;
+    scenery->rotation.z = bsp_scenario_scenery->roll;
+}
+
+static void R_LoadSceneryPalette(const BSPScenarioSceneryPalette* bsp_scenery_palette, GfxSceneryPalette* scenery_palette) {
+    const Tag* bsp_scenery_tag = CL_Map_Tag(bsp_scenery_palette->name.id);
+    assert(bsp_scenery_tag);
+    assert(bsp_scenery_tag->primary_class == TAG_FOURCC_SCENERY);
+    const BSPScenery* bsp_scenery = (BSPScenery*)bsp_scenery_tag->tag_data;
+    R_LoadObject(&bsp_scenery->object, &scenery_palette->obj);
 }
 
 void R_LoadMap(void) {
@@ -621,12 +775,144 @@ void R_LoadMap(void) {
         R_LoadLightmap(bsp_lightmap, lightmap);
     }
 
-    r_mapGlob.scenery_count = CL_Map_SceneryCount();
+    r_mapGlob.scenery_palette_count = CL_Map_ScenarioSceneryPaletteCount();
+    r_mapGlob.scenery_palette = Z_Zalloc(r_mapGlob.scenery_palette_count * sizeof(*r_mapGlob.scenery_palette));
+    for (uint32_t i = 0; i < r_mapGlob.scenery_palette_count; i++) {
+        BSPScenarioSceneryPalette* bsp_scenery_palette = CL_Map_ScenarioSceneryPalette(i);
+        R_LoadSceneryPalette(bsp_scenery_palette, &r_mapGlob.scenery_palette[i]);
+    }
+
+    r_mapGlob.scenery_count = CL_Map_ScenarioSceneryCount();
     r_mapGlob.scenery = Z_Zalloc(r_mapGlob.scenery_count * sizeof(*r_mapGlob.scenery));
     for (uint32_t i = 0; i < r_mapGlob.scenery_count; i++) {
-        const bsp_scenery = CL_Map_Scenery(i);
-        GfxScenery* scenery = &r_mapGlob.scenery[i];
-        R_LoadScenery(bsp_scenery, scenery);
+        BSPScenarioScenery* bsp_scenery = CL_Map_ScenarioScenery(i);
+        R_LoadScenarioScenery(bsp_scenery, &r_mapGlob.scenery[i]);
+    }
+}
+
+static bool R_RenderShaderEnvironment(GfxShaderEnvironment* shader_environment, 
+                                      GfxVertexDeclaration* vertex_declaration, 
+                                      GfxPrimitiveType primitive_type, 
+                                      int primitive_offset, GfxPolygonMode mode
+) {
+    assert(vertex_declaration->vb_count > 0);
+    if (vertex_declaration->vb_count < 1)
+        return false;
+
+    assert(vertex_declaration->vertices_count > 0);
+#if A_RENDER_BACKEND_GL
+    assert(vertex_declaration->vb_count == 1 &&
+        "R_RenderVertexBuffer: GL backend only supports one vertex buffer at a time");
+#elif A_RENDER_BACKEND_D3D9
+    assert(vertex_declaration->decl);
+    D3D_CALL(r_d3d9Glob.d3ddev, SetVertexDeclaration, vertex_declaration->decl);
+#endif
+
+    bool b = true;
+    for (int i = 0; i < vertex_declaration->vb_count; i++) {
+        b = R_BindVertexBuffer(&vertex_declaration->vbs[i], i);
+        assert(b);
+        if (!b)
+            return false;
+    }
+
+    b = R_BindImage(&shader_environment->base_map,             0);
+    assert(b);
+    b = R_BindImage(&shader_environment->primary_detail_map,   1);
+    assert(b);
+    b = R_BindImage(&shader_environment->secondary_detail_map, 2);
+    assert(b);
+    b = R_BindImage(&shader_environment->micro_detail_map,     3);
+    assert(b);
+    b = R_BindImage(&shader_environment->bump_map,             4);
+    assert(b);
+    b = R_BindImage(&shader_environment->map,                  5);
+    assert(b);
+
+    b = R_SetPolygonMode(mode);
+    assert(b);
+    if (!b)
+        return false;
+
+    b = R_DrawPrimitives(primitive_type, vertex_declaration->vertices_count / 3, primitive_offset / 3);
+    assert(b);
+    if (!b)
+        return false;
+
+    b = R_SetPolygonMode(R_POLYGON_MODE_FILL);
+    assert(b);
+
+    return b;
+}
+
+static bool R_RenderShaderModel(GfxShaderModel* shader_model,
+                                GfxVertexDeclaration* vertex_declaration,
+                                GfxPrimitiveType primitive_type,
+                                int primitive_offset, GfxPolygonMode mode
+) {
+    assert(vertex_declaration->vb_count > 0);
+    if (vertex_declaration->vb_count < 1)
+        return false;
+
+    assert(vertex_declaration->vertices_count > 0);
+#if A_RENDER_BACKEND_GL
+    assert(vertex_declaration->vb_count == 1 &&
+        "R_RenderVertexBuffer: GL backend only supports one vertex buffer at a time");
+#elif A_RENDER_BACKEND_D3D9
+    assert(vertex_declaration->decl);
+    D3D_CALL(r_d3d9Glob.d3ddev, SetVertexDeclaration, vertex_declaration->decl);
+#endif
+
+    bool b = true;
+    for (int i = 0; i < vertex_declaration->vb_count; i++) {
+        b = R_BindVertexBuffer(&vertex_declaration->vbs[i], i);
+        assert(b);
+        if (!b)
+            return false;
+    }
+
+    b = R_BindImage(&shader_model->base_map, 0);
+    assert(b);
+    b = R_BindImage(&shader_model->multipurpose_map, 1);
+    assert(b);
+    b = R_BindImage(&shader_model->detail_map, 2);
+    assert(b);
+
+    b = R_SetPolygonMode(mode);
+    assert(b);
+    if (!b)
+        return false;
+
+    b = R_DrawPrimitives(primitive_type, vertex_declaration->vertices_count / 3, primitive_offset / 3);
+    assert(b);
+    if (!b)
+        return false;
+
+    b = R_SetPolygonMode(R_POLYGON_MODE_FILL);
+    assert(b);
+
+    return b;
+}
+
+static void R_RenderShader(GfxShader* shader,
+                           GfxVertexDeclaration* vertex_declaration,
+                           GfxPrimitiveType primitive_type,
+                           int primitive_offset, GfxPolygonMode mode
+) {
+    switch (shader->type) {
+    case SHADER_TYPE_ENVIRONMENT:
+        R_RenderShaderEnvironment(&shader->environment, vertex_declaration, primitive_type, primitive_offset, mode);
+        return;
+    case SHADER_TYPE_MODEL:
+        R_RenderShaderModel(&shader->model, vertex_declaration, primitive_type, primitive_offset, mode);
+        return;
+    default:
+        assert(false && "R_RenderShader: invalid shader type");
+        Com_Errorln(
+            -1,
+            "R_RenderShader: invalid shader type %d",
+            shader->type
+        );
     }
 }
 
@@ -640,17 +926,11 @@ static void R_RenderMaterial(GfxMaterial* material) {
     //                           (int)material->micro_detail_map_function);
 
     avec4f_t color = A_vec4(
-        material->color.r,
-        material->color.g,
-        material->color.b,
+        material->ambient_color.r,
+        material->ambient_color.g,
+        material->ambient_color.b,
         1.0f
     );
-    R_ShaderSetUniformVec4fByName(&r_mapGlob.prog, "uMaterialColor", 
-                                  SHADER_TYPE_PIXEL, color);
-
-    color.x = material->ambient_color.r;
-    color.y = material->ambient_color.g;
-    color.z = material->ambient_color.b;
     R_ShaderSetUniformVec4fByName(&r_mapGlob.prog, "uAmbientColor", 
                                   SHADER_TYPE_PIXEL, color);
 
@@ -681,41 +961,58 @@ static void R_RenderMaterial(GfxMaterial* material) {
 
     //bool wireframe = Dvar_GetBool(r_wireframe);
 
-    size_t vertices_count = material->vertices_count;
-    R_RenderMaterialPass(&material->pass, vertices_count, 0, R_POLYGON_MODE_FILL);
+    R_RenderShader(&material->shader, &material->vertex_declaration, PRIMITIVE_TYPE_TRI, 0, R_POLYGON_MODE_FILL);
     if (Dvar_GetBool(r_wireframe)) {
         R_ShaderSetUniformBoolByName(&r_mapGlob.prog, "uWireframe", SHADER_TYPE_PIXEL, true);
-        R_RenderMaterialPass(&material->pass, vertices_count, 0, R_POLYGON_MODE_LINE);
+        R_RenderShader(&material->shader, &material->vertex_declaration, PRIMITIVE_TYPE_TRI, 0, R_POLYGON_MODE_LINE);
         R_ShaderSetUniformBoolByName(&r_mapGlob.prog, "uWireframe", SHADER_TYPE_PIXEL, false);
     }
 }
 
-static void R_RenderModelPart(GfxModelPart* part) {
-    bool b = R_BindVertexBuffer(&part->vb, 0);
-    assert(b);
+static void R_RenderModelPart(GfxModel* model, GfxModelPart* part, apoint3f_t position, avec3f_t rotation) {
+    amat4f_t pos = A_MAT4F_IDENTITY;
+    glm_translate(pos.array, position.array);
+    amat4f_t r = A_MAT4F_IDENTITY;
+    glm_euler(rotation.array, r.array);
+    amat4f_t m;
+    glm_mat4_mul(pos.array, r.array, m.array);
+    R_ShaderSetUniformMat4fByName(&r_mapGlob.model_prog, "uModel", SHADER_TYPE_VERTEX, m);
 
+    GfxShader* shader = &model->shaders[part->shader_index];
+    R_RenderShader(shader, &part->vertex_declaration, part->primitive_type, 0, R_POLYGON_MODE_FILL);
+    if (Dvar_GetBool(r_wireframe)) {
+        R_ShaderSetUniformBoolByName(&r_mapGlob.prog, "uWireframe", SHADER_TYPE_PIXEL, true);
+        R_RenderShader(shader, &part->vertex_declaration, part->primitive_type, 0, R_POLYGON_MODE_LINE);
+        R_ShaderSetUniformBoolByName(&r_mapGlob.prog, "uWireframe", SHADER_TYPE_PIXEL, false);
+    }
 }
 
-static void R_RenderObject(GfxObject* obj) {
-    GfxModelGeometry* geometries = obj->model.geometries;
-    for (int i = 0; i < obj->model.geometry_count; i++) {
+static void R_RenderModel(GfxModel* model, apoint3f_t pos, avec3f_t rotation) {
+    GfxModelGeometry* geometries = model->geometries;
+    for (int i = 0; i < model->geometry_count; i++) {
         GfxModelGeometry* geometry = &geometries[i];
         for (int j = 0; j < geometry->part_count; j++) {
             GfxModelPart* part = &geometry->parts[j];
-            R_RenderModelPart(part);
+            R_RenderModelPart(model, part, pos, rotation);
         }
     }
 }
 
+static void R_RenderObject(GfxObject* obj, apoint3f_t pos, avec3f_t rotation) {
+    R_RenderModel(&obj->model, pos, rotation);
+}
+
 static void R_RenderScenery(GfxScenery* scenery) {
-    R_RenderObject(&scenery->obj);
+    GfxSceneryPalette* palette = &r_mapGlob.scenery_palette[scenery->palette_index];
+    R_RenderObject(&palette->obj, scenery->pos, scenery->rotation);
 }
 
 static void R_RenderMapInternal(void) {
     R_EnableDepthTest();
     R_EnableBackFaceCulling();
 #if A_RENDER_BACKEND_GL
-    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uBaseMap",            SHADER_TYPE_PIXEL, 0);
+    R_ShaderSetUniformIntByName(&r_mapGlob.prog,       "uBaseMap",            SHADER_TYPE_PIXEL, 0);
+    R_ShaderSetUniformIntByName(&r_mapGlob.model_prog, "uBaseMap",            SHADER_TYPE_PIXEL, 0);
 //    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uPrimaryDetailMap",   SHADER_TYPE_PIXEL, 1);
 //    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uSecondaryDetailMap", SHADER_TYPE_PIXEL, 2);
 //    R_ShaderSetUniformIntByName(&r_mapGlob.prog, "uMicroDetailMap",     SHADER_TYPE_PIXEL, 3);
@@ -734,7 +1031,7 @@ static void R_RenderMapInternal(void) {
         GfxLightmap* lightmap = &r_mapGlob.lightmaps[i];
         for (uint32_t j = 0; j < lightmap->material_count; j++) {
             GfxMaterial* material = &lightmap->materials[j];
-            R_RenderMaterial(material);
+            //R_RenderMaterial(material);
         }
     }
 
@@ -754,9 +1051,42 @@ void R_RenderMap(void) {
     R_RenderMapInternal();
 }
 
+static void R_UnloadShaderEnvironment(A_IN GfxShaderEnvironment* shader) {
+    R_DeleteImage(&shader->base_map);
+    R_DeleteImage(&shader->primary_detail_map);
+    R_DeleteImage(&shader->secondary_detail_map);
+    R_DeleteImage(&shader->micro_detail_map);
+    R_DeleteImage(&shader->bump_map);
+    R_DeleteImage(&shader->map);
+}
+
+static void R_UnloadShaderModel(A_IN GfxShaderModel* shader) {
+    R_DeleteImage(&shader->base_map);
+    R_DeleteImage(&shader->detail_map);
+    R_DeleteImage(&shader->multipurpose_map);
+}
+
+static void R_UnloadShader(A_IN GfxShader* shader) {
+    switch (shader->type) {
+    case SHADER_TYPE_ENVIRONMENT:
+        R_UnloadShaderEnvironment(&shader->environment);
+        return;
+    case SHADER_TYPE_MODEL:
+        R_UnloadShaderModel(&shader->model);
+        return;
+    default:
+        assert(false && "R_UnloadShader: invalid shader type");
+        Com_Errorln(
+            -1,
+            "R_UnloadShader: invalid shader type %d",
+            shader->type
+        );
+    }
+}
+
 void R_UnloadMaterial(A_IN GfxMaterial* material) {
-    R_DeleteMaterialPass(&material->pass);
-    A_memset(material, 0, sizeof(*material));
+    R_UnloadShader(&material->shader);
+    R_DeleteVertexDeclaration(&material->vertex_declaration);
 }
 
 void R_UnloadLightmap(A_IN GfxLightmap* lightmap) {
@@ -768,27 +1098,38 @@ void R_UnloadLightmap(A_IN GfxLightmap* lightmap) {
 }
 
 void R_UnloadModelPart(A_IN GfxModelPart* part) {
-    R_DeleteVertexBuffer(&part->vb);
+    R_DeleteVertexDeclaration(&part->vertex_declaration);
 }
 
-void R_UnloadObject(A_IN GfxObject* obj) {
-    GfxModelGeometry* geometries = obj->model.geometries;
-    for (int i = 0; i < obj->model.geometry_count; i++) {
+void R_UnloadModel(A_IN GfxModel* model) {
+    GfxModelGeometry* geometries = model->geometries;
+    for (int i = 0; i < model->geometry_count; i++) {
         GfxModelGeometry* geometry = &geometries[i];
         for (int j = 0; j < geometry->part_count; j++) {
             GfxModelPart* part = &geometry->parts[j];
             R_UnloadModelPart(part);
         }
     }
+
+    for (int i = 0; i < A_countof(model->shaders); i++) {
+        R_UnloadShader(&model->shaders[i]);
+    }
 }
 
-void R_UnloadScenery(A_IN GfxScenery* scenery) {
-    R_UnloadObject(&scenery->obj);
+void R_UnloadObject(A_IN GfxObject* obj) {
+    R_UnloadModel(&obj->model);
+}
+
+void R_UnloadSceneryPalette(A_IN GfxSceneryPalette* scenery_palette) {
+    R_UnloadObject(&scenery_palette->obj);
 }
 
 void R_UnloadMap(void) {
     for (uint32_t i = 0; i < r_mapGlob.lightmap_count; i++)
         R_UnloadLightmap(&r_mapGlob.lightmaps[i]);
+
+    for (uint32_t i = 0; i < r_mapGlob.scenery_palette_count; i++)
+        R_UnloadSceneryPalette(&r_mapGlob.scenery_palette[i]);
     
     Z_Free(r_mapGlob.lightmaps);
 }

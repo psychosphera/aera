@@ -47,6 +47,7 @@ typedef enum ImageFormat {
     R_IMAGE_FORMAT_DXT5,
     R_IMAGE_FORMAT_A8,
     R_IMAGE_FORMAT_R8,
+    R_IMAGE_FORMAT_P8,
     R_IMAGE_FORMAT_RGB565,
     R_IMAGE_FORMAT_RGB888,
     R_IMAGE_FORMAT_RGBA8888,
@@ -92,15 +93,19 @@ typedef struct GfxVertexBuffer {
     size_t bytes, capacity;
 } GfxVertexBuffer;
 
-typedef struct GfxMaterialPass {
-    GfxVertexBuffer vbs[R_MATERIAL_PASS_MAX_VBS];
-    int vb_count;
-    GfxImage images[R_MAX_IMAGES_PER_VERTEX_BUFFER];
-    int current_image;
+typedef struct GfxVertexDeclaration {
+    GfxVertexBuffer              vbs[R_MATERIAL_PASS_MAX_VBS];
+    int                          vb_count;
+    size_t                       vertices_count;
 #if A_RENDER_BACKEND_D3D9
     IDirect3DVertexDeclaration9* decl;
 #endif // A_RENDER_BACKEND_D3D9
-} GfxMaterialPass;
+} GfxVertexDeclaration;
+
+typedef enum GfxPrimitiveType {
+    PRIMITIVE_TYPE_TRI,
+    PRIMITIVE_TYPE_TRI_STRIP
+} GfxPrimitiveType;
 
 typedef enum GfxPolygonMode {
     R_POLYGON_MODE_FILL,
@@ -123,19 +128,17 @@ A_EXTERN_C bool      R_UploadVertexData(A_INOUT GfxVertexBuffer* vb,
                                         size_t off, const void* data, size_t n);
 A_EXTERN_C bool      R_AppendVertexData(A_INOUT GfxVertexBuffer* vb,
                                         const void* data, size_t n);
-A_EXTERN_C GfxImage* R_AddImageToMaterialPass(A_INOUT GfxMaterialPass* pass,
-                                              A_IN GfxImage* image);
-A_EXTERN_C GfxImage* R_GetMaterialPassImage(A_INOUT GfxMaterialPass* pass, int i);
-A_EXTERN_C GfxVertexBuffer* R_AddVertexBufferToMaterialPass(
-    A_INOUT GfxMaterialPass* pass,
+A_EXTERN_C GfxVertexBuffer* R_AddVertexBufferToVertexDeclaration(
+    A_INOUT GfxVertexDeclaration* decl,
     A_IN GfxVertexBuffer* vb
 );
-A_EXTERN_C bool      R_RenderMaterialPass(A_INOUT GfxMaterialPass* pass,
-                                          size_t vertices_count, size_t off,
-                                          GfxPolygonMode mode
-);
+//A_EXTERN_C bool      R_RenderMaterialPass(A_INOUT GfxMaterialPass* pass,
+//                                          GfxPrimitiveType primitive_type,
+//                                          size_t vertices_count, size_t off,
+//                                          GfxPolygonMode mode
+//);
 A_EXTERN_C bool R_DeleteVertexBuffer(A_INOUT GfxVertexBuffer* vb);
-A_EXTERN_C bool R_DeleteMaterialPass(A_IN GfxMaterialPass* pass);
+A_EXTERN_C bool R_DeleteVertexDeclaration(A_IN GfxVertexDeclaration* vertex_declaration);
 
 #if A_RENDER_BACKEND_GL
 typedef texture_t          GfxTexture;
@@ -180,7 +183,7 @@ typedef struct GfxTextDraw {
 
 #if A_RENDER_BACKEND_GL
 A_EXTERN_C A_NO_DISCARD GLenum      R_ImageFormatToGL     (ImageFormat format);
-A_EXTERN_C A_NO_DISCARD ImageFormat R_ImageFormatFromGl   (GLenum      format);
+A_EXTERN_C A_NO_DISCARD ImageFormat R_ImageFormatFromGL   (GLenum      format);
 #elif A_RENDER_BACKEND_D3D9                               
 A_EXTERN_C A_NO_DISCARD D3DFORMAT   R_ImageFormatToD3D    (ImageFormat format);
 A_EXTERN_C A_NO_DISCARD ImageFormat R_ImageFormatFromD3D  (D3DFORMAT   format);
