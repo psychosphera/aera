@@ -45,10 +45,13 @@ typedef enum TagFourCC {
 A_PACK(struct MapHeader {
 	uint32_t     head_magic;
 	MapEngine    engine;
-	uint32_t     decompressed_file_size, compressed_padding;
-	uint32_t     tag_data_offset, tag_data_size;
+	uint32_t     decompressed_file_size;
+	uint32_t     compressed_padding;
+	uint32_t     tag_data_offset;
+	uint32_t     tag_data_size;
 	uint64_t     __pad1;
-	char         name[32], build[32];
+	char         name[32];
+	char         build[32];
 	uint16_t     type; // ScenarioType
 	uint16_t     __pad2;
 	uint32_t     crc32;
@@ -65,7 +68,9 @@ typedef union TagId {
 A_STATIC_ASSERT(sizeof(TagId) == 4);
 
 A_PACK(struct Tag {
-	uint32_t primary_class, secondary_class, tertiary_class;
+	uint32_t primary_class;
+	uint32_t secondary_class;
+	uint32_t tertiary_class;
 	TagId    tag_id;
 	uint32_t tag_path;
 	uint32_t tag_data;
@@ -76,20 +81,26 @@ typedef struct Tag Tag;
 A_STATIC_ASSERT(sizeof(Tag) == 32);
 
 A_PACK(struct TagDependency {
-	uint32_t fourcc, path_pointer, path_size;
+	uint32_t fourcc;
+	uint32_t path_pointer;
+	uint32_t path_size;
 	TagId id;
 });
 typedef struct TagDependency TagDependency;
 A_STATIC_ASSERT(sizeof(TagDependency) == 16);
 
-#if A_ARCH_IS_32BIT
+#if A_PTR_SIZE_IS_32BIT
 #define NATIVE_PTR(T, name) T* name; char __pad##__LINE__##[4]
-#else 
+#elif A_PTR_SIZE_IS_64BIT
 #define NATIVE_PTR(T, name) T* name
+#else
+#error nani the fuck?
 #endif // A_ARCH_IS_32BIT
 
 A_PACK(struct TagDataOffset {
-	uint32_t size, external, file_offset;
+	uint32_t size;
+	uint32_t external;
+	uint32_t file_offset;
 	NATIVE_PTR(void, pointer);
 });
 typedef struct TagDataOffset TagDataOffset;
@@ -105,8 +116,13 @@ A_STATIC_ASSERT(sizeof(TagReflexive) == 12);
 A_PACK(struct TagHeaderPC {
 	uint32_t tag_ptr;
 	TagId scenario_tag_id;
-	uint32_t checksum, tag_count, model_part_count, model_data_file_offset;
-	uint32_t model_part_count_2, vertex_data_size, model_data_size;
+	uint32_t checksum;
+	uint32_t tag_count;
+	uint32_t model_part_count;
+	uint32_t model_data_file_offset;
+	uint32_t model_part_count_2;
+	uint32_t vertex_data_size;
+	uint32_t model_data_size;
 	uint32_t magic;
 });
 typedef struct TagHeaderPC TagHeaderPC;
@@ -115,8 +131,12 @@ A_STATIC_ASSERT(sizeof(TagHeaderPC) == 40);
 A_PACK(struct TagHeaderXbox {
 	uint32_t tag_ptr;
 	TagId scenario_tag_id;
-	uint32_t checksum, tag_count, model_part_count, vertex_data_ptr;
-	uint32_t model_part_count_2, triangle_data_ptr;
+	uint32_t checksum;
+	uint32_t tag_count;
+	uint32_t model_part_count;
+	uint32_t vertex_data_ptr;
+	uint32_t model_part_count_2;
+	uint32_t triangle_data_ptr;
 	uint32_t magic;
 });
 typedef struct TagHeaderXbox TagHeaderXbox;
@@ -125,7 +145,9 @@ A_STATIC_ASSERT(sizeof(TagHeaderXbox) == 36);
 A_PACK(struct TagHeaderCommon {
 	uint32_t tag_ptr;
 	TagId scenario_tag_id;
-	uint32_t checksum, tag_count, model_part_count;
+	uint32_t checksum;
+	uint32_t tag_count;
+	uint32_t model_part_count;
 });
 typedef struct TagHeaderCommon TagHeaderCommon;
 A_STATIC_ASSERT(sizeof(TagHeaderCommon) == 20);
@@ -147,7 +169,10 @@ typedef struct BSPModelPartIndicesIndirect BSPModelPartIndicesIndirect;
 A_STATIC_ASSERT(sizeof(BSPModelPartIndicesIndirect) == 12);
 
 A_PACK(struct ScenarioBSP {
-	uint32_t bsp_start, bsp_size, bsp_address, __pad;
+	uint32_t bsp_start;
+	uint32_t bsp_size;
+	uint32_t bsp_address;
+	char __pad[4];
 	TagDependency structure_bsp;
 });
 typedef struct ScenarioBSP ScenarioBSP;
@@ -163,7 +188,11 @@ A_PACK(struct ScenarioPlayerSpawn {
 	float      facing;
 	uint16_t   team_index;
 	uint16_t   bsp_index;
-	uint16_t   type0, type1, type2, type3; // ScenarioPlayerSpawnType
+	// ScenarioPlayerSpawnType
+	uint16_t   type0;
+	uint16_t   type1;
+	uint16_t   type2;
+	uint16_t   type3; 
 	char       __pad[24];
 });
 typedef struct ScenarioPlayerSpawn ScenarioPlayerSpawn;
@@ -194,7 +223,9 @@ A_STATIC_ASSERT(sizeof(BSPSurf) == 6);
 
 A_PACK(struct BSPRenderedVertex {
 	apoint3f_t pos;
-	avec3f_t   normal, binormal, tangent;
+	avec3f_t   normal;
+	avec3f_t   binormal;
+	avec3f_t   tangent;
 	apoint2f_t tex_coords;
 });
 typedef struct BSPRenderedVertex BSPRenderedVertex;
@@ -202,7 +233,9 @@ A_STATIC_ASSERT(sizeof(BSPRenderedVertex) == 56);
 
 A_PACK(struct BSPRenderedVertexCompressed {
 	apoint3f_t pos;
-	uint32_t   normal, binormal, tangent;
+	uint32_t   normal;
+	uint32_t   binormal;
+	uint32_t   tangent;
 	apoint2f_t tex_coords;
 });
 typedef struct BSPRenderedVertexCompressed BSPRenderedVertexCompressed;
@@ -223,7 +256,8 @@ typedef struct BSPLightmapVertexCompressed BSPLightmapVertexCompressed;
 A_STATIC_ASSERT(sizeof(BSPLightmapVertexCompressed) == 12);
 
 A_PACK(struct BSPCollSurf {
-	uint32_t plane, first_edge;
+	uint32_t plane;
+	uint32_t first_edge;
 	uint8_t  flags;
 	int8_t   breakable_surface;
 	uint16_t material;
@@ -232,9 +266,12 @@ typedef struct BSPCollSurf BSPCollSurf;
 A_STATIC_ASSERT(sizeof(BSPCollSurf) == 12);
 
 A_PACK(struct BSPCollEdge {
-	uint32_t start_vert, end_vert;
-	uint32_t forward_edge, reverse_edge;
-	uint32_t left_surf, right_surf;
+	uint32_t start_vert;
+	uint32_t end_vert;
+	uint32_t forward_edge;
+	uint32_t reverse_edge;
+	uint32_t left_surf;
+	uint32_t right_surf;
 });
 typedef struct BSPCollEdge BSPCollEdge;
 A_STATIC_ASSERT(sizeof(BSPCollEdge) == 24);
@@ -549,7 +586,9 @@ A_STATIC_ASSERT(sizeof(BSPCollisionMaterial) == 20);
 
 A_PACK(struct BSPBitmapData {
 	uint32_t   klass;
-	uint16_t   width, height, depth;
+	uint16_t   width;
+	uint16_t   height;
+	uint16_t   depth;
 	uint16_t   type;   // BSPBitmapDataType
 	uint16_t   format; // BSPBitmapDataType
 	uint16_t   flags;
@@ -566,22 +605,32 @@ typedef struct BSPBitmapData BSPBitmapData;
 A_STATIC_ASSERT(sizeof(BSPBitmapData) == 48);
 
 A_PACK(struct BSPBitmap {
-	uint16_t      type;   // BSPBitmapType
-	uint16_t      format; // BSPBitmapFormat
-	uint16_t      usage;  // BSPBitmapUsage
+	// BSPBitmapType
+	uint16_t      type;   
+	// BSPBitmapFormat
+	uint16_t      format; 
+	// BSPBitmapUsage
+	uint16_t      usage;  
 	uint16_t      flags;
-	float         detail_fade_factor, sharpen_amount, bump_height;
-	uint16_t      size; // BSPBitmapSpriteBudgetSize
+	float         detail_fade_factor;
+	float         sharpen_amount;
+	float         bump_height;
+	// BSPBitmapSpriteBudgetSize
+	uint16_t      size; 
 	uint16_t      sprite_budget_count;
-	uint16_t      color_palate_width, color_palate_height;
+	uint16_t      color_palate_width;
+	uint16_t      color_palate_height;
 	TagDataOffset compressed_color_palate_data;
 	TagDataOffset processed_pixel_data;
-	float         blur_filter_size, alpha_bias;
+	float         blur_filter_size;
+	float         alpha_bias;
 	uint16_t      mipmap_count;
-	uint16_t      sprite_usage; // BSPBitmapSpriteUsage
+	// BSPBitmapSpriteUsage
+	uint16_t      sprite_usage;
 	uint16_t      sprite_spacing;
 	uint16_t      __pad;
-	TagReflexive  bitmap_group_sequence, bitmap_data;
+	TagReflexive  bitmap_group_sequence;
+	TagReflexive  bitmap_data;
 });
 typedef struct BSPBitmap BSPBitmap;
 A_STATIC_ASSERT(sizeof(BSPBitmap) == 108);
@@ -598,35 +647,41 @@ typedef enum BSPVertexType {
 
 A_PACK(struct BSPMaterial {
 	TagDependency shader;
-	uint16_t shader_permutation;
-	uint16_t flags;
-	uint32_t surfaces, surface_count;
-	apoint3f_t centroid;
-	acolor_rgb_t ambient_color;
-	uint16_t distant_light_count;
-	uint16_t __pad1;
-	acolor_rgb_t distant_light_0_color;
-	avec3f_t distant_light_0_direction;
-	acolor_rgb_t distant_light_1_color;
-	avec3f_t distant_light_1_direction;
-	uint8_t __pad2[12];
+	uint16_t      shader_permutation;
+	uint16_t      flags;
+	uint32_t      surfaces;
+	uint32_t      surface_count;
+	apoint3f_t    centroid;
+	acolor_rgb_t  ambient_color;
+	uint16_t      distant_light_count;
+	char          __pad1[2];
+	acolor_rgb_t  distant_light_0_color;
+	avec3f_t      distant_light_0_direction;
+	acolor_rgb_t  distant_light_1_color;
+	avec3f_t      distant_light_1_direction;
+	uint8_t       __pad2[12];
 	acolor_argb_t reflection_tint;
-	avec3f_t shadow_vector;
-	acolor_rgb_t shadow_color;
-	aplane3f_t plane;
-	uint16_t breakable_surface;
-	uint16_t __pad3;
-	uint16_t rendered_vertices_type; // BSPVertexType
-	uint16_t __pad4;
-	uint32_t rendered_vertices_count, rendered_vertices_offset;
-	uint32_t __pad5;
-	uint32_t rendered_vertices_index_pointer;
-	uint16_t lightmap_vertices_type; // BSPVertexType
-	uint16_t __pad6;
-	uint32_t lightmap_vertices_count, lightmap_vertices_offset;
-	uint32_t __pad7;
-	uint32_t lightmap_vertices_index_pointer;
-	TagDataOffset uncompressed_vertices, compressed_vertices;
+	avec3f_t      shadow_vector;
+	acolor_rgb_t  shadow_color;
+	aplane3f_t    plane;
+	uint16_t      breakable_surface;
+	char          __pad3[2];
+	// BSPVertexType
+	uint16_t      rendered_vertices_type; 
+	char          __pad4[2];
+	uint32_t      rendered_vertices_count;
+	uint32_t      rendered_vertices_offset;
+	char          __pad5[4];
+	uint32_t      rendered_vertices_index_pointer;
+	// BSPVertexType
+	uint16_t      lightmap_vertices_type; 
+	char          __pad6[2];
+	uint32_t      lightmap_vertices_count;
+	uint32_t      lightmap_vertices_offset;
+	char          __pad7[4];
+	uint32_t      lightmap_vertices_index_pointer;
+	TagDataOffset uncompressed_vertices;
+	TagDataOffset compressed_vertices;
 });
 typedef struct BSPMaterial BSPMaterial;
 A_STATIC_ASSERT(sizeof(BSPMaterial) == 256);
@@ -643,11 +698,12 @@ A_PACK(struct BSPShader {
 	uint16_t     flags;
 	uint16_t     detail_level;  // BSPShaderDetailLevel
 	float        power;
-	acolor_rgb_t emitted_light_color, tint_color;
+	acolor_rgb_t emitted_light_color;
+	acolor_rgb_t tint_color;
 	uint16_t     physics_flags;
 	uint16_t     material_type; // BSPMaterialType
 	uint16_t     type;          // BSPShaderType
-	uint16_t     __pad;
+	char         __pad[2];
 });
 typedef struct BSPShader BSPShader;
 A_STATIC_ASSERT(sizeof(BSPShader) == 40);
@@ -669,7 +725,7 @@ A_PACK(struct BSPShaderEnvironment {
 	TagDependency base_map;
 	char          __pad3[24];
 	uint16_t      detail_map_function; // BSPShaderDetailFunction
-	uint16_t      __pad4;
+	char          __pad4[2];
 	float         primary_detail_map_scale;
 	TagDependency primary_detail_map;
 	float         secondary_detail_map_scale;
@@ -687,27 +743,35 @@ A_PACK(struct BSPShaderEnvironment {
 	char          __pad8[16];
 	uint16_t      u_anim_fn; // ShaderWaveFunction
 	uint16_t      __pad9;
-	float         u_anim_period, u_anim_scale;
+	float         u_anim_period;
+	float         u_anim_scale;
 	uint16_t      v_anim_function; // ShaderWaveFunction
-	uint16_t      __pad10;
-	float         v_anim_period, v_anim_scale;
+	char          __pad10[2];
+	float         v_anim_period;
+	float         v_anim_scale;
 	char          __pad11[24];
 	uint16_t      self_illumination_flags;
 	char          __pad12[26];
-	acolor_rgb_t  primary_on_color, primary_off_color;
+	acolor_rgb_t  primary_on_color;
+	acolor_rgb_t  primary_off_color;
 	uint16_t      primary_anim_function; // ShaderWaveFunction
-	uint16_t      __pad13;
-	float         primary_anim_period, primary_anim_phase;
+	char          __pad13[2];
+	float         primary_anim_period;
+	float         primary_anim_phase;
 	char          __pad14[24];
-	acolor_rgb_t  secondary_on_color, secondary_off_color;
+	acolor_rgb_t  secondary_on_color;
+	acolor_rgb_t  secondary_off_color;
 	uint16_t      secondary_anim_function; // ShaderWaveFunction
-	uint16_t      __pad15;
-	float         secondary_anim_period, secondary_anim_phase;
+	char          __pad15[2];
+	float         secondary_anim_period;
+	float         secondary_anim_phase;
 	char          __pad16[24];
-	acolor_rgb_t  plasma_on_color, plasma_off_color;
+	acolor_rgb_t  plasma_on_color;
+	acolor_rgb_t  plasma_off_color;
 	uint16_t      plasma_anim_function; // ShaderWaveFunction
 	uint16_t      __pad17;
-	float         plasma_anim_period, plasma_anim_phase;
+	float         plasma_anim_period;
+	float         plasma_anim_phase;
 	char          __pad18[24];
 	float         map_scale;
 	TagDependency map;
@@ -739,61 +803,70 @@ typedef enum BSPShaderModelDetailMask {
 } BSPShaderModelDetailMask;
 
 A_PACK(struct BSPShaderModel {
-	BSPShader base;
+	BSPShader     base;
 	// BSPShaderModelFlags
-	uint16_t flags;
-	char __pad1[14];
-	float translucency;
-	char __pad2[16];
+	uint16_t      flags;
+	char          __pad1[14];
+	float         translucency;
+	char          __pad2[16];
 	// BSPObjectFunctionNameNullable
-	uint16_t change_color_sequence;
-	char __pad3[30];
-	uint16_t more_flags;
-	char __pad4[2];
+	uint16_t      change_color_sequence;
+	char          __pad3[30];
+	uint16_t      more_flags;
+	char          __pad4[2];
 	// BSPObjectFunctionNameNullable
-	uint16_t color_sequence;
+	uint16_t      color_sequence;
 	// BSPObjectWaveFunction
-	uint16_t animation_function;
-	float anumation_period;
-	acolor_rgb_t animation_color_upper_bound, animation_color_lower_bound;
-	char __pad5[12];
-	float map_u_scale, map_v_scale;
+	uint16_t      animation_function;
+	float         animation_period;
+	acolor_rgb_t  animation_color_upper_bound;
+	acolor_rgb_t  animation_color_lower_bound;
+	char          __pad5[12];
+	float         map_u_scale;
+	float         map_v_scale;
 	TagDependency base_map;
-	char __pad6[8];
+	char          __pad6[8];
 	TagDependency multipurpose_map;
-	char __pad7[8];
+	char          __pad7[8];
 	// BSPShaderDetailFunction
-	uint16_t detail_function;
+	uint16_t      detail_function;
 	// BSPShaderModelDetailMask
-	uint16_t detail_mask;
-	float detail_map_scale;
+	uint16_t      detail_mask;
+	float         detail_map_scale;
 	TagDependency detail_map;
-	float detail_map_v_scale;
-	char __pad8[12];
+	float         detail_map_v_scale;
+	char          __pad8[12];
 	// BSPObjectFunctionOut 
-	uint16_t u_animation_source;
+	uint16_t      u_animation_source;
 	// BSPObjectWaveFunction
-	uint16_t u_anumation_function;
-	float u_animation_period, u_animation_phase, u_animation_scale;
+	uint16_t      u_anumation_function;
+	float         u_animation_period;
+	float         u_animation_phase;
+	float         u_animation_scale;
 	// BSPObjectFunctionOut 
-	uint16_t v_animation_source;
+	uint16_t      v_animation_source;
 	// BSPObjectWaveFunction
-	uint16_t v_anumation_function;
-	float v_animation_period, v_animation_phase, v_animation_scale;
+	uint16_t      v_anumation_function;
+	float         v_animation_period;
+	float         v_animation_phase;
+	float         v_animation_scale;
 	// BSPObjectFunctionOut 
-	uint16_t rotation_animation_source;
+	uint16_t      rotation_animation_source;
 	// BSPObjectWaveFunction
-	uint16_t rotation_anumation_function;
-	float rotation_animation_period, rotation_animation_phase, rotation_animation_scale;
-	apoint2f_t rotation_animation_center;
-	char __pad9[8];
-	float reflection_falloff_distance, reflextion_curoff_distance;
-	float perpendicular_brightness;
-	acolor_rgb_t perpendicular_tint_color;
-	float parallel_brightness;
-	acolor_rgb_t parallel_tint_color;
+	uint16_t      rotation_anumation_function;
+	float         rotation_animation_period;
+	float         rotation_animation_phase;
+	float         rotation_animation_scale;
+	apoint2f_t    rotation_animation_center;
+	char          __pad9[8];
+	float         reflection_falloff_distance;
+	float         reflextion_curoff_distance;
+	float         perpendicular_brightness;
+	acolor_rgb_t  perpendicular_tint_color;
+	float         parallel_brightness;
+	acolor_rgb_t  parallel_tint_color;
 	TagDependency reflection_cube_map;
-	char __pad10[68];
+	char          __pad10[68];
 });
 typedef struct BSPShaderModel BSPShaderModel;
 A_STATIC_ASSERT(sizeof(BSPShaderModel) == 440);
@@ -832,7 +905,9 @@ typedef enum BSPModelFlags {
 } BSPModelFlags;
 
 A_PACK(struct BSPModelMarkerInstance {
-	uint8_t    region_index, permutation_index, node_index;
+	uint8_t    region_index;
+	uint8_t    permutation_index;
+	uint8_t    node_index;
 	char       __pad;
 	apoint3f_t translation;
 	aquatf_t   rotation;
@@ -908,20 +983,27 @@ typedef enum BSPModelTriBufferType {
 
 A_PACK(struct BSPModelDecompressedVertex {
 	apoint3f_t position;
-	avec3f_t normal, binormal, tangent;
+	avec3f_t   normal;
+	avec3f_t   binormal;
+	avec3f_t   tangent;
 	apoint2f_t texcoords;
-	uint16_t node0_index, node1_index;
-	float node0_weight, node1_weight;
+	uint16_t   node0_index;
+	uint16_t   node1_index;
+	float      node0_weight;
+	float      node1_weight;
 });
 typedef struct BSPModelDecompressedVertex BSPModelDecompressedVertex;
 A_STATIC_ASSERT(sizeof(BSPModelDecompressedVertex) == 68);
 
 A_PACK(struct BSPModelCompressedVertex {
 	apoint3f_t position;
-	uint32_t normal, binormal, tangent;
+	uint32_t   normal;
+	uint32_t   binormal;
+	uint32_t   tangent;
 	apoint2s_t texcoords;
-	uint8_t node0_index, node1_index;
-	uint16_t node0_weight;
+	uint8_t    node0_index;
+	uint8_t    node1_index;
+	uint16_t   node0_weight;
 });
 typedef struct BSPModelCompressedVertex BSPModelCompressedVertex;
 A_STATIC_ASSERT(sizeof(BSPModelCompressedVertex) == 32);
@@ -933,26 +1015,31 @@ typedef struct BSPModelTri BSPModelTri;
 A_STATIC_ASSERT(sizeof(BSPModelTri) == 6);
 
 A_PACK(struct BSPModelGeometryPart {
-	int flags;
-	uint16_t shader_index;
-	uint8_t prev_filthy_part_index, next_filthy_part_index;
-	uint16_t centroid_primary_node, centroid_secondary_node;
-	float centroid_primary_weight, centroid_secondary_weight;
-	apoint3f_t centroid;
+	int          flags;
+	uint16_t     shader_index;
+	uint8_t      prev_filthy_part_index;
+	uint8_t      next_filthy_part_index;
+	uint16_t     centroid_primary_node;
+	uint16_t     centroid_secondary_node;
+	float        centroid_primary_weight;
+	float        centroid_secondary_weight;
+	apoint3f_t   centroid;
 	TagReflexive decompressed_vertices;
 	TagReflexive compressed_vertices;
 	TagReflexive triangles;
 	// BSPModelTriBufferType
-	uint16_t tri_buffer_type;
-	char __pad1[2];
-	uint32_t tri_count, tri_offset, tri_offset2;
+	uint16_t     tri_buffer_type;
+	char         __pad1[2];
+	uint32_t     tri_count;
+	uint32_t     tri_offset;
+	uint32_t     tri_offset2;
 	// BSPVertexType
-	uint16_t vertex_type;
-	char __pad2[2];
-	uint32_t vertex_count;
-	char __pad3[4];
-	uint32_t vertex_pointer;
-	uint32_t vertex_offset;
+	uint16_t     vertex_type;
+	char         __pad2[2];
+	uint32_t     vertex_count;
+	char         __pad3[4];
+	uint32_t     vertex_pointer;
+	uint32_t     vertex_offset;
 });
 typedef struct BSPModelGeometryPart BSPModelGeometryPart;
 A_STATIC_ASSERT(sizeof(BSPModelGeometryPart) == 104);
@@ -963,8 +1050,8 @@ typedef enum BSPModelGeometryFlags {
 
 A_PACK(struct BSPModelGeometry {
 	// BSPModelGeometryFlags
-	int flags;
-	char __pad[32];
+	int          flags;
+	char         __pad[32];
 	TagReflexive parts;
 });
 typedef struct BSPModelGeometry BSPModelGeometry;
@@ -972,8 +1059,8 @@ A_STATIC_ASSERT(sizeof(BSPModelGeometry) == 48);
 
 A_PACK(struct BSPModelShaderReference {
 	TagDependency shader;
-	uint16_t permutation;
-	char __pad[14];
+	uint16_t      permutation;
+	char          __pad[14];
 });
 typedef struct BSPModelShaderReference BSPModelShaderReference;
 A_STATIC_ASSERT(sizeof(BSPModelShaderReference) == 32);
@@ -993,7 +1080,8 @@ A_PACK(struct BSPModel {
 	uint16_t     high_detail_node_count;
 	uint16_t     super_high_detail_node_count;
 	char         __pad1[10];
-	float        base_map_u_scale, base_map_v_scale;
+	float        base_map_u_scale;
+	float        base_map_v_scale;
 	char         __pad2[116];
 	TagReflexive markers;
 	TagReflexive nodes;
@@ -1070,19 +1158,20 @@ typedef enum BSPObjectFunctionNameNullable {
 
 A_PACK(struct BSPObjectAttachment {
 	TagDependency type;
-	char marker[32];
+	char          marker[32];
 	// BSPObjectFunctionOut
-	uint16_t primary_scale, secondary_scale;
+	uint16_t      primary_scale;
+	uint16_t      secondary_scale;
 	// BSPObjectFunctionNameNullable
-	uint16_t change_color;
-	char __pad[18];
+	uint16_t      change_color;
+	char          __pad[18];
 });
 typedef struct BSPObjectAttachment BSPObjectAttachment;
 A_STATIC_ASSERT(sizeof(BSPObjectAttachment) == 72);
 
 A_PACK(struct BSPObjectWidget {
 	TagDependency reference;
-	char __pad[16];
+	char          __pad[16];
 });
 typedef struct BSPObjectWidget BSPObjectWidget;
 A_STATIC_ASSERT(sizeof(BSPObjectWidget) == 32);
@@ -1094,11 +1183,11 @@ typedef enum BSPObjectFunctionFlags {
 } BSPObjectFunctionFlags;
 
 typedef enum BSPObjectFunctionScaleBy {
-	BSP_OBJECT_FUNCTION_SCALE_BY_NONE = 0,
-	BSP_OBJECT_FUNCTION_SCALE_BY_A_IN = 1,
-	BSP_OBJECT_FUNCTION_SCALE_BY_B_IN = 2,
-	BSP_OBJECT_FUNCTION_SCALE_BY_C_IN = 3,
-	BSP_OBJECT_FUNCTION_SCALE_BY_D_IN = 4,
+	BSP_OBJECT_FUNCTION_SCALE_BY_NONE  = 0,
+	BSP_OBJECT_FUNCTION_SCALE_BY_A_IN  = 1,
+	BSP_OBJECT_FUNCTION_SCALE_BY_B_IN  = 2,
+	BSP_OBJECT_FUNCTION_SCALE_BY_C_IN  = 3,
+	BSP_OBJECT_FUNCTION_SCALE_BY_D_IN  = 4,
 	BSP_OBJECT_FUNCTION_SCALE_BY_A_OUT = 5,
 	BSP_OBJECT_FUNCTION_SCALE_BY_B_OUT = 6,
 	BSP_OBJECT_FUNCTION_SCALE_BY_C_OUT = 7,
@@ -1137,32 +1226,37 @@ typedef enum BSPObjectFunctionBoundsMode {
 
 A_PACK(struct BSPObjectFunction {
 	BSPObjectFunctionFlags flags;
-	float period;
+	float                  period;
 	// BSPObjectFunctionScaleBy
-	uint16_t scale_period_by;
+	uint16_t               scale_period_by;
 	// BSPObjectWaveFunction
-	uint16_t function;
+	uint16_t               function;
 	// BSPObjectFunctionScaleBy
-	uint16_t scale_function_by;
+	uint16_t               scale_function_by;
 	// BSPObjectWaveFunction
-	uint16_t wobble_function;
-	float wobble_period, wobble_magnitude;
-	float square_wave_threshold;
-	uint16_t step_count;
+	uint16_t               wobble_function;
+	float                  wobble_period;
+	float                  wobble_magnitude;
+	float                  square_wave_threshold;
+	uint16_t               step_count;
 	// BSPObjectFunctionType
-	uint16_t map_to;
-	uint16_t sawtooth_count;
+	uint16_t               map_to;
+	uint16_t               sawtooth_count;
 	// BSPObjectFunctionScaleBy
-	uint16_t add, scale_result_by;
+	uint16_t               add;
+	uint16_t               scale_result_by;
 	// BSPObjectFunctionBoundsMode
-	uint16_t bounds_mode;
+	uint16_t    bounds_mode;
 	abounds2f_t bounds;
-	char __pad1[6];
-	uint16_t turn_off_with;
-	float scale_by;
-	char __pad2[252];
-	float inverse_bounds, inverse_sawtooth, inverse_step, inverse_period;
-	char usage[32];
+	char         __pad1[6];
+	uint16_t     turn_off_with;
+	float        scale_by;
+	char         __pad2[252];
+	float        inverse_bounds;
+	float        inverse_sawtooth;
+	float        inverse_step;
+	float        inverse_period;
+	char         usage[32];
 });
 typedef struct BSPObjectFunction BSPObjectFunction;
 A_STATIC_ASSERT(sizeof(BSPObjectFunction) == 360);
@@ -1173,8 +1267,9 @@ typedef enum BSPObjectColorInterpolationFlags {
 } BSPObjectColorInterpolationFlags;
 
 A_PACK(struct BSPObjectChangeColorsPermutation {
-	float weight;
-	acolor_rgb_t color_lower_bound, color_upper_bound;
+	float        weight;
+	acolor_rgb_t color_lower_bound;
+	acolor_rgb_t color_upper_bound;
 });
 typedef struct BSPObjectChangeColorsPermutation 
 	BSPObjectChangeColorsPermutation;
@@ -1182,57 +1277,62 @@ A_STATIC_ASSERT(sizeof(BSPObjectChangeColorsPermutation) == 28);
 
 A_PACK(struct BSPObjectChangeColors {
 	// BSPObjectFunctionScaleBy
-	uint16_t darken_by, scale_by;
+	uint16_t                         darken_by;
+	uint16_t                         scale_by;
 	BSPObjectColorInterpolationFlags flags;
-	acolor_rgb_t color_lower_bound, color_upper_bound;
-	TagReflexive permutations;
+	acolor_rgb_t                     color_lower_bound;
+	acolor_rgb_t                     color_upper_bound;
+	TagReflexive                     permutations;
 });
 typedef struct BSPObjectChangeColors BSPObjectChangeColors;
 A_STATIC_ASSERT(sizeof(BSPObjectChangeColors) == 44);
 
 typedef enum BSPObjectPredictedResourceType {
 	BSP_OBJECT_PREDICTED_RESOURCE_TYPE_BITMAP = 0,
-	BSP_OBJECT_PREDICTED_RESOURCE_TYPE_SOUND = 1
+	BSP_OBJECT_PREDICTED_RESOURCE_TYPE_SOUND  = 1
 } BSPObjectPredictedResourceType;
 
 A_PACK(struct BSPObjectPredictedResource {
 	// BSPObjectPredictedResourceType
 	uint16_t type;
 	uint16_t index;
-	TagId id;
+	TagId    id;
 });
 typedef struct BSPObjectPredictedResource BSPObjectPredictedResource;
 A_STATIC_ASSERT(sizeof(BSPObjectPredictedResource) == 8);
 
 A_PACK(struct BSPObject {
 	// BSPObjectType
-	uint16_t type;
+	uint16_t      type;
 	// BSPObjectFlags
-	uint16_t flags;
-	float bounding_radius;
-	apoint3f_t bounding_offset;
-	apoint3f_t origin_offset;
-	float accel_scale;
-	uint32_t scales_change_colors;
+	uint16_t      flags;
+	float         bounding_radius;
+	apoint3f_t    bounding_offset;
+	apoint3f_t    origin_offset;
+	float         accel_scale;
+	uint32_t      scales_change_colors;
 	TagDependency model;
 	TagDependency anim_graph;
-	char __pad1[40];
+	char          __pad1[40];
 	TagDependency collision_model;
 	TagDependency physics;
 	TagDependency modifier_shader;
 	TagDependency creation_effect;
-	char __pad2[84];
-	float render_bounding_radius;
+	char          __pad2[84];
+	float         render_bounding_radius;
 	// BSPObjectFunctionIn
-	uint16_t a_in, b_in, c_in, d_in;
-	char __pad3[44];
-	uint16_t hud_message_text_index;
-	uint16_t forced_shader_permutation_index;
-	TagReflexive attachments;
-	TagReflexive widgets;
-	TagReflexive functions;
-	TagReflexive change_colors;
-	TagReflexive predicted_resources;
+	uint16_t      a_in;
+	uint16_t      b_in;
+	uint16_t      c_in;
+	uint16_t      d_in;
+	char          __pad3[44];
+	uint16_t      hud_message_text_index;
+	uint16_t      forced_shader_permutation_index;
+	TagReflexive  attachments;
+	TagReflexive  widgets;
+	TagReflexive  functions;
+	TagReflexive  change_colors;
+	TagReflexive  predicted_resources;
 });
 typedef struct BSPObject BSPObject;
 A_STATIC_ASSERT(sizeof(BSPObject) == 380);
@@ -1243,10 +1343,10 @@ typedef enum BSPBaseObjectFlags {
 
 A_PACK(struct BSPBasicObject {
 	BSPObject object;
-	char __pad1[2];
+	char      __pad1[2];
 	// BSPBaseObjectFlags
-	uint16_t more_flags;
-	char __pad2[124];
+	uint16_t  more_flags;
+	char      __pad2[124];
 });
 typedef struct BSPBasicObject BSPBasicObject;
 A_STATIC_ASSERT(sizeof(BSPBasicObject) == 508);
@@ -1261,23 +1361,25 @@ typedef enum BSPScenarioSceneryFlags {
 } BSPScenarioSceneryFlags;
 
 A_PACK(struct BSPScenarioScenery {
-	uint16_t type;
-	uint16_t name_index;
+	uint16_t   type;
+	uint16_t   name_index;
 	// BSPScenarioSceneryFlags
-	uint16_t flags;
-	uint16_t desired_permutation;
+	uint16_t   flags;
+	uint16_t   desired_permutation;
 	apoint3f_t pos;
-	float yaw, pitch, roll;
-	uint16_t bsp_indices;
-	char __pad1[2];
-	uint8_t appearance_player_index;
-	char __pad2[35];
+	float      yaw;
+	float      pitch;
+	float      roll;
+	uint16_t   bsp_indices;
+	char       __pad1[2];
+	uint8_t    appearance_player_index;
+	char       __pad2[35];
 });
 typedef struct BSPScenarioScenery BSPScenarioScenery;
 A_STATIC_ASSERT(sizeof(BSPScenarioScenery) == 72);
 
 A_PACK(struct BSPScenarioObjectName {
-	char name[32];
+	char     name[32];
 	uint16_t object_type;
 	uint16_t object_index;
 });
@@ -1286,7 +1388,7 @@ A_STATIC_ASSERT(sizeof(BSPScenarioObjectName) == 36);
 
 A_PACK(struct BSPScenarioSceneryPalette {
 	TagDependency name;
-	char __pad[32];
+	char          __pad[32];
 });
 typedef struct BSPScenarioSceneryPalette BSPScenarioSceneryPalette;
 A_STATIC_ASSERT(sizeof(BSPScenarioSceneryPalette) == 48);
@@ -1314,5 +1416,5 @@ A_EXTERN_C uint32_t                   CL_Map_ScenarioSceneryCount(void);
 A_EXTERN_C BSPScenarioSceneryPalette* CL_Map_ScenarioSceneryPalette(uint16_t i);
 A_EXTERN_C uint32_t                   CL_Map_ScenarioSceneryPaletteCount(void);
 
-A_EXTERN_C bool                CL_BitmapDataFormatIsCompressed(BSPBitmapDataFormat format);
-A_EXTERN_C size_t              CL_BitmapDataFormatBPP(BSPBitmapDataFormat format);
+A_EXTERN_C bool                       CL_BitmapDataFormatIsCompressed(BSPBitmapDataFormat format);
+A_EXTERN_C size_t                     CL_BitmapDataFormatBPP(BSPBitmapDataFormat format);

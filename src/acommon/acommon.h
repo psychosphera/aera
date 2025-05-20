@@ -139,8 +139,8 @@
 #define A_OPTIONAL_INOUT
 #endif // A_TARGET_OS_IS_WINDOWS
 
-#define A_ARCH_IS_32BIT (UINTPTR_MAX == UINT32_MAX)
-#define A_ARCH_IS_64BIT (UINTPTR_MAX == UINT64_MAX)
+#define A_PTR_SIZE_IS_32BIT (UINTPTR_MAX == UINT32_MAX)
+#define A_PTR_SIZE_IS_64BIT (UINTPTR_MAX == UINT64_MAX)
 
 #if (A_CXX17 || A_C23) && A_COMPILER_IS_MSVC
 #define A_NO_DISCARD [[nodiscard]]
@@ -244,11 +244,11 @@
 #endif // A_C23 || A_COMPILER_IS_GCC_COMPATIBLE
 
 #if A_COMPILER_IS_GCC_COMPATIBLE
-#define A_PACK(...) __VA_ARGS__ __attribute__((__packed__))
+#define A_PACK(s) s __attribute__((__packed__))
 #elif A_COMPILER_IS_MSVC
-#define A_PACK(...) \
+#define A_PACK(s) \
     A_PRAGMA(pack(push, 1)) \
-    __VA_ARGS__ \
+    s \
     A_PRAGMA(pack(pop))
 #else 
 #error "Struct packing unimplemented."
