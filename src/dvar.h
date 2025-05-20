@@ -1,7 +1,6 @@
 #pragma once
 
 #include <assert.h>
-#include <stdbool.h>
 
 #include "acommon/acommon.h"
 #include "acommon/a_math.h"

@@ -1,6 +1,8 @@
 #pragma once
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 #include <SDL3/SDL.h>
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 #include "com_defs.h"
 #include "dvar.h"
@@ -14,6 +16,7 @@ typedef enum thread_t {
 	THREAD_MAIN = 0,
 } thread_t;
 
+#if !A_RENDER_BACKEND_D3D8
 typedef struct SDLGlob {
     SDL_Window*   window;
 #if A_RENDER_BACKEND_GL
@@ -21,6 +24,7 @@ typedef struct SDLGlob {
 #endif // A_RENDER_BACKEND_GL
 } SDLGlob;
 extern SDLGlob sys_sdlGlob;
+#endif // A_RENDER_BACKEND_D3D8
 
 extern dvar_t*     vid_width;
 extern dvar_t*     vid_height;

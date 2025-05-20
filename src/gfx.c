@@ -4,16 +4,14 @@
 #include <stdio.h>
 #include <stddef.h>
 
+#if A_RENDER_BACKEND_GL
 #include <cglm/cglm.h>
-#include <SDL3/SDL.h>
+#endif // A_RENDER_BACKEND_GL
+
+#if !A_TARGET_PLATFORM_IS_XBOX
 #include <SDL3/SDL_syswm.h>
 #include <SDL3_image/SDL_image.h>
-
-#if A_RENDER_BACKEND_GL
-#include <GL/glew.h>
-#elif A_RENDER_BACKEND_D3D9
-#include <d3d9.h>
-#endif // A_RENDER_BACKEND_GL
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 #include "acommon/a_string.h"
 

@@ -1,13 +1,10 @@
 #include "z_mem.h"
 
 #include <stdlib.h>
-#include <stdbool.h>
 
 #include "a_string.h"
 
-#ifdef _WIN32
-#include <Windows.h>
-#else
+#ifndef _WIN32
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -77,9 +74,9 @@ bool Z_FreeAt(const void* p, size_t n) {
 }
 #endif // _WIN32
 
-#ifdef _WIN32
+#if A_TARGET_OS_IS_WINDOWS && !A_TARGET_PLATFORM_IS_XBOX
 A_NO_DISCARD FileMapping Z_MapFile(const char* filename) {
-    FileMapping f = { .p = NULL, .n = 0, .__hFile = NULL, .__hMap = NULL };
+    FileMapping f = { /*.p =*/ NULL, /*.n =*/ 0, /*.__hFile =*/ NULL, /*.__hMap =*/ NULL };
     HANDLE hFile = CreateFileA(
         filename, GENERIC_READ, FILE_SHARE_READ, NULL, 
         OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0
@@ -105,7 +102,7 @@ A_NO_DISCARD FileMapping Z_MapFile(const char* filename) {
 
     return f;
 }
-#else
+#elif !A_TARGET_PLATFORM_IS_XBOX
 A_NO_DISCARD FileMapping Z_MapFile(const char* filename) {
     FileMapping f = { .p = NULL, .n = 0 };
     struct stat st = { 0 };
@@ -123,9 +120,9 @@ A_NO_DISCARD FileMapping Z_MapFile(const char* filename) {
     close(fd);
     return f;
 }
-#endif
+#endif // A_TARGET_OS_IS_WINDOWS && !A_TARGET_PLATFORM_IS_XBOX
 
-#ifdef _WIN32
+#if A_TARGET_OS_IS_WINDOWS && !A_TARGET_PLATFORM_IS_XBOX
 bool Z_UnmapFile(A_INOUT FileMapping* f) {
     bool b = true;
     if(UnmapViewOfFile(f->p) == 0)
@@ -139,8 +136,8 @@ bool Z_UnmapFile(A_INOUT FileMapping* f) {
     
     return b;
 }
-#else
+#elif !A_TARGET_PLATFORM_IS_XBOX
 bool Z_UnmapFile(A_INOUT FileMapping* f) {
     return munmap(f->p, f->n) == 0;
 }
-#endif
+#endif // A_TARGET_OS_IS_WINDOWS && !A_TARGET_PLATFORM_IS_XBOX

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdbool.h>
-
 #include "acommon/acommon.h"
 
 #define DEVGUI_MAX_SAVED_LINES 16

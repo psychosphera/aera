@@ -552,7 +552,7 @@ static dvar_t* Dvar_RegisterDvar(const char* name, const dvar_t* d) {
 	if (d == NULL)
 		return NULL;
 
-	*dvar = Z_Alloc(sizeof(*d));
+	*dvar = (dvar_t*)Z_Alloc(sizeof(*d));
 	A_memcpy(*dvar, d, sizeof(*d));
 	(*dvar)->name = A_cstrdup(name);
 	return *dvar;

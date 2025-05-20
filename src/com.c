@@ -1,5 +1,3 @@
-#include <stdint.h>
-
 #include "acommon/a_string.h"
 
 #include "cg_cgame.h"

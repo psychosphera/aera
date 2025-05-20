@@ -1,13 +1,15 @@
 #pragma once
 
-#include <stdbool.h>
-
+#if !A_TARGET_PLATFORM_IS_XBOX
 #include <SDL3/SDL.h>
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 #include "com_defs.h"
 
 typedef struct StreamFile {
+#if !A_TARGET_PLATFORM_IS_XBOX
 	SDL_RWops* f;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 	size_t size;
 } StreamFile;
 

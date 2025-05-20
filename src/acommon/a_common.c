@@ -1,6 +1,5 @@
 #include "acommon.h"
 
-#include <stdint.h>
 #include <stdlib.h>
 
 A_NO_DISCARD size_t A_npow2(size_t n) {

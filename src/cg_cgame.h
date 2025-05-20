@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdbool.h>
-
 #include "acommon/a_math.h"
 
 #include "com_defs.h"

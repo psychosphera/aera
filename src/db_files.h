@@ -16,5 +16,7 @@ A_EXTERN_C A_NO_DISCARD void*       DB_LoadImage       (const char* image_name);
 A_EXTERN_C              void        DB_UnloadImage     (void* image);
 A_EXTERN_C A_NO_DISCARD StreamFile  DB_LoadMap_Stream  (const char* map_name);
 A_EXTERN_C              void        DB_UnloadMap_Stream(A_INOUT StreamFile* s);
+#if !A_TARGET_PLATFORM_IS_XBOX
 A_EXTERN_C A_NO_DISCARD FileMapping DB_LoadMap_Mmap    (const char* map_name);
-A_EXTERN_C void DB_UnloadMap_Mmap  (A_INOUT FileMapping* m);
+A_EXTERN_C              void        DB_UnloadMap_Mmap  (A_INOUT FileMapping* m);
+#endif // !A_TARGET_PLATFORM_IS_XBOX

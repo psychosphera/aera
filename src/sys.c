@@ -2,7 +2,9 @@
 
 #include <stdio.h>
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 #include <SDL3_image/SDL_image.h>
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 #include "acommon/a_string.h"
 

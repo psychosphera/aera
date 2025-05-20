@@ -13,7 +13,7 @@
 
 #if A_RENDER_BACKEND_GL
 typedef GLint GfxCompiledShader;
-#elif A_RENDER_BACKEND_D3D9
+#elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
 typedef LPD3DXBUFFER GfxCompiledShader;
 #endif // A_RENDER_BACKEND_GL
 

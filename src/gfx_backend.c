@@ -5,7 +5,6 @@
 #if A_RENDER_BACKEND_GL
 #include <GL/glew.h>
 #endif // A_RENDER_BACKEND_GL
-#include <SDL3/SDL.h>
 
 #include "com_print.h"
 #include "dvar.h"

@@ -4,6 +4,9 @@
 #include <GL/glew.h>
 #elif A_RENDER_BACKEND_D3D9
 #include <d3d9.h>
+#elif A_RENDER_BACKEND_D3D8
+#include <Xtl.h>
+#include <d3d8.h>
 #endif // A_RENDER_BACKEND_GL
 
 #include "acommon/a_math.h"
@@ -11,7 +14,7 @@
 #include "com_defs.h"
 
 #define R_MAX_IMAGES_PER_VERTEX_BUFFER 8
-#define R_MATERIAL_PASS_MAX_VBS 2
+#define R_MATERIAL_PASS_MAX_VBS        2
 
 #if A_RENDER_BACKEND_GL
 typedef unsigned int vbo_t;
@@ -65,9 +68,11 @@ typedef enum ImageType {
 typedef texture_t GfxTexture;
 #elif A_RENDER_BACKEND_D3D9
 typedef LPDIRECT3DTEXTURE9 GfxTexture;
+#elif A_RENDER_BACKEND_D3D8
+typedef LPDIRECT3DTEXTURE8 GfxTexture;
 #endif // A_RENDER_BACKEND_GL
 
-typedef enum GfxFilter {
+typedef enum ImageFilter {
     R_IMAGE_FILTER_LINEAR
 } ImageFilter;
 

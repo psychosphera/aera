@@ -12,7 +12,9 @@
 #include <unistd.h>
 #endif // !A_TARGET_OS_IS_WINDOWS
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 #include <SDL3/SDL.h>
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 #include "acommon/acommon.h"
 #include "acommon/a_string.h"

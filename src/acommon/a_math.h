@@ -2,8 +2,6 @@
 
 #include "acommon.h"
 
-#include <stdbool.h>
-
 #define A_MIN(a, b) ((a) < (b) ? (a) : (b))
 #define A_MAX(a, b) ((a) > (b) ? (a) : (b))
 
@@ -79,7 +77,7 @@ typedef union avec2f_t {
 } avec2f_t;
 A_STATIC_ASSERT(sizeof(apoint2f_t) == 8);
 
-#define A_vec2(a, b) { .t = a, .u = b }
+#define A_vec2(a, b) { a, b }
 A_EXTERN_C const avec2f_t  A__priv__vec2f_zero;
 #define A_VEC2F_ZERO       A__priv__vec2f_zero
 
@@ -100,7 +98,7 @@ typedef union avec3f_t {
 } avec3f_t;
 A_STATIC_ASSERT(sizeof(avec3f_t) == 12);
 
-#define A_vec3(a, b, c) { .x = a, .y = b, .z = c }
+#define A_vec3(a, b, c) { a, b, c }
 A_EXTERN_C const avec3f_t  A__priv__vec3f_zero;
 #define A_VEC3F_ZERO       A__priv__vec3f_zero
 
@@ -121,7 +119,7 @@ typedef union avec4f_t {
 } avec4f_t;
 A_STATIC_ASSERT(sizeof(avec4f_t) == 16);
 
-#define A_vec4(a, b, c, d) { .x = a, .y = b, .z = c, .w = d }
+#define A_vec4(a, b, c, d) { a, b, c, d }
 A_EXTERN_C const avec4f_t  A__priv__vec4f_zero;
 #define A_VEC4F_ZERO       A__priv__vec4f_zero
 

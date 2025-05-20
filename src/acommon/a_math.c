@@ -15,17 +15,17 @@ const avec3f_t A__priv__vec3f_zero = A_vec3(0.0f, 0.0f, 0.0f);
 const avec4f_t A__priv__vec4f_zero = A_vec4(0.0f, 0.0f, 0.0f, 0.0f);
 
 const amat4f_t A__priv__mat4f_zero = {
-	.m = { { 0.0f, 0.0f, 0.0f, 0.0f },
-		   { 0.0f, 0.0f, 0.0f, 0.0f },
-		   { 0.0f, 0.0f, 0.0f, 0.0f },
-		   { 0.0f, 0.0f, 0.0f, 0.0f } }
+	{ { 0.0f, 0.0f, 0.0f, 0.0f },
+	  { 0.0f, 0.0f, 0.0f, 0.0f },
+	  { 0.0f, 0.0f, 0.0f, 0.0f },
+	  { 0.0f, 0.0f, 0.0f, 0.0f } }
 };
 
 const amat4f_t A__priv__mat4f_identity = {
-	.m = { { 1.0f, 0.0f, 0.0f, 0.0f },
-		   { 0.0f, 1.0f, 0.0f, 0.0f },
-		   { 0.0f, 0.0f, 1.0f, 0.0f },
-		   { 0.0f, 0.0f, 0.0f, 1.0f } }
+	{ { 1.0f, 0.0f, 0.0f, 0.0f },
+	  { 0.0f, 1.0f, 0.0f, 0.0f },
+	  { 0.0f, 0.0f, 1.0f, 0.0f },
+	  { 0.0f, 0.0f, 0.0f, 1.0f } }
 };
 
 A_NO_DISCARD float A_ceilf(float a, float b) {

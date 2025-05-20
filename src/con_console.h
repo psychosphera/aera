@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdbool.h>
-
 #include "acommon/acommon.h"
 
 A_EXTERN_C bool Con_ProcessInput(const char* input);

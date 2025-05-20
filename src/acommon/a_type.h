@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdbool.h>
-
 #include "acommon.h"
 
 A_EXTERN_C A_NO_DISCARD char A_tolower(char c);

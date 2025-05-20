@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdint.h>
-
 #include "acommon/acommon.h"
 #include "acommon/a_math.h"
 
@@ -49,11 +47,11 @@ A_PACK(struct MapHeader {
 	uint32_t     compressed_padding;
 	uint32_t     tag_data_offset;
 	uint32_t     tag_data_size;
-	uint64_t     __pad1;
+	char         __pad1[8];
 	char         name[32];
 	char         build[32];
 	uint16_t     type; // ScenarioType
-	uint16_t     __pad2;
+	char         __pad2[2];
 	uint32_t     crc32;
 	char         __pad3[1940];
 	uint32_t     foot_magic;

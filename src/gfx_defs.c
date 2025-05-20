@@ -2,10 +2,6 @@
 
 #include <assert.h>
 
-#if A_RENDER_BACKEND_D3D9
-#include <d3d9.h>
-#endif // A_RENDER_BACKEND_D3D9
-
 #include "acommon/a_math.h"
 #include "acommon/a_string.h"
 

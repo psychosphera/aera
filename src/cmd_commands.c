@@ -119,7 +119,7 @@ bool Cmd_TakeInput(const char* input) {
 	for (const char* p = input; *p != '\0'; p++) {
 		if (A_isspace(*p)) {
 			size_t len = i - last_arg_i;
-			cmd_args.args[i] = Z_Alloc(len + 1);
+			cmd_args.args[i] = (char*)Z_Alloc(len + 1);
 			A_cstrncpyz(cmd_args.args[cmd_args.idx++], &input[last_arg_i], len + 1);
 			last_arg_i = i + 1;
 			while (A_isspace(*(p++)));

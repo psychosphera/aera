@@ -11,11 +11,9 @@
 
 #pragma once
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdarg.h>
 #include <limits.h>
-#include <stdint.h>
 
 #include "acommon.h"
 

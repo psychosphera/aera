@@ -7,19 +7,19 @@
 
 #define SIZE_BIT ((size_t)((size_t)CHAR_BIT * sizeof(size_t)))
 
-#ifdef __STDC__
+#if defined(__STDC__) || (defined(_MSC_VER) && !defined(__cplusplus))
 #define A_STDC 1
 #else
 #define A_STDC 0
-#endif // __STDC__
+#endif // __STDC__ || _MSC_VER >= 1200
        
-#ifdef __cplusplus
+#if defined(__cplusplus)
 #define A_CXX 1
 #else
 #define A_CXX 0
 #endif // __cplusplus
 
-#ifdef __STDC__
+#if A_STDC
 #define A_C89 1
 #else
 #define A_C89 0
@@ -91,53 +91,85 @@
 #define A_TARGET_OS_IS_WINDOWS 0
 #endif // _WIN32
 
+#ifdef _XBOX
+#define A_TARGET_PLATFORM_IS_XBOX 1
+#else
+#define A_TARGET_PLATFORM_IS_XBOX 0
+#endif // _XBOX
+
 #ifdef __GNUC__
 #define A_COMPILER_IS_GCC_COMPATIBLE 1
 #else
 #define A_COMPILER_IS_GCC_COMPATIBLE 0
 #endif // __GNUC__
 
-#if defined _MSC_VER && !A_COMPILER_IS_GCC_COMPATIBLE
+#if defined(_MSC_VER) && !A_COMPILER_IS_GCC_COMPATIBLE
 #define A_COMPILER_IS_MSVC 1
 #else
 #define A_COMPILER_IS_MSVC 0
 #endif // _MSC_VER
        
-#if A_COMPILER_IS_MSVC
+#if A_COMPILER_IS_MSVC && _MSC_VER >= 1400 // FIXME: not sure if correct version
 #define A_IN _In_
 #else
 #define A_IN
 #endif // A_TARGET_OS_IS_WINDOWS
 
-#if A_COMPILER_IS_MSVC
+#if A_COMPILER_IS_MSVC && _MSC_VER >= 1400 // FIXME: not sure if correct version
 #define A_OUT _Out_
 #else
 #define A_OUT
 #endif // A_TARGET_OS_IS_WINDOWS
 
-#if A_COMPILER_IS_MSVC
+#if A_COMPILER_IS_MSVC && _MSC_VER >= 1400 // FIXME: not sure if correct version
 #define A_INOUT _Inout_
 #else
 #define A_INOUT
 #endif // A_TARGET_OS_IS_WINDOWS
 
-#if A_COMPILER_IS_MSVC
+#if A_COMPILER_IS_MSVC && _MSC_VER >= 1400 // FIXME: not sure if correct version
 #define A_OPTIONAL_IN _In_opt_
 #else
 #define A_OPTIONAL_IN
 #endif // A_TARGET_OS_IS_WINDOWS
 
-#if A_COMPILER_IS_MSVC
+#if A_COMPILER_IS_MSVC && _MSC_VER >= 1400 // FIXME: not sure if correct version
 #define A_OPTIONAL_OUT _Out_opt_
 #else
 #define A_OPTIONAL_OUT
 #endif // A_TARGET_OS_IS_WINDOWS
 
-#if A_COMPILER_IS_MSVC
+#if A_COMPILER_IS_MSVC && _MSC_VER >= 1400 // FIXME: not sure if correct version
 #define A_OPTIONAL_INOUT _Inout_opt_
 #else
 #define A_OPTIONAL_INOUT
 #endif // A_TARGET_OS_IS_WINDOWS
+
+#if !A_CXX && _MSC_VER < 1800
+#define bool  char
+#define true  1
+#define false 0
+#elif !A_CXX && (A_STDC && !A_C23) 
+#include <stdbool.h>
+#endif // !A_CXX &&  _MSC_VER < 1800
+
+#if defined(_MSC_VER) && _MSC_VER >= 1300 && _MSC_VER < 1900
+typedef unsigned __int8  uint8_t;
+typedef unsigned __int16 uint16_t;
+typedef unsigned __int32 uint32_t;
+typedef unsigned __int8  uint64_t;
+
+typedef signed __int8  int8_t;
+typedef signed __int16 int16_t;
+typedef signed __int32 int32_t;
+typedef signed __int8  int64_t;
+#else
+#include <stdint.h>
+#endif // defined(_MSC_VER) && _MSC_VER >= 1300 && _MSC_VER < 1900
+
+#if A_TARGET_PLATFORM_IS_XBOX && _MSC_VER < 1400
+typedef uint32_t size_t;
+#endif
 
 #define A_PTR_SIZE_IS_32BIT (UINTPTR_MAX == UINT32_MAX)
 #define A_PTR_SIZE_IS_64BIT (UINTPTR_MAX == UINT64_MAX)
@@ -146,8 +178,8 @@
 #define A_NO_DISCARD [[nodiscard]]
 #elif A_COMPILER_IS_GCC_COMPATIBLE
 #define A_NO_DISCARD __attribute__((warn_unused_result))
-#elif A_COMPILER_IS_MSVC
-#define A_NO_DISCARD _Check_return_
+#elif A_COMPILER_IS_MSVC && _MSC_VER >= 1400
+#define A_NO_DISCARD _Check_return_ 
 #else
 #define A_NO_DISCARD
 #endif // __cplusplus 
@@ -173,7 +205,6 @@
 #endif // __cplusplus
 
 #define A_NOP() ;
-#define A_SCOPE(...) do { __VA_ARGS__ } while(0);
 
 #ifdef __cplusplus
 #define A_EXTERN_C extern "C"
@@ -181,10 +212,12 @@
 #define A_EXTERN_C extern
 #endif // __cplusplus
 
-#ifdef __cplusplus
+#if defined(__cplusplus) && _MSC_VER >= 1500 // FIXME: not sure if correct version
 #define A_RESTRICT __restrict
-#else
+#elif A_C99
 #define A_RESTRICT restrict
+#else
+#define A_RESTRICT
 #endif // __cplusplus
 
 #define A_UNUSED(a) (void)(a)
@@ -247,23 +280,18 @@
 #define A_PACK(s) s __attribute__((__packed__))
 #elif A_COMPILER_IS_MSVC
 #define A_PACK(s) \
-    A_PRAGMA(pack(push, 1)) \
+    __pragma(pack(push, 1)) \
     s \
-    A_PRAGMA(pack(pop))
+    __pragma(pack(pop))
 #else 
 #error "Struct packing unimplemented."
 #endif // A_COMPILER_IS_GCC_COMPATIBLE
-
-#if !A_CXX && (A_STDC && !A_C23) 
-#include <stdbool.h>
-#define nullptr NULL
-#endif // !A_CXX && (A_STDC && !A_C23)
 
 #if (A_COMPILER_IS_MSVC && _MSC_VER >= 1915 && \
         (!defined(_MSVC_TRADITIONAL) || _MSVC_TRADITIONAL == 0) \
     ) || A_CXX17 || A_C23
 #define A_VA_OPT(...) __VA_OPT__(,) __VA_ARGS__
-#else 
+#elif !defined(_MSC_VER) || _MSC_VER >= 1400
 #define A_VA_OPT(...) , ##__VA_ARGS__
 #endif // (A_COMPILER_IS_MSVC && _MSC_VER >= 1915) || A_CXX17 || A_C23
 

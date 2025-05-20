@@ -1,7 +1,11 @@
 #pragma once
 
+#include "acommon/acommon.h"
+
+#if !A_TARGET_PLATFORM_IS_XBOX
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 #include "com_defs.h"
 #include "gfx_defs.h"

@@ -13,7 +13,7 @@
 A_NO_DISCARD bool A_memcmp(const void* A_RESTRICT a, 
                            const void* A_RESTRICT b, size_t n
 ) {
-    for(size_t i = 0; i < n; i++) {
+    for(int i = 0; i < n; i++) {
         if(((char* A_RESTRICT)a)[i] != ((char* A_RESTRICT)b)[i])
             return false;
     }
@@ -78,7 +78,7 @@ A_NO_DISCARD size_t A_cstrlen(const char* A_RESTRICT s) {
 
 A_NO_DISCARD char* A_cstrdup(const char* A_RESTRICT s) {
     size_t len = A_cstrlen(s);
-    char* t = Z_Zalloc(len + 1);
+    char* t = (char*)Z_Zalloc(len + 1);
     A_memcpy(t, s, len);
     return t;
 }
@@ -101,16 +101,20 @@ void A_cstrncpyz(char* A_RESTRICT dest, const char* A_RESTRICT src, size_t n) {
 }
 
 A_NO_DISCARD size_t A_cstrchr(const char* A_RESTRICT s, char c) {
-    const char* A_RESTRICT p = memchr(s, c, A_cstrlen(s));
+    const char* A_RESTRICT p = (const char*)memchr(s, c, A_cstrlen(s));
     return p == NULL ? A_NPOS : p - s;
 }
 
-int A_snprintf(char* buf, size_t count, const char* fmt, ...) {
+int A_vsnprintf(char* A_RESTRICT buf, size_t count, const char* fmt, va_list ap) {
+	return vsnprintf(buf, count, fmt, ap);
+}
+
+int A_snprintf(char* A_RESTRICT buf, size_t count, const char* fmt, ...) {
     if (buf == NULL || fmt == NULL || count < 1)
         return -1;
     va_list ap;
     va_start(ap, fmt);
-    return vsnprintf(buf, count, fmt, ap);
+    return A_vsnprintf(buf, count, fmt, ap);
 }
 
 bool A_atob(const char* A_RESTRICT s, A_OUT bool* b) {

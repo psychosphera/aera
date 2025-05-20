@@ -2,7 +2,9 @@
 
 #include <assert.h>
 
+#if A_RENDER_BACKEND_GL
 #include <cglm/cglm.h>
+#endif // A_RENDER_BACKEND_GL
 
 #include "acommon/a_string.h"
 #include "acommon/z_mem.h"
