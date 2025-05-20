@@ -404,8 +404,13 @@ static void R_UpdateOrtho(size_t localClientNum) {
     float right  = cg->viewport.w * Dvar_GetInt(vid_width)  + left;
     float bottom = cg->viewport.y * Dvar_GetInt(vid_height);
     float top    = cg->viewport.h * Dvar_GetInt(vid_height) + bottom;
+#if A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
+    D3DXMATRIX ortho;
+    D3DXMatrixOrthoLH(&ortho, right - left, top - bottom, cg->nearPlane, cg->farPlane);
+#elif A_RENDER_BACKEND_GL
     mat4 ortho;
     glm_ortho(left, right, bottom, top, cg->nearPlane, cg->farPlane, ortho);
+#endif // A_RENDER_BACKEND_D3D9
     cg->camera.orthoProjection = *(amat4f_t*)&ortho;
 }
 
@@ -1068,8 +1073,7 @@ static void R_DrawFrameInternal(size_t localClientNum) {
                             cg->camera.front.y, 
                             cg->camera.front.z,
                             1.0f);
-    avec4f_t center;
-    glm_vec3_add(pos.array, front.array, center.array);
+    avec4f_t center = A_vec4f_add(pos, front);
 #if A_RENDER_BACKEND_GL
     mat4 view;
     glm_lookat(pos.array, center.array, cg->camera.up.array, view);

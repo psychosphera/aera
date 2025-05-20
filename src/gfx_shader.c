@@ -84,7 +84,7 @@ A_NO_DISCARD bool R_CompileVertexShader(
     return R_CompileShaderGL(shaderSource, &shader->compiled_shader);
 #elif A_RENDER_BACKEND_D3D9
     return R_CompileShaderD3D9(
-        shaderSource, "vs_3_0", & prog->vertex_shader.compiled_shader,
+        shaderSource, "vs_3_0", &prog->vertex_shader.compiled_shader,
         &prog->vertex_shader.constant_table
     );
 #endif // A_RENDER_BACKEND_GL

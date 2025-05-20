@@ -5,7 +5,10 @@
 #elif A_RENDER_BACKEND_D3D9
 #include <d3d9.h>
 #elif A_RENDER_BACKEND_D3D8
+#if A_TARGET_PLATFORM_IS_XBOX
 #include <Xtl.h>
+#endif // A_TARGET_PLATFORM_IS_XBOX
+#define CINTERFACE 1
 #include <d3d8.h>
 #endif // A_RENDER_BACKEND_GL
 
@@ -35,7 +38,7 @@ typedef struct GfxSubTexDef {
 #if A_RENDER_BACKEND_D3D9
 typedef struct D3D9RenderGlob {
     HWND              hWnd;
-    IDirect3D9* d3d9;
+    IDirect3D9*       d3d9;
     IDirect3DDevice9* d3ddev;
 
     D3DCOLOR          clear_color_argb;

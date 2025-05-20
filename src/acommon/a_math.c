@@ -1,5 +1,6 @@
 #include "a_math.h"
 
+#include <assert.h>
 #include <math.h>
 
 #include "a_string.h"
@@ -192,6 +193,11 @@ A_NO_DISCARD avec3f_t A_vec3f_cross(avec3f_t a, avec3f_t b) {
 	return ret;
 }
 
+A_NO_DISCARD avec4f_t A_vec4f_add(avec4f_t a, avec4f_t b) {
+	avec4f_t ret = A_vec4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
+	return ret;
+}
+
 A_NO_DISCARD amat4f_t A_mat4f_translate_vec3(amat4f_t m, avec3f_t v) {
 	m.m[0][3] = v.x;
 	m.m[1][3] = v.y;
@@ -217,6 +223,16 @@ A_NO_DISCARD amat4f_t A_mat4f_scale_vec3(amat4f_t m, avec3f_t v) {
 	m.m[3][2] *= v.z;
 
 	return m;
+}
+
+A_NO_DISCARD amat4f_t A_mat4f_mul(amat4f_t a, amat4f_t b) {
+	assert(false && "unimplemented");
+	return A_MAT4F_IDENTITY;
+}
+
+A_NO_DISCARD amat4f_t A_mat4f_euler(avec3f_t angles) {
+	assert(false && "unimplemented");
+	return A_MAT4F_IDENTITY;
 }
 
 //A_NO_DISCARD amat4f_t A_mat4f_look_at(avec3f_t eye, 

@@ -29,7 +29,7 @@ static void PM_Accelerate(
 	A_INOUT pmove_t* pm, A_INOUT pml_t* pml,
 	avec3f_t wishdir, float wishspeed, float accel
 ) {
-	float currentspeed = glm_vec3_dot(pm->ps->velocity.array, wishdir.array);
+	float currentspeed = A_vec3f_dot(pm->ps->velocity, wishdir);
 	float addspeed = wishspeed - currentspeed;
 
 	if (addspeed <= 0)
@@ -39,13 +39,11 @@ static void PM_Accelerate(
 	if (accelspeed > addspeed)
 		accelspeed = addspeed;
 
-	vec3 velocity;
-	glm_vec3_scale(wishdir.array, accelspeed, velocity);
-	glm_vec3_add(pm->ps->velocity.array, velocity, pm->ps->velocity.array);
+	pm->ps->velocity = A_vec3f_add(pm->ps->velocity, A_vec3f_mul(wishdir, accelspeed));
 }
 
 static void PM_NoclipMove(A_INOUT pmove_t* pm, A_INOUT pml_t* pml) {
-	float speed = glm_vec3_norm(pm->ps->velocity.array);
+	float speed = A_vec3f_length(pm->ps->velocity);
 	if (speed < 1.0f) {
 		pm->ps->velocity = A_VEC3F_ZERO;
 	} else {
@@ -58,33 +56,27 @@ static void PM_NoclipMove(A_INOUT pmove_t* pm, A_INOUT pml_t* pml) {
 			newspeed = 0;
 		newspeed /= speed;
 
-		vec3 velocity;
-		glm_vec3_scale(pm->ps->velocity.array, newspeed, velocity);
-		pm->ps->velocity = *(avec3f_t*)&velocity;
+		pm->ps->velocity = A_vec3f_mul(pm->ps->velocity, newspeed);
 	}
 
-	vec3 forward, right;
-	glm_vec3_scale(pml->forward.array, pm->cmd.vel.z, forward);
-	glm_vec3_scale(pml->right.array, pm->cmd.vel.x, right);
-	avec3f_t wishvel;
-	glm_vec3_sub(forward, right, wishvel.array);
+	pml->forward     = A_vec3f_mul(pml->forward, pm->cmd.vel.z);
+	pml->right       = A_vec3f_mul(pml->right,   pm->cmd.vel.x);
+	avec3f_t wishvel = A_vec3f_sub(pml->forward, pml->right);
 
 	wishvel.y += pm->cmd.vel.y;
 
-	avec3f_t wishdir = wishvel;
-	glm_vec3_normalize(wishdir.array);
-	float wishspeed = glm_vec3_norm(wishvel.array);
+	avec3f_t wishdir = A_vec3f_normalize(wishvel);
+	float wishspeed = A_vec3f_length(wishdir);
 	if (A_memcmp(&wishvel, &A_VEC3F_ZERO, sizeof(wishvel))) {
-		wishdir   = A_VEC3F_ZERO;
+		wishvel   = A_VEC3F_ZERO;
 		wishspeed = 0;
 	}
 
-	PM_Accelerate(pm, pml, wishdir, wishspeed, PM_ACCELERATE);
+	PM_Accelerate(pm, pml, wishvel, wishspeed, PM_ACCELERATE);
 
 	avec3f_t pos = A_vec3(pm->ps->origin.x, pm->ps->origin.y, pm->ps->origin.z);
-	vec3 velocity;
-	glm_vec3_scale(pm->ps->velocity.array, pml->frametime, velocity);
-	glm_vec3_add(pos.array, velocity, pos.array);
+	pm->ps->velocity = A_vec3f_mul(pm->ps->velocity, pml->frametime);
+	pm->ps->velocity = A_vec3f_add(pm->ps->velocity, pos);
 	pm->ps->origin.x = pos.x;
 	pm->ps->origin.y = pos.y;
 	pm->ps->origin.z = pos.z;

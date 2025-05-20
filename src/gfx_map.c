@@ -973,11 +973,10 @@ static void R_RenderMaterial(GfxMaterial* material) {
 
 static void R_RenderModelPart(GfxModel* model, GfxModelPart* part, apoint3f_t position, avec3f_t rotation) {
     amat4f_t pos = A_MAT4F_IDENTITY;
-    glm_translate(pos.array, position.array);
-    amat4f_t r = A_MAT4F_IDENTITY;
-    glm_euler(rotation.array, r.array);
-    amat4f_t m;
-    glm_mat4_mul(pos.array, r.array, m.array);
+    avec3f_t p = A_vec3(position.x, position.y, position.z);
+    pos = A_mat4f_translate_vec3(pos, p);
+    amat4f_t r = A_mat4f_euler(rotation);
+    amat4f_t m = A_mat4f_mul(pos, r);
     R_ShaderSetUniformMat4fByName(&r_mapGlob.model_prog, "uModel", SHADER_TYPE_VERTEX, m);
 
     GfxShader* shader = &model->shaders[part->shader_index];

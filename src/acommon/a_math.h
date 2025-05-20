@@ -233,10 +233,15 @@ A_EXTERN_C A_NO_DISCARD float      A_vec3f_dot  (avec3f_t a, avec3f_t b);
 A_EXTERN_C A_NO_DISCARD avec3f_t   A_vec3f_cross(avec3f_t a, avec3f_t b);
 A_EXTERN_C A_NO_DISCARD avec3f_t   A_vec3f_mul  (avec3f_t a, float b);
 
+A_EXTERN_C A_NO_DISCARD avec4f_t   A_vec4f_add(avec4f_t a, avec4f_t b);
+
 A_EXTERN_C A_NO_DISCARD amat4f_t   A_mat4f_translate_vec3(amat4f_t m,   
                                                           avec3f_t v);
 A_EXTERN_C A_NO_DISCARD amat4f_t   A_mat4f_scale_vec3    (amat4f_t m,   
                                                           avec3f_t v);
+A_EXTERN_C A_NO_DISCARD amat4f_t   A_mat4f_mul(amat4f_t a, amat4f_t b);
+A_EXTERN_C A_NO_DISCARD amat4f_t   A_mat4f_euler(avec3f_t angles);
+
 //A_EXTERN_C A_NO_DISCARD amat4f_t   A_mat4f_look_at       (avec3f_t eye, 
 //                                                          avec3f_t center, 
 //                                                          avec3f_t up);
