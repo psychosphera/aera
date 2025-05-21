@@ -6,17 +6,19 @@
 
 #include <zlib.h>
 
-#ifdef _MSC_VER
+#if !A_TARGET_PLATFORM_IS_XBOX
+#ifdef _MSC_VER 
 #pragma warning(push)
 #pragma warning(disable : 4244)
 #pragma warning(disable : 4245)
-#endif
+#endif // _MSC_VER
 #include <invader/tag/hek/definition.hpp>
 #include <invader/tag/hek/header.hpp>
 #include <invader/hek/map.hpp>
 #ifdef _MSC_VER
 #pragma warning(pop) 
-#endif
+#endif // _MSC_VER
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 #include "acommon/acommon.h"
 #include "acommon/a_math.h"

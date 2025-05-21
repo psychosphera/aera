@@ -14,7 +14,9 @@
 #include "gfx.h"
 #include "in_input.h"
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 SDLGlob sys_sdlGlob;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 dvar_t* vid_xpos;
 dvar_t* vid_ypos;
@@ -34,9 +36,13 @@ static bool   Sys_CreateThread(
 void Sys_Init(const char** argv) {
     A_UNUSED(argv);
 
+#if !A_TARGET_PLATFORM_IS_XBOX
     s_timeBase = (uint64_t)SDL_GetTicks();
 
     SDL_Init(SDL_INIT_VIDEO);
+#else
+	assert(false && "unimplemented"); // FIXME
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
     vid_width  = Dvar_RegisterInt(
         "vid_width", DVAR_FLAG_NONE, VID_WIDTH_DEFAULT,  1, INT_MAX
@@ -45,6 +51,7 @@ void Sys_Init(const char** argv) {
         "vid_hight", DVAR_FLAG_NONE, VID_HEIGHT_DEFAULT, 1, INT_MAX
     );
 
+#if !A_TARGET_PLATFORM_IS_XBOX
     sys_sdlGlob.window = SDL_CreateWindow(
         "Halo 1 Map Viewer",
         Dvar_GetInt(vid_width),
@@ -63,16 +70,22 @@ void Sys_Init(const char** argv) {
         printf("Could not create window: %s\n", SDL_GetError());
         Sys_NormalExit(-2);
     }
+#else
+	assert(false && "unimplemented"); // FIXME
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
     //Sys_InitCmdline(argv);
     Sys_InitThreads();
     IN_Init();
+#if !A_TARGET_PLATFORM_IS_XBOX
     DevCon_Init();
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 // Returns true if an event was handled, false if not 
 // (most likely, if event queue was empty).
 bool Sys_HandleEvent(void) {
+#if !A_TARGET_PLATFORM_IS_XBOX
     SDL_Event ev;
     if (SDL_PollEvent(&ev)) {
         switch (ev.type) {
@@ -117,15 +130,24 @@ bool Sys_HandleEvent(void) {
 
         return true;
     }
-
+#else
+	assert(false && "unimplemented");
+#endif // !A_TARGET_PLATFORM_IS_XBOX
     return false;
 }
 
 uint64_t Sys_Milliseconds(void) {
+#if !A_TARGET_PLATFORM_IS_XBOX
     return (uint64_t)SDL_GetTicks() - s_timeBase;
+#else
+	assert(false && "unimplemented");
+	return 0;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 SDL_Thread* sys_hThreads[32];
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 int(*sys_threadFuncs[32])(void*);
 bool sys_awaitingThreads[32];
 
@@ -158,7 +180,11 @@ bool Sys_AwaitingThread(thread_t thread) {
 }
 
 void Sys_WaitThread(thread_t thread) {
+#if !A_TARGET_PLATFORM_IS_XBOX
     SDL_WaitThread(sys_hThreads[thread], NULL);
+#else 
+	assert(false && "unimplemented"); // FIXME
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 void Sys_ShutdownThreads(void) {
@@ -202,12 +228,16 @@ A_NO_RETURN Sys_Exit(int ec) {
 }
 
 void Sys_Shutdown(void) {
+#if !A_TARGET_PLATFORM_IS_XBOX
     DevCon_Shutdown();
+#endif // !A_TARGET_PLATFORM_IS_XBOX
     Sys_ShutdownThreads();
     //Sys_ShutdownCmdline();
     IN_Shutdown();
+#if !A_TARGET_PLATFORM_IS_XBOX
     SDL_DestroyWindow(sys_sdlGlob.window);
     SDL_Quit();
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 A_NO_RETURN Sys_NormalExit(int ec) {

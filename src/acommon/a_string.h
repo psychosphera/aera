@@ -53,6 +53,8 @@ A_EXTERN_C void   A_memset(void* A_RESTRICT p, char c, size_t n);
 // Analogous to std::string::npos.
 #define A_NPOS (~(size_t)0)
 
+
+
 A_EXTERN_C A_NO_DISCARD bool A_cstrcmp (const char* A_RESTRICT a, 
                                         const char* A_RESTRICT b);
 A_EXTERN_C A_NO_DISCARD bool A_cstricmp(const char* A_RESTRICT a, 
@@ -69,6 +71,7 @@ A_EXTERN_C              void  A_cstrfree(const char* A_RESTRICT s);
 A_EXTERN_C A_NO_DISCARD size_t A_cstrchr(const char* A_RESTRICT s, char c);
 A_EXTERN_C void A_cstrncpyz(char* A_RESTRICT dest, 
                             const char* A_RESTRICT src, size_t n);
+A_EXTERN_C int    A_vsnprintf(char* A_RESTRICT buf, size_t count, const char* fmt, va_list ap);
 A_EXTERN_C int    A_snprintf(char* buf, size_t count, const char* fmt, ...);
 A_EXTERN_C bool   A_atob(const char* A_RESTRICT s, A_OUT bool* b);
 A_EXTERN_C size_t A_itoa(int i, char* A_RESTRICT p, size_t n);

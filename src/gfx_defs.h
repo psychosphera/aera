@@ -1,5 +1,7 @@
 #pragma once
 
+#include "acommon/acommon.h"
+
 #if A_RENDER_BACKEND_GL
 #include <GL/glew.h>
 #elif A_RENDER_BACKEND_D3D9

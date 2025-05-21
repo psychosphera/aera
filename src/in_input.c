@@ -7,11 +7,14 @@
 #include "cl_client.h"
 #include "dvar.h"
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 #define IN_KEYCODE_COUNT_ON_CURRENT_FRAME 8
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 extern dvar_t* vid_width;
 extern dvar_t* vid_height;
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 typedef union MouseButtons {
 	struct { bool ml, mm, mr, m4, m5; } m;
 	bool array[5];
@@ -29,16 +32,22 @@ typedef struct Key {
 	char* bind;
 	char* bind2;
 } Key;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 typedef struct inl_t {
+#if !A_TARGET_PLATFORM_IS_XBOX
 	Key     keys[IN_KEYCODE_COUNT];
 	size_t  numKeysPressedOnCurrentFrame;
 	Keycode keysPressedOnCurrentFrame[IN_KEYCODE_COUNT_ON_CURRENT_FRAME];
 	Mouse   mouse;
+#else
+	int FIXME_unimplemented;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 } inl_t;
 
 static inl_t s_in[MAX_LOCAL_CLIENTS];
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 Keycode IN_Key_SDLKToKeycode(SDL_Keycode k) {
 	switch (k) {
 	case SDLK_ESCAPE:       return IN_KEYCODE_ESCAPE;
@@ -231,6 +240,7 @@ static int IN_Mouse_SDLButtonToIndex(Uint8 button) {
 		return -1;
 	}
 }
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 static inl_t* IN_GetLocalClientLocals(size_t localClientNum) {
 	assert(localClientNum < MAX_LOCAL_CLIENTS);
@@ -238,10 +248,13 @@ static inl_t* IN_GetLocalClientLocals(size_t localClientNum) {
 }
 
 void IN_Init(void) {
+#if !A_TARGET_PLATFORM_IS_XBOX
 	IN_Key_Init();
 	IN_Mouse_Init();
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 void IN_Key_Init(void) {
 	for (size_t localClientNum = 0; 
 		 localClientNum < MAX_LOCAL_CLIENTS; 
@@ -444,13 +457,18 @@ void IN_Mouse_Shutdown(void) {
 		inl->mouse.y = (float)Dvar_GetInt(vid_height) / 2.0f;
 	}
 }
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 void IN_Frame(void) {
+#if !A_TARGET_PLATFORM_IS_XBOX
 	IN_Key_Frame();
 	IN_Mouse_Frame();
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 void IN_Shutdown(void) {
+#if !A_TARGET_PLATFORM_IS_XBOX
 	IN_Key_Shutdown();
 	IN_Mouse_Shutdown();
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }

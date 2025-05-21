@@ -33,7 +33,9 @@ bool Com_Init(void) {
     CG_Init();
     R_Init();
     CL_Init();
+#if !A_TARGET_PLATFORM_IS_XBOX
     DevGui_Init();
+#endif // !A_TARGET_PLATFORM_IS_XBOX
     s_lastFrameTime = Sys_Milliseconds();
     s_deltaTime = s_lastFrameTime;
     return true;
@@ -51,10 +53,13 @@ bool Com_Frame(void) {
     while (Sys_HandleEvent())
         ;
 
+#if !A_TARGET_PLATFORM_IS_XBOX
     DevCon_Frame();
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
     CG_Frame(s_deltaTime);
     CL_Frame();
+#if !A_TARGET_PLATFORM_IS_XBOX
     DevGui_Frame();
     for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
         if(!CG_LocalClientIsActive(i))
@@ -71,6 +76,7 @@ bool Com_Frame(void) {
         Con_ProcessInput(t);
         A_cstrfree(t);
     }
+#endif // !A_TARGET_PLATFORM_IS_XBOX
     
     R_Frame();
 
@@ -86,8 +92,9 @@ uint64_t Com_LastFrameTime(void) {
 }
 
 void Com_Shutdown(void) {
-    
+#if !A_TARGET_PLATFORM_IS_XBOX
     DevGui_Shutdown();
+#endif // !A_TARGET_PLATFORM_IS_XBOX
     CL_Shutdown();
     CG_Shutdown();
     R_Shutdown();

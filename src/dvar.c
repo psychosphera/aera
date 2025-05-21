@@ -1426,8 +1426,9 @@ void Dvar_SetL_f(void) {
 	if (argc <= 6)
 		argv[3] = Cmd_Argv(5);
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 	int activeLocalClient = CL_ClientWithKbmFocus();
-	dvar_t* d = Dvar_FindLocal(CL_ClientWithKbmFocus(), name);
+	dvar_t* d = Dvar_FindLocal(activeLocalClient, name);
 	if (d) {
 		if (!Dvar_SetFromString(d, A_MIN(argc - 2, 4), argv))
 			Dvar_ReregisterLocalFromString(activeLocalClient,
@@ -1436,6 +1437,9 @@ void Dvar_SetL_f(void) {
 		Dvar_RegisterNewLocalFromString(activeLocalClient,
 			name, DVAR_FLAG_NONE, A_MIN(argc - 2, 4), argv);
 	}
+#else
+	assert(false && "unimplemented"); // FIXME
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 void Dvar_SetLA_f(void) {
@@ -1447,8 +1451,14 @@ void Dvar_SetLA_f(void) {
 
 	Dvar_SetL_f();
 	const char* name = Cmd_Argv(1);
-	dvar_t* d = Dvar_FindLocal(CL_ClientWithKbmFocus(), name);
+
+#if !A_TARGET_PLATFORM_IS_XBOX
+	int activeLocalClient = CL_ClientWithKbmFocus();
+	dvar_t* d = Dvar_FindLocal(activeLocalClient, name);
 	Dvar_AddFlags(d, DVAR_FLAG_ARCHIVE);
+#else
+	assert(false && "unimplemented"); // FIXME
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 

@@ -7,6 +7,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(_MSC_VER) && _MSC_VER < 1900
+#define snprintf  _snprintf
+#define vsnprintf _vsnprintf
+#endif // defined(_MSC_VER) && _MSC_VER < 1900
 
 #include "z_mem.h"
 
@@ -168,11 +172,15 @@ bool A_atof(const char* A_RESTRICT s, A_OUT float* f) {
     if (s == NULL)
         return false;
     errno = 0;
+#if (defined(_MSC_VER) && _MSC_VER >= 1700) || !defined(_MSC_VER)
     const char* A_RESTRICT end = s;
     float g = strtof(s, (char** A_RESTRICT)&end);
     if (errno != 0 || end == s)
         return false;
     *f = g;
+#else
+	*f = atof(s);
+#endif // (defined(_MSC_VER) && _MSC_VER >= 1700) || !defined(_MSC_VER)
     return true;
 }
 

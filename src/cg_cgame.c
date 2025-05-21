@@ -11,8 +11,10 @@
 #include "in_input.h"
 #include "pm_pmove.h"
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 static float s_lastMouseX, s_lastMouseY;
 static bool  s_firstMouse;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 static cg_t s_cg[MAX_LOCAL_CLIENTS];
 
@@ -39,9 +41,11 @@ void CG_DectivateLocalClient(size_t localClientNum) {
 }
 
 void CG_Init(void) {
+#if !A_TARGET_PLATFORM_IS_XBOX
 	s_firstMouse = true;
 	s_lastMouseX = IN_Mouse_X(0);
 	s_lastMouseY = IN_Mouse_Y(0);
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 	Cmd_AddCommand("teleport", CG_Teleport_f);
 
@@ -99,7 +103,11 @@ void CG_Teleport_f(void) {
 	A_atof(Cmd_Argv(1), &p.x);
 	A_atof(Cmd_Argv(2), &p.y);
 	A_atof(Cmd_Argv(3), &p.z);
+#if !A_TARGET_PLATFORM_IS_XBOX
 	CG_Teleport(CL_ClientWithKbmFocus(), p);
+#else
+	assert(false && "unimplemented"); // FIXME
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 void CG_SetSpawn(size_t localClientNum, apoint3f_t spawn, float facing) {
@@ -140,6 +148,7 @@ void CG_Frame(uint64_t deltaTime) {
 		cg->fovy = R_FovHorzToVertical(Dvar_GetFloat(cg->fov), aspect_inv);
 		
 		pm_t* pm = PM_GetLocalClientGlobals(localClientNum);
+#if !A_TARGET_PLATFORM_IS_XBOX
 		if (CL_HasKbmFocus(localClientNum) && 
 			CL_KeyFocus(localClientNum) == KF_GAME
 		) {
@@ -225,6 +234,7 @@ void CG_Frame(uint64_t deltaTime) {
 			pm->pm.cmd.serverTime = Sys_Milliseconds();
 			Pmove(&pm->pm, &pm->pml);
 		}
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 		cg->camera.pos   = pm->pm.ps->origin;
 		cg->camera.front = pm->pml.forward;
 	}

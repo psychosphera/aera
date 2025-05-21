@@ -13,6 +13,7 @@ A_NO_DISCARD void* FS_ReadFile(const char* path, A_OPTIONAL_OUT size_t* sz) {
 	if (sz)
 		*sz = 0;
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 	SDL_RWops* ops = SDL_RWFromFile(path, "r");
 	if (ops == NULL) {
 		Com_Println(
@@ -26,7 +27,7 @@ A_NO_DISCARD void* FS_ReadFile(const char* path, A_OPTIONAL_OUT size_t* sz) {
 
 	Sint64 len = SDL_RWsize(ops);
 
-	void* p = (char*)Z_Alloc(len + 1);
+	void* p = Z_Alloc(len + 1);
 
 	size_t c = SDL_RWread(ops, p, len);
 	if ((Sint64)c < len) {
@@ -42,6 +43,10 @@ A_NO_DISCARD void* FS_ReadFile(const char* path, A_OPTIONAL_OUT size_t* sz) {
 		*sz = len + 1;
 
 	return p;
+#else
+	assert(false && "unimplemented"); // FIXME
+	return NULL;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 void FS_FreeFile(void* p) {
@@ -54,6 +59,7 @@ A_NO_DISCARD char* FS_ReadFileText(const char* path,
 	if (sz)
 		*sz = 0;
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 	SDL_RWops* ops = SDL_RWFromFile(path, "r");
 	if (ops == NULL) {
 		Com_Println(
@@ -86,6 +92,10 @@ A_NO_DISCARD char* FS_ReadFileText(const char* path,
 		*sz = len + 1;
 
 	return p;
+#else 
+	assert(false && "unimplemented"); // FIXME
+	return NULL;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 void FS_FreeFileText(char* text) {
@@ -113,6 +123,7 @@ A_NO_DISCARD StreamFile FS_StreamFile(
 		mode_str = "a";
 	};
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 	SDL_RWops* f = SDL_RWFromFile(path, mode_str);
 	size_t size  = SDL_RWsize(f);
 	SDL_RWseek(f, 0, SDL_RW_SEEK_SET);
@@ -120,10 +131,20 @@ A_NO_DISCARD StreamFile FS_StreamFile(
 	if(from == FS_SEEK_END || off != 0)
 		FS_SeekStream(&s, from, off);
 	return s;
+#else
+	assert(false && "unimplemented"); // FIXME
+	StreamFile s;
+	return s;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 A_NO_DISCARD size_t FS_StreamPos(A_INOUT StreamFile* file) {
+#if !A_TARGET_PLATFORM_IS_XBOX
 	return SDL_RWtell(file->f);
+#else
+	assert(false && "unimplemented"); // FIXME
+	return 0;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 long long FS_SeekStream(A_INOUT StreamFile* file, SeekFrom from, size_t off) {
@@ -137,6 +158,7 @@ long long FS_SeekStream(A_INOUT StreamFile* file, SeekFrom from, size_t off) {
 	}
 	assert(off <= file->size);
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 	Sint64 res       = -1;
 	switch (from) {
 	case FS_SEEK_BEGIN:
@@ -157,6 +179,10 @@ long long FS_SeekStream(A_INOUT StreamFile* file, SeekFrom from, size_t off) {
 	}
 
 	return res;
+#else
+	assert(false && "unimplemented"); // FIXME
+	return -1;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 A_NO_DISCARD size_t FS_FileSize(A_INOUT StreamFile* file) {
@@ -172,6 +198,7 @@ A_NO_DISCARD size_t FS_FileSize(A_INOUT StreamFile* file) {
 A_NO_DISCARD bool FS_ReadStream(A_INOUT StreamFile* file, 
 	                            void* dst, size_t count
 ) {
+#if !A_TARGET_PLATFORM_IS_XBOX
 	size_t sz = SDL_RWread(file->f, dst, count);
 	if (sz <= 0) {
 		Com_DPrintln(
@@ -182,11 +209,16 @@ A_NO_DISCARD bool FS_ReadStream(A_INOUT StreamFile* file,
 		assert(false && "Failed to read all bytes");
 	}
 	return sz > 0;
+#else
+	assert(false && "unimplemented"); // FIXME
+	return false;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 A_NO_DISCARD bool FS_WriteStream(A_INOUT StreamFile* file, 
 	                             const void* src, size_t count
 ) {
+#if !A_TARGET_PLATFORM_IS_XBOX
 	size_t sz = SDL_RWwrite(file->f, src, count);
 	if(sz > 0)
 		file->size += sz;
@@ -199,11 +231,19 @@ A_NO_DISCARD bool FS_WriteStream(A_INOUT StreamFile* file,
 		assert(false && "Failed to write all bytes");
 	}
 	return sz == count;
+#else
+	assert(false && "unimplemented"); // FIXME
+	return false;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 void FS_CloseStream(A_INOUT StreamFile* file) {
+#if !A_TARGET_PLATFORM_IS_XBOX
 	SDL_RWclose(file->f);
 	file->f    = NULL;
+#else
+	assert(false && "unimplemented"); // FIXME
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 	file->size = 0;
 }
 
@@ -212,7 +252,12 @@ bool FS_DeleteFile(const char* filename) {
 }
 
 bool FS_FileExists(const char* filename) {
+#if !A_TARGET_PLATFORM_IS_XBOX
 	return SDL_RWFromFile(filename, "r") != NULL;
+#else
+	assert(false && "unimplemented"); // FIXME
+	return false;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 static char s_osPathBuf[1024];

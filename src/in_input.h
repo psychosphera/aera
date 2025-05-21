@@ -1,11 +1,14 @@
 #pragma once
 
+#include "acommon/acommon.h"
+
 #if !A_TARGET_PLATFORM_IS_XBOX
 #include <SDL3/SDL.h>
 #endif // !A_TARGET_PLATFORM_IS_XBOX
 
 #include "com_defs.h"
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 typedef enum Keycode {
 	IN_KEYCODE_UNKNOWN,
 
@@ -124,11 +127,11 @@ typedef enum Keycode {
 	IN_KEYCODE_COUNT
 } Keycode;
 
-#if !A_TARGET_PLATFORM_IS_XBOX
 A_EXTERN_C              Keycode IN_Key_SDLKToKeycode(SDL_Keycode k);
 #endif // !A_TARGET_PLATFORM_IS_XBOX
 
 A_EXTERN_C              void IN_Init         (void);
+#if !A_TARGET_PLATFORM_IS_XBOX
 A_EXTERN_C              void IN_Key_Init     (void);
 A_EXTERN_C A_NO_DISCARD bool IN_Key_IsDown   (size_t localClientNum, 
 	                                          Keycode k);
@@ -154,7 +157,6 @@ A_EXTERN_C A_NO_DISCARD Keycode* IN_Key_AllPressedOnCurrentFrame(
 A_EXTERN_C              void IN_Key_Shutdown   (void);
 	  
 A_EXTERN_C              void IN_Mouse_Init     (void);
-#if !A_TARGET_PLATFORM_IS_XBOX
 A_EXTERN_C A_NO_DISCARD bool  IN_Mouse_IsDown  (size_t localClientNum, 
 	                                            Uint8 button);
 A_EXTERN_C A_NO_DISCARD bool  IN_Mouse_IsUp    (size_t localClientNum, 
@@ -163,7 +165,6 @@ A_EXTERN_C              bool  IN_Mouse_Down    (size_t localClientNum,
 	                                            Uint8 button);
 A_EXTERN_C              bool  IN_Mouse_Up      (size_t localClientNum, 
 	                                            Uint8 button);
-#endif // !A_TARGET_PLATFORM_IS_XBOX
 A_EXTERN_C              void  IN_Mouse_Move    (size_t localClientNum, 
 	                                            float xOff, float yOff);
 A_EXTERN_C A_NO_DISCARD float IN_Mouse_X       (size_t localClientNum);
@@ -171,5 +172,6 @@ A_EXTERN_C A_NO_DISCARD float IN_Mouse_Y       (size_t localClientNum);
 A_EXTERN_C              void  IN_Mouse_Shutdown(void);
 
 A_EXTERN_C              void IN_Key_Clear      (size_t localClientNum);
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 A_EXTERN_C              void IN_Frame          (void);
 A_EXTERN_C              void IN_Shutdown       (void);

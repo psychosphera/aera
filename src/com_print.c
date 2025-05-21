@@ -4,6 +4,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#include "acommon/a_string.h"
+
 #include "devcon.h"
 #include "sys.h"
 
@@ -17,11 +19,15 @@ void Com_PrintMessage(print_msg_dest_t dest, const char* msg) {
     if (dest == CON_DEST_ERR)
         fprintf(stderr, "%s", msg);
     else if (dest == CON_DEST_DEVCON)
+#if !A_TARGET_PLATFORM_IS_XBOX
         DevCon_PrintMessage(msg);
+#else
+		assert(false && "unimplemented");
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 char* Com_VFormat(char* buf, size_t n, const char* fmt, va_list ap) {
-    if (vsnprintf(buf, n, fmt, ap) < 0)
+    if (A_vsnprintf(buf, n, fmt, ap) < 0)
         return NULL;
     return buf;
 }

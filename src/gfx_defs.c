@@ -238,7 +238,7 @@ A_NO_DISCARD GLenum R_ImageFormatToGL(ImageFormat format) {
 }
 #elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
 A_NO_DISCARD D3DFORMAT R_ImageFormatToD3D(ImageFormat format) {
-    D3DFORMAT d3dfmt = 0;
+    D3DFORMAT d3dfmt = D3DFMT_UNKNOWN;
     switch (format) {
     case R_IMAGE_FORMAT_A8:
         d3dfmt = D3DFMT_A8;
