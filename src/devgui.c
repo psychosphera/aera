@@ -25,7 +25,9 @@ typedef struct dgl_t {
 
 dgl_t s_dgl[MAX_LOCAL_CLIENTS];
  
-const RectDef devgui_rect = { .x = 0.1f, .y = 0.8f, .w = 0.8f, .h = 0.2f };
+const RectDef devgui_rect = {
+	/*.x =*/ 0.1f, /*.y =*/ 0.8f, /*.w =*/ 0.8f, /*.h =*/ 0.2f 
+};
 
 A_EXTERN_C dgl_t* DevGui_GetLocalClientLocals(size_t localClientNum) {
 	assert(localClientNum < MAX_LOCAL_CLIENTS);

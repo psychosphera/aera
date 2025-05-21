@@ -8,16 +8,21 @@
 #include "db_files.h"
 #include "gfx_text.h"
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 static FT_Library s_ft;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 A_EXTERN_C void Font_Init(void) {
+#if !A_TARGET_PLATFORM_IS_XBOX
 	if (FT_Init_FreeType(&s_ft))
 		Com_Errorln(-1, "FreeType init failed.");
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 A_EXTERN_C A_NO_DISCARD bool Font_Load(
 	const char* font_name, int width, int height, A_OUT FontDef* fd
 ) {
+#if !A_TARGET_PLATFORM_IS_XBOX
 	A_memset(fd, 0, sizeof(*fd));
 
 	size_t sz = 0;
@@ -67,6 +72,10 @@ A_EXTERN_C A_NO_DISCARD bool Font_Load(
 	DB_UnloadFont(font);
 
 	return true;
+#else
+	assert(false && "unimplemented"); // FIXME
+	return false;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 A_EXTERN_C bool Font_AddGlyph(A_INOUT FontDef* fd, char c, const GlyphDef* g) {
@@ -117,5 +126,7 @@ A_EXTERN_C void Font_Unload(A_INOUT FontDef* fd) {
 }
 
 A_EXTERN_C void Font_Shutdown(void) {
+#if !A_TARGET_PLATFORM_IS_XBOX
 	FT_Done_FreeType(s_ft);
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }

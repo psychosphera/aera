@@ -160,22 +160,22 @@ static void Dvar_DestroyDvar(dvar_t* d) {
 }
 
 dvar_t Dvar_CreateBool(const char* name, int flags, bool value) {
-	char** e = Z_Alloc(sizeof(*e));
-	e[0] = Z_Alloc(6);
+	char** e = (char**)Z_Alloc(sizeof(*e));
+	e[0] = (char*)Z_Alloc(6);
 	if (value == true)
 		A_cstrncpyz(e[0], "true", 5);
 	else
 		A_cstrncpyz(e[0], "false", 6);
-	dvar_t d = {
-		.name = (char*)name,
-		.name_hash = Dvar_HashName(name),
-		.type = DVAR_TYPE_BOOL,
-		.value = { .b = value },
-		.flags = flags,
-		.e = e,
-		.modified = false,
-		.hasLatched = false
-	};
+
+	dvar_t d;
+	d.name       = (char*)name;
+	d.name_hash  = Dvar_HashName(name);
+	d.type       = DVAR_TYPE_BOOL;
+	d.value.b    = value;
+	d.latched.b  = false;
+	d.e          = e;
+	d.modified   = false;
+	d.hasLatched = false;
 
 	return d;
 }
@@ -183,21 +183,21 @@ dvar_t Dvar_CreateBool(const char* name, int flags, bool value) {
 dvar_t Dvar_CreateInt(const char* name, int flags, 
 	                  int value, int min, int max
 ) {
-	char** e = Z_Alloc(sizeof(*e));
-	e[0] = Z_Alloc(12);
+	char** e = (char**)Z_Alloc(sizeof(*e));
+	e[0] = (char*)Z_Alloc(12);
 	A_itoa(value, e[0], 12);
 
-	dvar_t d = {
-		.name = (char*)name,
-		.name_hash = Dvar_HashName(name),
-		.type = DVAR_TYPE_INT,
-		.domain = { .i = {.min = min, .max = max } },
-		.value = { .i = value },
-		.flags = flags,
-		.e = e,
-		.modified = false,
-		.hasLatched = false
-	};
+	dvar_t d;
+	d.name         = (char*)name;
+	d.name_hash    = Dvar_HashName(name);
+	d.type         = DVAR_TYPE_INT;
+	d.domain.i.min = min;
+	d.domain.i.max = max;
+	d.value.i      = value;
+	d.latched.i    = 0;
+	d.e            = e;
+	d.modified     = false;
+	d.hasLatched   = false;
 
 	return d;
 }
@@ -205,38 +205,36 @@ dvar_t Dvar_CreateInt(const char* name, int flags,
 dvar_t Dvar_CreateFloat(const char* name, int flags, 
 	                    float value, float min, float max
 ) {
-	char** e = Z_Alloc(sizeof(*e));
-	e[0] = Z_Alloc(32);
+	char** e = (char**)Z_Alloc(sizeof(*e));
+	e[0] = (char*)Z_Alloc(32);
 	A_itoa(value, e[0], 32);
 
-	dvar_t d = {
-		.name = (char*)name,
-		.name_hash = Dvar_HashName(name),
-		.type = DVAR_TYPE_FLOAT,
-		.domain = {.f = {.min = min, .max = max } },
-		.value = {.f = value },
-		.flags = flags,
-		.e = e,
-		.modified = false,
-		.hasLatched = false
-	};
+	dvar_t d;
+	d.name         = (char*)name;
+	d.name_hash    = Dvar_HashName(name);
+	d.type         = DVAR_TYPE_FLOAT;
+	d.domain.f.min = min;
+	d.domain.f.max = max;
+	d.value.f      = value;
+	d.latched.f    = 0.0f;
+	d.e            = e;
+	d.modified     = false;
+	d.hasLatched   = false;
 
 	return d;
 }
 
 dvar_t Dvar_CreateString(const char* name, int flags, const char* value) {
-	char** e = Z_Alloc(sizeof(*e));
-	e[0] = A_cstrdup(value);
+	char** e = (char**)Z_Alloc(sizeof(*e));
+	e[0] = (char*)A_cstrdup(value);
 
-	dvar_t d = {
-		.name = (char*)name,
-		.name_hash = Dvar_HashName(name),
-		.type = DVAR_TYPE_STRING,
-		.flags = flags,
-		.e = e,
-		.modified = false,
-		.hasLatched = false
-	};
+	dvar_t d;
+	d.name       = (char*)name;
+	d.name_hash  = Dvar_HashName(name);
+	d.type       = DVAR_TYPE_STRING;
+	d.e          = e;
+	d.modified   = false;
+	d.hasLatched = false;
 
 	return d;
 }
@@ -245,45 +243,41 @@ dvar_t Dvar_CreateEnum(
 	const char* name, int flags, int value,
 	const char** domain, size_t domain_count
 ) {
-	char** e = Z_Alloc(sizeof(*e) * domain_count);
+	char** e = (char**)Z_Alloc(sizeof(*e) * domain_count);
 	for (size_t i = 0; i < domain_count; i++)
-		e[i] = A_cstrdup(domain[i]);
+		e[i] = (char*)A_cstrdup(domain[i]);
 
-	dvar_t d = {
-		.name = (char*)name,
-		.name_hash = Dvar_HashName(name),
-		.type = DVAR_TYPE_ENUM,
-		.domain = {.e = (int)domain_count },
-		.flags = flags,
-		.e = e,
-		.i = value,
-		.modified = false,
-		.hasLatched = false
-	};
-
+	dvar_t d;
+	d.name       = (char*)name;
+	d.name_hash  = Dvar_HashName(name);
+	d.type       = DVAR_TYPE_ENUM;
+	d.domain.e   = domain_count;
+	d.e          = e;
+	d.i          = value;
+	d.modified   = false;
+	d.hasLatched = false;
 	return d;
 }
 
 dvar_t Dvar_CreateVec2(const char* name, int flags, 
                        avec2f_t value, float min, float max
 ) {
-	char** e = Z_Alloc(sizeof(*e));
-	e[0] = Z_Alloc(32 + 1 + 32);
+	char** e = (char**)Z_Alloc(sizeof(*e));
+	e[0] = (char*)Z_Alloc(32 + 1 + 32);
 	size_t pos = A_itoa(value.x, e[0], 32);
 	e[0][pos] = ' ';
 	A_itoa(value.y, &e[0][pos + 1], 32);
 
-	dvar_t d = {
-		.name = (char*)name,
-		.name_hash = Dvar_HashName(name),
-		.type = DVAR_TYPE_VEC2,
-		.domain = { .f = {.min = min, .max = max } },
-		.value = { .v2 = value },
-		.flags = flags,
-		.e = e,
-		.modified = false,
-		.hasLatched = false
-	};
+	dvar_t d;
+	d.name         = (char*)name;
+	d.name_hash    = Dvar_HashName(name);
+	d.type         = DVAR_TYPE_VEC2;
+	d.domain.f.min = min;
+	d.domain.f.max = max;
+	d.value.v2     = value;
+	d.e            = e;
+	d.modified     = false;
+	d.hasLatched   = false;
 
 	return d;
 }
@@ -291,25 +285,24 @@ dvar_t Dvar_CreateVec2(const char* name, int flags,
 dvar_t Dvar_CreateVec3(const char* name, int flags, 
 	                   avec3f_t value, float min, float max
 ) {
-	char** e = Z_Alloc(sizeof(*e));
-	e[0] = Z_Alloc(32 + 1 + 32 + 1 + 32);
+	char** e = (char**)Z_Alloc(sizeof(*e));
+	e[0] = (char*)Z_Alloc(32 + 1 + 32 + 1 + 32);
 	size_t pos = A_itoa(value.x, e[0], 32);
 	e[0][pos] = ' ';
 	pos = A_itoa(value.y, &e[0][pos + 1], 32);
 	e[0][pos] = ' ';
 	A_itoa(value.y, &e[0][pos + 1], 32);
 
-	dvar_t d = {
-		.name = (char*)name,
-		.name_hash = Dvar_HashName(name),
-		.type = DVAR_TYPE_VEC3,
-		.domain = {.f = {.min = min, .max = max } },
-		.value = {.v3 = value },
-		.flags = flags,
-		.e = e,
-		.modified = false,
-		.hasLatched = false
-	};
+	dvar_t d;
+	d.name         = (char*)name;
+	d.name_hash    = Dvar_HashName(name);
+	d.type         = DVAR_TYPE_VEC3;
+	d.domain.f.min = min;
+	d.domain.f.max = max;
+	d.value.v3     = value;
+	d.e            = e;
+	d.modified     = false;
+	d.hasLatched   = false;
 
 	return d;
 }
@@ -317,8 +310,8 @@ dvar_t Dvar_CreateVec3(const char* name, int flags,
 dvar_t Dvar_CreateVec4(const char* name, int flags, 
 	                   avec4f_t value, float min, float max
 ) {
-	char** e = Z_Alloc(sizeof(*e));
-	e[0] = Z_Alloc(32 + 1 + 32 + 1 + 32 + 1 + 32);
+	char** e = (char**)Z_Alloc(sizeof(*e));
+	e[0] = (char*)Z_Alloc(32 + 1 + 32 + 1 + 32 + 1 + 32);
 	size_t pos = A_itoa(value.x, e[0], 32);
 	e[0][pos] = ' ';
 	pos = A_itoa(value.y, &e[0][pos + 1], 32);
@@ -327,17 +320,16 @@ dvar_t Dvar_CreateVec4(const char* name, int flags,
 	e[0][pos] = ' ';
 	A_itoa(value.y, &e[0][pos + 1], 32);
 
-	dvar_t d = {
-		.name = (char*)name,
-		.name_hash = Dvar_HashName(name),
-		.type = DVAR_TYPE_VEC4,
-		.domain = {.f = {.min = min, .max = max } },
-		.value = {.v4 = value },
-		.flags = flags,
-		.e = e,
-		.modified = false,
-		.hasLatched = false
-	};
+	dvar_t d;
+	d.name         = (char*)name;
+	d.name_hash    = Dvar_HashName(name);
+	d.type         = DVAR_TYPE_VEC4;
+	d.domain.f.min = min;
+	d.domain.f.max = max;
+	d.value.v4     = value;
+	d.e            = e;
+	d.modified     = false;
+	d.hasLatched   = false;
 
 	return d;
 }
@@ -851,7 +843,7 @@ static dvar_t* Dvar_RegisterLocalDvar(int localClientNum,
 	if (d == NULL)
 		return NULL;
 
-	*dvar = Z_Alloc(sizeof(*d));
+	*dvar = (dvar_t*)Z_Alloc(sizeof(*d));
 	A_memcpy(*dvar, d, sizeof(*d));
 	(*dvar)->name = A_cstrdup(name);
 	return *dvar;

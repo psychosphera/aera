@@ -130,7 +130,7 @@ typedef union acolor_rgb_t {
 } acolor_rgb_t;
 A_STATIC_ASSERT(sizeof(acolor_rgb_t) == 12);
 
-#define A_color_rgb(d, e, f) { .r = d, .g = e, .b = f }
+#define A_color_rgb(d, e, f) { /*.r =*/ d, /*.g =*/ e, /*.b =*/ f }
 
 typedef union acolor_rgba_t {
     struct { float r, g, b, a; };
@@ -139,7 +139,7 @@ typedef union acolor_rgba_t {
 } acolor_rgba_t;
 A_STATIC_ASSERT(sizeof(acolor_rgba_t) == 16);
 
-#define A_color_rgba(d, e, f, g) { .r = d, .g = e, .b = f, .a = g }
+#define A_color_rgba(d, e, f, g) { /*.r =*/ d, /*.g =*/ e, /*.b =*/ f, /*.a =*/ g }
 
 typedef union acolor_argb_t {
     struct { float a, r, g, b; };

@@ -345,9 +345,11 @@ static bool R_InitD3D9(void) {
 void R_Init(void) {
     RB_Init();
 
+#if !A_TARGET_PLATFORM_IS_XBOX
     int imgInitFlags = IMG_INIT_JPG | IMG_INIT_PNG;
     if ((IMG_Init(imgInitFlags) & imgInitFlags) != imgInitFlags)
         Com_Errorln(-1, "SDL_image init failed.");
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
     r_renderGlob.clear_color.r = 0.2f;
     r_renderGlob.clear_color.g = 0.3f;
@@ -366,6 +368,9 @@ void R_Init(void) {
     assert(b && "Failed to initialize D3D9.");
     if (!b)
         Com_Errorln(-1, "Failed to initialize D3D9.");
+#elif A_RENDER_BACKEND_D3D8
+	bool b = false;
+	assert(false && "D3D8 unimplemented"); // FIXME
 #endif // A_RENDER_BACKEND_GL
     
     for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
@@ -377,7 +382,7 @@ void R_Init(void) {
     //assert(b);
     (void)b;
 
-    RectDef rect = { .x = 0.1f, .y = 0.1f, .w = 0.8f, .h = 0.2f };
+    RectDef rect = { /*.x =*/ 0.1f, /*.y =*/ 0.1f, /*.w =*/ 0.8f, /*.h =*/ 0.2f };
     acolor_rgb_t color = A_color_rgb(0.77, 0.77, 0.2);
     R_AddTextDrawDef(
         0, NULL, &rect, "This is a test.\nWhere the fuck i am?", 1.0f, 1.0f,
@@ -423,7 +428,7 @@ void R_UpdateProjection(size_t localClientNum) {
 #if A_RENDER_BACKEND_GL
     mat4 perspective;
     glm_perspective(A_radians(cg->fovy), w / h, cg->nearPlane, cg->farPlane, perspective);
-#elif A_RENDER_BACKEND_D3D9
+#elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
     D3DXMATRIX perspective;
     D3DXMatrixPerspectiveFovLH(&perspective, A_radians(cg->fovy), w / h, cg->nearPlane, cg->farPlane);
 #endif // A_RENDER_BACKEND_GL
@@ -639,6 +644,14 @@ A_NO_DISCARD bool R_CreateImage2D(const void* pixels, size_t pixels_size,
         }
     }
     D3D_CALL(tex, UnlockRect, 0);
+#elif A_RENDER_BACKEND_D3D8
+	(void)wrap_s;
+    (void)wrap_t;
+    (void)auto_generate_mipmaps;
+    D3DFORMAT          d3dfmt          = R_ImageFormatToD3D(format);
+    ImageFormat        internal_format = format;
+    IDirect3DTexture8* tex             = NULL;
+	assert(false && "D3D8 unimplemented");
 #endif // A_RENDER_BACKEND_GL
     image->width           = width;
     image->height          = height;
@@ -729,6 +742,7 @@ A_NO_DISCARD bool R_ImageSubData(A_INOUT GfxImage* image,
     return true;
 }
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 A_NO_DISCARD bool R_CreateSdlImage(const char* image_name, 
                                    A_INOUT GfxImage* image
 ) {
@@ -781,6 +795,7 @@ A_NO_DISCARD bool R_CreateSdlImage(const char* image_name,
 
     return ret;
 }
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 void R_DeleteImage(A_INOUT GfxImage* image) {
 #if A_RENDER_BACKEND_GL
@@ -1054,10 +1069,10 @@ static void R_DrawFrameInternal(size_t localClientNum) {
     R_Clear();
 
     const RectDef rect = {
-        .x = x,
-        .y = y,
-        .w = w,
-        .h = h
+        /*.x =*/ x,
+        /*.y =*/ y,
+        /*.w =*/ w,
+        /*.h =*/ h
     };
     acolor_rgb_t color = A_color_rgb(0.5f, 0.8f, 0.2f);
     //R_DrawText(localClientNum,
@@ -1077,16 +1092,20 @@ static void R_DrawFrameInternal(size_t localClientNum) {
 #if A_RENDER_BACKEND_GL
     mat4 view;
     glm_lookat(pos.array, center.array, cg->camera.up.array, view);
-#elif A_RENDER_BACKEND_D3D9
+#elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
     D3DXMATRIX view;
     D3DXMatrixLookAtLH(&view, (D3DXVECTOR3*)&pos, (D3DXVECTOR3*)&center, (D3DXVECTOR3*)&cg->camera.up);
 #endif // A_RENDER_BACKEND_GL
     
+#if !A_TARGET_PLATFORM_IS_XBOX
     R_ShaderSetUniformMat4fByName(&r_mapGlob.prog, "uView", 
                                   SHADER_TYPE_VERTEX, *(amat4f_t*)&view);
     R_ShaderSetUniformMat4fByName(&r_mapGlob.prog, "uPerspectiveProjection",
                                   SHADER_TYPE_VERTEX,
                                   cg->camera.perspectiveProjection);
+#else
+	assert(false); // FIXME
+#endif // !A_TARGET_PLATFORM_IS_XBOX
     R_RenderMap();
     
     //R_DrawTextDrawDefs(localClientNum);
@@ -1139,7 +1158,9 @@ A_EXTERN_C void R_Shutdown(void) {
     R_ShutdownMap();
 
     R_UnregisterDvars();
+#if !A_TARGET_PLATFORM_IS_XBOX
     IMG_Quit();
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 #if A_RENDER_BACKEND_GL
     R_ShutdownGL();
 #elif A_RENDER_BACKEND_D3D9

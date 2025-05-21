@@ -19,12 +19,12 @@ A_EXTERN_C dvar_t* vid_height;
 FontDef r_defaultFont;
 
 static const GfxSubTexDef s_subTexDefs[6] = {
-   {.x = 0, .y = 0, .u = 0, .v = 1 },
-   {.x = 0, .y = 1, .u = 0, .v = 0 },
-   {.x = 1, .y = 1, .u = 1, .v = 0 },
-   {.x = 0, .y = 0, .u = 0, .v = 1 },
-   {.x = 1, .y = 1, .u = 1, .v = 0 },
-   {.x = 1, .y = 0, .u = 1, .v = 1 }
+   { /*.x =*/ 0, /*.y =*/ 0, /*.u =*/ 0, /*.v =*/ 1 },
+   { /*.x =*/ 0, /*.y =*/ 1, /*.u =*/ 0, /*.v =*/ 0 },
+   { /*.x =*/ 1, /*.y =*/ 1, /*.u =*/ 1, /*.v =*/ 0 },
+   { /*.x =*/ 0, /*.y =*/ 0, /*.u =*/ 0, /*.v =*/ 1 },
+   { /*.x =*/ 1, /*.y =*/ 1, /*.u =*/ 1, /*.v =*/ 0 },
+   { /*.x =*/ 1, /*.y =*/ 0, /*.u =*/ 1, /*.v =*/ 1 }
 };
 
 // ============================================================================
@@ -65,7 +65,7 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
 
 #if A_RENDER_BACKEND_GL
     ImageFormat format    = R_IMAGE_FORMAT_R8;
-#elif A_RENDER_BACKEND_D3D9
+#elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
     ImageFormat format    = R_IMAGE_FORMAT_A8;
 #endif // A_RENDER_BACKEND_GL
     ImageFilter minfilter = R_IMAGE_FILTER_LINEAR;
@@ -93,6 +93,7 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
     //                                                   &uniform);
     //assert(pUniform);
 
+#if !A_TARGET_PLATFORM_IS_XBOX
     amat4f_t m = A_MAT4F_IDENTITY;
     R_CreateUniformMat4f("uModel", m, &uniform);
     GfxShaderUniformDef* pUniform = R_ShaderAddUniform(&f->prog, SHADER_TYPE_VERTEX, &uniform);
@@ -357,6 +358,9 @@ void R_DrawText(
         right ? i-- : i++;
     }
     R_DisableTransparencyBlending();
+#else
+	assert(false && "unimplemented"); // FIXME
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 GfxTextDraw r_textDraws[MAX_LOCAL_CLIENTS][256];
