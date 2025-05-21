@@ -45,6 +45,7 @@ typedef struct GfxShaderProgram {
     GfxShaderUniformDef uniforms[R_SHADER_MAX_UNIFORM];
 } GfxShaderProgram;
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 A_EXTERN_C A_NO_DISCARD bool R_CompileVertexShader(
     A_INOUT GfxShaderProgram* prog,
     const char* shaderSource,
@@ -56,6 +57,7 @@ A_EXTERN_C A_NO_DISCARD bool R_CompilePixelShader(
     const char* shaderSource,
     A_OUT GfxPixelShader* shader
 );
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 A_EXTERN_C A_NO_DISCARD bool R_CreateShaderProgram(
     const char* vertexSource,
@@ -68,6 +70,7 @@ typedef enum ShaderType {
     SHADER_TYPE_PIXEL,
 } ShaderType;
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 A_EXTERN_C GfxShaderUniformDef* R_ShaderAddUniform(
     A_INOUT GfxShaderProgram* prog, int shader_type,
     A_IN GfxShaderUniformDef* uniform
@@ -176,5 +179,5 @@ A_EXTERN_C void R_ShaderSetUniformMat4fByName(A_INOUT GfxShaderProgram* prog,
                                               const char* name,
                                               int shader_type,
                                               amat4f_t value);
-
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 A_EXTERN_C bool R_DeleteShaderProgram(A_INOUT GfxShaderProgram* prog);

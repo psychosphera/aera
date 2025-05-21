@@ -4,11 +4,9 @@
 #include <GL/glew.h>
 #elif A_RENDER_BACKEND_D3D9
 #include <d3d9.h>
+#elif A_TARGET_PLATFORM_IS_XBOX
+#include <xtl.h>
 #elif A_RENDER_BACKEND_D3D8
-#if A_TARGET_PLATFORM_IS_XBOX
-#include <Xtl.h>
-#endif // A_TARGET_PLATFORM_IS_XBOX
-#define CINTERFACE 1
 #include <d3d8.h>
 #endif // A_RENDER_BACKEND_GL
 
@@ -192,7 +190,7 @@ typedef struct GfxTextDraw {
 #if A_RENDER_BACKEND_GL
 A_EXTERN_C A_NO_DISCARD GLenum      R_ImageFormatToGL     (ImageFormat format);
 A_EXTERN_C A_NO_DISCARD ImageFormat R_ImageFormatFromGL   (GLenum      format);
-#elif A_RENDER_BACKEND_D3D9                               
+#elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8                              
 A_EXTERN_C A_NO_DISCARD D3DFORMAT   R_ImageFormatToD3D    (ImageFormat format);
 A_EXTERN_C A_NO_DISCARD ImageFormat R_ImageFormatFromD3D  (D3DFORMAT   format);
 #endif // A_RENDER_BACKEND_GL

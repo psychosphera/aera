@@ -71,6 +71,7 @@ static bool R_CompileShaderD3D9(
 }
 #endif // A_RENDER_BACKEND_GL
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 A_NO_DISCARD bool R_CompileVertexShader(
     A_INOUT GfxShaderProgram* prog,
     const char* shaderSource,
@@ -138,6 +139,7 @@ A_NO_DISCARD bool R_LinkShadersGL(
     return success == GL_TRUE;
 }
 #endif // A_RENDER_BACKEND_GL
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 #if A_RENDER_BACKEND_D3D9
 static bool R_CreateVertexShaderD3D9(A_INOUT GfxShaderProgram*  prog, 
@@ -175,11 +177,15 @@ A_NO_DISCARD bool R_CreateShaderProgram(
 ) {
     A_memset(prog, 0, sizeof(*prog));
 
+#if !A_TARGET_PLATFORM_IS_XBOX
     if (!R_CompileVertexShader(prog, vertexSource, &prog->vertex_shader))
         return false;
 
     if (!R_CompilePixelShader(prog, pixelSource, &prog->pixel_shader))
         return false;
+#else
+	assert(false && "unimplemented");
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 #if A_RENDER_BACKEND_GL
     if (!R_LinkShadersGL(&prog->vertex_shader.compiled_shader, 
@@ -195,6 +201,7 @@ A_NO_DISCARD bool R_CreateShaderProgram(
     return true;
 }
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 #if A_RENDER_BACKEND_GL
 static void R_ShaderSetUniformIntGL(shader_program_t program,
                                     int location, int value);
@@ -1284,6 +1291,7 @@ void R_ShaderSetUniformMat4fByName(A_INOUT GfxShaderProgram* prog,
         R_SetUniformMat4f(uniform, value);
     R_ShaderSetUniformByName(prog, name, shader_type, uniform);
 }
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 bool R_DeleteShaderProgram(
     A_INOUT GfxShaderProgram* prog

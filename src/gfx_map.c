@@ -111,12 +111,13 @@ void R_InitMap(void) {
     DB_UnloadShader(vertSource);
     DB_UnloadShader(pixelSource);
 
-    vertSource = DB_LoadShader("model.vs");
+    vertSource  = DB_LoadShader("model.vs");
     pixelSource = DB_LoadShader("model.ps");
     b = R_CreateShaderProgram(vertSource, pixelSource, &r_mapGlob.model_prog);
     DB_UnloadShader(vertSource);
     DB_UnloadShader(pixelSource);
 
+#if !A_TARGET_PLATFORM_IS_XBOX
     GfxShaderUniformDef uniform;
 
     R_CreateUniformMat4f("uModel", A_MAT4F_IDENTITY, &uniform);
@@ -238,6 +239,9 @@ void R_InitMap(void) {
     //assert(pUniform);
 
     assert(b);
+#else
+	assert(false && "unimplemented"); // FIXME
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 static void R_SwapYZPoint3(A_INOUT apoint3f_t* p) {
@@ -293,8 +297,8 @@ static bool R_LoadBitmap(TagId tag_id, A_OUT GfxImage* image) {
             bitmap_data->width,
             bitmap_data->height,
             bitmap_data->depth,
-            bitmap_data->type,
-            bitmap_data->format,
+            (BSPBitmapDataType)bitmap_data->type,
+            (BSPBitmapDataFormat)bitmap_data->format,
             image
         );
         if (bitmap_data->type == BSP_BITMAP_DATA_TYPE_2D_TEXTURE)
@@ -368,7 +372,7 @@ static void R_LoadShaderModel(BSPShaderModel* bsp_shader,
     }
     assert(b);
     (void)b;
-    shader->detail_function = bsp_shader->detail_function;
+    shader->detail_function = (BSPShaderDetailFunction)bsp_shader->detail_function;
 }
 
 static void R_LoadShader(TagId shader_id, GfxShader* shader) {
@@ -410,11 +414,11 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
                bsp_material->rendered_vertices_count);
     }
     BSPRenderedVertex* rendered_vertices = 
-        Z_Alloc(3 * surf_count * sizeof(BSPRenderedVertex));
+        (BSPRenderedVertex*)Z_Alloc(3 * surf_count * sizeof(BSPRenderedVertex));
     BSPLightmapVertex* lightmap_vertices = bsp_material->lightmap_vertices_count > 0 ?
-        Z_Alloc(3 * surf_count * sizeof(BSPLightmapVertex)) : NULL;
+        (BSPLightmapVertex*)Z_Alloc(3 * surf_count * sizeof(BSPLightmapVertex)) : NULL;
     const BSPRenderedVertex* bsp_rendered_vertices =
-        bsp_material->uncompressed_vertices.pointer;
+        (const BSPRenderedVertex*)bsp_material->uncompressed_vertices.pointer;
     const BSPLightmapVertex* bsp_lightmap_vertices =
         (BSPLightmapVertex*)
             (bsp_rendered_vertices + bsp_material->rendered_vertices_count);
@@ -597,7 +601,7 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
 }
 
 static void R_LoadLightmap(const BSPLightmap* bsp_lightmap, GfxLightmap* lightmap) {
-    lightmap->materials = Z_Zalloc(
+    lightmap->materials = (GfxMaterial*)Z_Zalloc(
         bsp_lightmap->materials.count *
         sizeof(*lightmap->materials)
     );
@@ -628,9 +632,9 @@ static GfxPrimitiveType R_PrimitiveTypeFromBSP(BSPModelTriBufferType type) {
 }
 
 static void R_LoadModelPart(const BSPModelGeometryPart* bsp_part, GfxModelPart* part) {
-    BSPModelDecompressedVertex* vertices = bsp_part->decompressed_vertices.pointer;
+    BSPModelDecompressedVertex* vertices = (BSPModelDecompressedVertex*)bsp_part->decompressed_vertices.pointer;
     int vertex_count = bsp_part->decompressed_vertices.count;
-    part->primitive_type = R_PrimitiveTypeFromBSP(bsp_part->tri_buffer_type);
+    part->primitive_type = R_PrimitiveTypeFromBSP((BSPModelTriBufferType)bsp_part->tri_buffer_type);
 
     GfxVertexBuffer vb;
     bool b = R_CreateVertexBuffer(vertices, vertex_count, vertex_count, 0, sizeof(*vertices), &vb);
@@ -721,7 +725,7 @@ static void R_LoadModelPart(const BSPModelGeometryPart* bsp_part, GfxModelPart* 
 
 static void R_LoadModelGeometry(const BSPModelGeometry* bsp_geometry, GfxModelGeometry* geometry) {
     geometry->part_count = bsp_geometry->parts.count;
-    geometry->parts = Z_Zalloc(geometry->part_count * sizeof(*geometry->parts));
+    geometry->parts = (GfxModelPart*)Z_Zalloc(geometry->part_count * sizeof(*geometry->parts));
     assert(geometry->parts);
     BSPModelGeometryPart* bsp_parts = (BSPModelGeometryPart*)bsp_geometry->parts.pointer;
     for (int i = 0; i < bsp_geometry->parts.count; i++) {
@@ -731,7 +735,7 @@ static void R_LoadModelGeometry(const BSPModelGeometry* bsp_geometry, GfxModelGe
 
 static void R_LoadModel(const BSPModel* bsp_model, GfxModel* model) {
     model->geometry_count = bsp_model->geometries.count;
-    model->geometries = Z_Zalloc(model->geometry_count * sizeof(*model->geometries));
+    model->geometries = (GfxModelGeometry*)Z_Zalloc(model->geometry_count * sizeof(*model->geometries));
     assert(model->geometries);
     BSPModelGeometry* bsp_geometries = (BSPModelGeometry*)bsp_model->geometries.pointer;
     for (int i = 0; i < bsp_model->geometries.count; i++) {
@@ -768,7 +772,7 @@ static void R_LoadSceneryPalette(const BSPScenarioSceneryPalette* bsp_scenery_pa
 
 void R_LoadMap(void) {
     r_mapGlob.lightmap_count = CL_Map_LightmapCount();
-    r_mapGlob.lightmaps = Z_Zalloc(
+    r_mapGlob.lightmaps = (GfxLightmap*)Z_Zalloc(
         r_mapGlob.lightmap_count * sizeof(*r_mapGlob.lightmaps)
     );
     for (uint32_t i = 0; i < r_mapGlob.lightmap_count; i++) {
@@ -778,14 +782,14 @@ void R_LoadMap(void) {
     }
 
     r_mapGlob.scenery_palette_count = CL_Map_ScenarioSceneryPaletteCount();
-    r_mapGlob.scenery_palette = Z_Zalloc(r_mapGlob.scenery_palette_count * sizeof(*r_mapGlob.scenery_palette));
+    r_mapGlob.scenery_palette = (GfxSceneryPalette*)Z_Zalloc(r_mapGlob.scenery_palette_count * sizeof(*r_mapGlob.scenery_palette));
     for (uint32_t i = 0; i < r_mapGlob.scenery_palette_count; i++) {
         BSPScenarioSceneryPalette* bsp_scenery_palette = CL_Map_ScenarioSceneryPalette(i);
         R_LoadSceneryPalette(bsp_scenery_palette, &r_mapGlob.scenery_palette[i]);
     }
 
     r_mapGlob.scenery_count = CL_Map_ScenarioSceneryCount();
-    r_mapGlob.scenery = Z_Zalloc(r_mapGlob.scenery_count * sizeof(*r_mapGlob.scenery));
+    r_mapGlob.scenery = (GfxScenery*)Z_Zalloc(r_mapGlob.scenery_count * sizeof(*r_mapGlob.scenery));
     for (uint32_t i = 0; i < r_mapGlob.scenery_count; i++) {
         BSPScenarioScenery* bsp_scenery = CL_Map_ScenarioScenery(i);
         R_LoadScenarioScenery(bsp_scenery, &r_mapGlob.scenery[i]);
@@ -919,6 +923,7 @@ static void R_RenderShader(GfxShader* shader,
 }
 
 static void R_RenderMaterial(GfxMaterial* material) {
+#if !A_TARGET_PLATFORM_IS_XBOX
     //R_ShaderSetUniformBoolByName(&r_mapGlob.prog, "uAlphaTested",
     //                             material->alpha_tested);
 
@@ -969,9 +974,13 @@ static void R_RenderMaterial(GfxMaterial* material) {
         R_RenderShader(&material->shader, &material->vertex_declaration, PRIMITIVE_TYPE_TRI, 0, R_POLYGON_MODE_LINE);
         R_ShaderSetUniformBoolByName(&r_mapGlob.prog, "uWireframe", SHADER_TYPE_PIXEL, false);
     }
+#else
+	assert(false && "unimplemented"); // FIXME
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 static void R_RenderModelPart(GfxModel* model, GfxModelPart* part, apoint3f_t position, avec3f_t rotation) {
+#if !A_TARGET_PLATFORM_IS_XBOX
     amat4f_t pos = A_MAT4F_IDENTITY;
     avec3f_t p = A_vec3(position.x, position.y, position.z);
     pos = A_mat4f_translate_vec3(pos, p);
@@ -986,6 +995,9 @@ static void R_RenderModelPart(GfxModel* model, GfxModelPart* part, apoint3f_t po
         R_RenderShader(shader, &part->vertex_declaration, part->primitive_type, 0, R_POLYGON_MODE_LINE);
         R_ShaderSetUniformBoolByName(&r_mapGlob.prog, "uWireframe", SHADER_TYPE_PIXEL, false);
     }
+#else
+	assert(false && "unimplemented"); // FIXME
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 static void R_RenderModel(GfxModel* model, apoint3f_t pos, avec3f_t rotation) {
@@ -1025,9 +1037,13 @@ static void R_RenderMapInternal(void) {
     assert(b);
     if (!b)
         return;
-    amat4f_t model = A_MAT4F_IDENTITY;
+#if !A_TARGET_PLATFORM_IS_XBOX
+	amat4f_t model = A_MAT4F_IDENTITY;
     R_ShaderSetUniformMat4fByName(&r_mapGlob.prog, "uModel", 
                                   SHADER_TYPE_VERTEX, model);
+#else
+	assert(false); // FIXME
+#endif // !A_TARGET_PLATFORM_IS_XBOX
     for (uint32_t i = 0; i < r_mapGlob.lightmap_count; i++) {
         GfxLightmap* lightmap = &r_mapGlob.lightmaps[i];
         for (uint32_t j = 0; j < lightmap->material_count; j++) {

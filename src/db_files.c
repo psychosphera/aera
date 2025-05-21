@@ -22,10 +22,10 @@ typedef enum AssetType {
 } AssetType;
 
 const char* s_assetDirs[] = {
-	[AT_SHADER] = "shaders",
-	[AT_FONT]   = "fonts",
-	[AT_IMAGE]  = "images",
-	[AT_MAP]    = "maps"
+	/*[AT_SHADER] =*/ "shaders",
+	/*[AT_FONT]   =*/ "fonts",
+	/*[AT_IMAGE]  =*/ "images",
+	/*[AT_MAP]    =*/ "maps"
 };
 
 A_NO_DISCARD static const char* DB_AssetDirForType(AssetType at) {
@@ -103,6 +103,7 @@ void DB_UnloadMap_Stream(A_INOUT StreamFile* stream) {
 	FS_CloseStream(stream);
 }
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 A_NO_DISCARD FileMapping DB_LoadMap_Mmap(const char* map_name) {
 	return Z_MapFile(DB_MapPath(map_name));
 }
@@ -110,3 +111,4 @@ A_NO_DISCARD FileMapping DB_LoadMap_Mmap(const char* map_name) {
 void DB_UnloadMap_Mmap(A_INOUT FileMapping* map) {
 	Z_UnmapFile(map);
 }
+#endif // !A_TARGET_PLATFORM_IS_XBOX

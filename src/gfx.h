@@ -16,8 +16,10 @@ A_EXTERN_C void R_Init(void);
 A_EXTERN_C void R_Frame(void);
 A_EXTERN_C void R_WindowResized(void);
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 A_EXTERN_C A_NO_DISCARD bool R_CreateSdlImage(const char* image_name,
                                               A_INOUT GfxImage* image);
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 A_EXTERN_C A_NO_DISCARD bool R_CreateImage2D(const void* pixels, 
                                              size_t pixels_size,
                                              int width, int height, int depth,

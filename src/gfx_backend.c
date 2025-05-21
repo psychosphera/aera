@@ -18,6 +18,10 @@ bool RB_WindowResizeable(void) {
 }
 
 void RB_EnableWindowResize(bool resizeable) {
+#if A_TARGET_PLATFORM_IS_XBOX
+	assert(resizeable == false);
+	return;
+#else
     if (resizeable == RB_WindowResizeable())
         return;
 
@@ -33,6 +37,7 @@ void RB_EnableWindowResize(bool resizeable) {
             DVAR_FLAG_READONLY,
             h, 0, INT_MAX);
     }
+#endif // A_TARGET_PLATFORM_IS_XBOX
 }
 
 A_EXTERN_C void RB_Init(void) {
@@ -60,7 +65,7 @@ A_EXTERN_C void RB_Init(void) {
     }
     
     RB_EnableWindowResize(true);
-#elif A_RENDER_BACKEND_D3D9
+#elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
     RB_EnableWindowResize(false);
 #endif // A_RENDER_BACKEND_GL
 }
@@ -78,13 +83,16 @@ A_EXTERN_C void RB_BeginFrame(void) {
     if (Dvar_WasModified(r_vsync)) {
         bool enable = Dvar_GetBool(r_vsync);
         if (!RB_EnableVsync(enable)) {
+#if !A_TARGET_PLATFORM_IS_XBOX
             Com_Println(
                 CON_DEST_ERR, "Failed to %s vsync: %s",
                 enable ? "enable" : "disable", SDL_GetError()
             );
+#endif // !A_TARGET_PLATFORM_IS_XBOX
         }
     }
 
+#if !A_TARGET_PLATFORM_IS_XBOX
     if (Dvar_WasModified(r_fullscreen) && RB_WindowResizeable()) {
         if (Dvar_GetBool(r_fullscreen)) {
             Dvar_LatchValue(vid_width);
@@ -147,6 +155,7 @@ A_EXTERN_C void RB_BeginFrame(void) {
 
         Dvar_ClearModified(r_noBorder);
     }
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 A_EXTERN_C void RB_EndFrame(void) {
