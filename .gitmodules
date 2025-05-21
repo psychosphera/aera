@@ -2,3 +2,6 @@
 	path = deps/SDL_image
 	url = https://github.com/libsdl-org/SDL_image.git
 	ignore = dirty
+[submodule "src/zlib"]
+	path = src/zlib
+	url = https://github.com/madler/zlib.git
