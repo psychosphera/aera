@@ -2,10 +2,6 @@
 
 #include <stdio.h>
 
-#if !A_TARGET_PLATFORM_IS_XBOX
-#include <SDL3_image/SDL_image.h>
-#endif // !A_TARGET_PLATFORM_IS_XBOX
-
 #include "acommon/a_string.h"
 
 #include "cl_client.h"
@@ -54,6 +50,8 @@ void Sys_Init(const char** argv) {
 #if !A_TARGET_PLATFORM_IS_XBOX
     sys_sdlGlob.window = SDL_CreateWindow(
         "Halo 1 Map Viewer",
+        SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOWPOS_UNDEFINED,
         Dvar_GetInt(vid_width),
         Dvar_GetInt(vid_height),
         SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
@@ -64,7 +62,6 @@ void Sys_Init(const char** argv) {
     vid_xpos = Dvar_RegisterInt("vid_xpos", DVAR_FLAG_NONE, x, 0, INT_MAX);
     vid_ypos = Dvar_RegisterInt("vid_ypos", DVAR_FLAG_NONE, y, 0, INT_MAX);
     SDL_SetRelativeMouseMode(SDL_TRUE);
-    SDL_SetWindowFullscreenMode(sys_sdlGlob.window, NULL);
 
     if (sys_sdlGlob.window == NULL) {
         printf("Could not create window: %s\n", SDL_GetError());
@@ -89,7 +86,7 @@ bool Sys_HandleEvent(void) {
     SDL_Event ev;
     if (SDL_PollEvent(&ev)) {
         switch (ev.type) {
-        case SDL_EVENT_KEY_DOWN:
+        case SDL_KEYDOWN:
             if (ev.key.keysym.sym == SDLK_ESCAPE) {
                 Sys_NormalExit(1);
             } else {
@@ -97,35 +94,38 @@ bool Sys_HandleEvent(void) {
                     IN_Key_SDLKToKeycode(ev.key.keysym.sym));
             }
             break;
-        case SDL_EVENT_KEY_UP:
+        case SDL_KEYUP:
             IN_Key_Up(CL_ClientWithKbmFocus(), 
                       IN_Key_SDLKToKeycode(ev.key.keysym.sym));
             break;
-        case SDL_EVENT_MOUSE_BUTTON_DOWN:
+        case SDL_MOUSEBUTTONDOWN:
             IN_Mouse_Down(CL_ClientWithKbmFocus(), ev.button.button);
             break;
-        case SDL_EVENT_MOUSE_BUTTON_UP:
+        case SDL_MOUSEBUTTONUP:
             IN_Mouse_Up(CL_ClientWithKbmFocus(), ev.button.button);
             break;
-        case SDL_EVENT_MOUSE_MOTION:
+        case SDL_MOUSEMOTION:
             IN_Mouse_Move(
                 CL_ClientWithKbmFocus(), ev.motion.xrel, ev.motion.yrel
             );
             break;
-        case SDL_EVENT_WINDOW_RESIZED:
-            Dvar_SetInt(vid_width, ev.window.data1);
-            Dvar_SetInt(vid_height, ev.window.data2);
-            R_WindowResized();
+        case SDL_WINDOWEVENT:
+            switch (ev.window.type) {
+            case SDL_WINDOWEVENT_SIZE_CHANGED:
+                Dvar_SetInt(vid_width, ev.window.data1);
+                Dvar_SetInt(vid_height, ev.window.data2);
+                R_WindowResized();
+                break;
+            case SDL_WINDOWEVENT_MOVED:
+                Dvar_SetInt(vid_xpos, ev.window.data1);
+                Dvar_SetInt(vid_ypos, ev.window.data2);
+                break;
+            case SDL_WINDOWEVENT_CLOSE:
+                SDL_DestroyWindow(sys_sdlGlob.window);
+                Sys_NormalExit(2);
+                break;
+            }
             break;
-        case SDL_EVENT_WINDOW_MOVED:
-            Dvar_SetInt(vid_xpos, ev.window.data1);
-            Dvar_SetInt(vid_ypos, ev.window.data2);
-            break;
-        case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-            SDL_DestroyWindow(sys_sdlGlob.window);
-            break;
-        case SDL_EVENT_WINDOW_DESTROYED:
-            Sys_NormalExit(2);
         }
 
         return true;

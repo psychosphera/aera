@@ -17,18 +17,18 @@ void M_AngleVectors(
 	float cr = A_cosf(ar);
 
 	if (forward) {
-		forward->x =  cp * cy;
+		forward->x = cp * cy;
 		forward->y = -sp;
-		forward->z =  cp * sy;
+		forward->z = cp * sy;
 	}
 	if (right) {
 		right->x = (-1.0f * sr * sp * cy) + (-1.0f * cr * -sy);
-		right->y =  -1.0f * sr * cp;
+		right->y = -1.0f * sr * cp;
 		right->z = (-1.0f * sr * sp * sy) + (-1.0f * cr * cy);
 	}
 	if (up) {
 		up->x = (cr * sp * cy) + (-sr * -sy);
-		up->y =  cr * cp;
+		up->y = cr * cp;
 		up->z = (cr * sp * sy) + (-sr * cy);
 	}
 }

@@ -1,6 +1,11 @@
+#include "acommon/z_mem.h"
+
 #include "com_print.h"
 #include "sys.h"
 
+#ifdef main
+#undef main
+#endif // main
 int main(int argc, const char** argv) {
     A_UNUSED(argc);
     Com_Println(CON_DEST_CLIENT, "Running.");  

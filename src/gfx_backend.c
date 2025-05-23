@@ -52,6 +52,8 @@ A_EXTERN_C void RB_Init(void) {
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
+    SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
+
     sys_sdlGlob.glContext = SDL_GL_CreateContext(sys_sdlGlob.window);
     if (sys_sdlGlob.glContext == NULL) {
         printf("GL context creation failed: %s\n", SDL_GetError());
@@ -99,11 +101,12 @@ A_EXTERN_C void RB_BeginFrame(void) {
             Dvar_LatchValue(vid_height);
             Dvar_LatchValue(vid_xpos);
             Dvar_LatchValue(vid_ypos);
-            SDL_DisplayID d = SDL_GetDisplayForWindow(sys_sdlGlob.window);
-            const SDL_DisplayMode* mode = SDL_GetCurrentDisplayMode(d);
-            SDL_SetWindowSize(sys_sdlGlob.window, mode->w, mode->h + 1);
-            Dvar_SetInt(vid_width,  mode->w);
-            Dvar_SetInt(vid_height, mode->h);
+            int d = SDL_GetWindowDisplayIndex(sys_sdlGlob.window);
+            SDL_DisplayMode mode;
+            SDL_GetCurrentDisplayMode(d, &mode);
+            SDL_SetWindowFullscreen(sys_sdlGlob.window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+            Dvar_SetInt(vid_width,  mode.w);
+            Dvar_SetInt(vid_height, mode.h);
             R_WindowResized();
             SDL_SetWindowPosition(sys_sdlGlob.window, 0, 0);
             SDL_SetWindowResizable(sys_sdlGlob.window, SDL_FALSE);

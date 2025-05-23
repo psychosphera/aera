@@ -73,8 +73,7 @@ float4 main(PS_INPUT Input) : COLOR0 {
         MicroDetailColor     = tex2D(uMicroDetailMap,     Input.TexCoords);
     }
     */
-        float3 Ambient = clamp(uAmbientColor * uMaterialColor, 0.0f, 1.0f);
-        float4 Color = float4(BaseColor.rgb * Ambient, 1.0);
+        float4 Color = float4(BaseColor.rgb * uAmbientColor.rgb, 1.0);
         return Color;
     }
     else {

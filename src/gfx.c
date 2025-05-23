@@ -9,8 +9,8 @@
 #endif // A_RENDER_BACKEND_GL
 
 #if !A_TARGET_PLATFORM_IS_XBOX
-#include <SDL3/SDL_syswm.h>
-#include <SDL3_image/SDL_image.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_syswm.h>
 #endif // !A_TARGET_PLATFORM_IS_XBOX
 
 #include "acommon/a_string.h"
@@ -27,7 +27,6 @@
 #include "gfx_shader.h"
 #include "gfx_text.h"
 #include "gfx_uniform.h"
-#include "m_math.h"
 #include "sys.h"
 
 extern dvar_t* vid_width;
@@ -248,8 +247,9 @@ static bool R_InitGL(void) {
 #elif A_RENDER_BACKEND_D3D9
 static HWND R_GetHwnd(SDL_Window* window) {
     SDL_SysWMinfo info;
-    int res = SDL_GetWindowWMInfo(window, &info, SDL_SYSWM_CURRENT_VERSION);
-    assert(res == 0);
+    SDL_VERSION(&info.version);
+    int res = SDL_GetWindowWMInfo(window, &info);
+    assert(res == SDL_TRUE);
     HWND hWnd = info.info.win.window;
     return hWnd;
 }
@@ -344,12 +344,6 @@ static bool R_InitD3D9(void) {
 
 void R_Init(void) {
     RB_Init();
-
-#if !A_TARGET_PLATFORM_IS_XBOX
-    int imgInitFlags = IMG_INIT_JPG | IMG_INIT_PNG;
-    if ((IMG_Init(imgInitFlags) & imgInitFlags) != imgInitFlags)
-        Com_Errorln(-1, "SDL_image init failed.");
-#endif // !A_TARGET_PLATFORM_IS_XBOX
 
     r_renderGlob.clear_color.r = 0.2f;
     r_renderGlob.clear_color.g = 0.3f;
@@ -742,61 +736,6 @@ A_NO_DISCARD bool R_ImageSubData(A_INOUT GfxImage* image,
     return true;
 }
 
-#if !A_TARGET_PLATFORM_IS_XBOX
-A_NO_DISCARD bool R_CreateSdlImage(const char* image_name, 
-                                   A_INOUT GfxImage* image
-) {
-    assert(image_name);
-    if (!image_name)
-        return false;
-
-    const char* image_path = DB_ImagePath(image_name);
-    SDL_Surface* surf = IMG_Load(image_path);
-
-    assert(surf);
-    if (!surf)
-        return false;
-
-    assert(surf->pixels);
-    if (!surf->pixels)
-        return false;
-
-    assert(surf->w > 0 && surf->h > 0);
-    if (surf->w < 1 || surf->h < 1)
-        return false;
-
-    ImageFormat format;
-    switch (surf->format->format) {
-    case SDL_PIXELFORMAT_RGB24:
-        format = R_IMAGE_FORMAT_RGB888;
-        break;
-    case SDL_PIXELFORMAT_RGBA32:
-        format = R_IMAGE_FORMAT_RGBA8888;
-        break;
-    default:
-        assert(false && "Unimplemented SDL pixel format");
-        Com_Errorln(-1,
-            "R_CreateSdlImage: Unimplemented SDL pixel format %d.",
-            surf->format->format
-        );
-        return false;
-    }
-
-    size_t pixels_size = surf->w * surf->h * surf->format->BytesPerPixel;
-
-    bool ret = R_CreateImage2D(surf->pixels, pixels_size, 
-                               surf->w, surf->h, 1, format, 
-                               true, true, true, 
-                               R_IMAGE_FILTER_LINEAR, 
-                               R_IMAGE_FILTER_LINEAR, 
-                               image);
-
-    SDL_DestroySurface(surf);
-
-    return ret;
-}
-#endif // !A_TARGET_PLATFORM_IS_XBOX
-
 void R_DeleteImage(A_INOUT GfxImage* image) {
 #if A_RENDER_BACKEND_GL
     GL_CALL(glDeleteTextures, 1, &image->tex);
@@ -1158,9 +1097,6 @@ A_EXTERN_C void R_Shutdown(void) {
     R_ShutdownMap();
 
     R_UnregisterDvars();
-#if !A_TARGET_PLATFORM_IS_XBOX
-    IMG_Quit();
-#endif // !A_TARGET_PLATFORM_IS_XBOX
 #if A_RENDER_BACKEND_GL
     R_ShutdownGL();
 #elif A_RENDER_BACKEND_D3D9

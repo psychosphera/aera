@@ -164,6 +164,7 @@ void R_InitMap(void) {
     //                              &uniform);
     //assert(pUniform);
 
+#if A_RENDER_BACKEND_GL
     R_CreateUniformInt("uBaseMap", 0, &uniform);
     pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
                                   SHADER_TYPE_PIXEL, 
@@ -195,7 +196,7 @@ void R_InitMap(void) {
     //                              SHADER_TYPE_PIXEL, 
     //                              &uniform);
     //assert(pUniform);
-
+#endif // A_RENDER_BACKEND_GL
     //R_CreateUniformInt("uDetailMapFunction", 0, &uniform);
     //pUniform = R_ShaderAddUniform(&r_mapGlob.prog, 
     //                              SHADER_TYPE_PIXEL, 
@@ -982,7 +983,7 @@ static void R_RenderMaterial(GfxMaterial* material) {
 static void R_RenderModelPart(GfxModel* model, GfxModelPart* part, apoint3f_t position, avec3f_t rotation) {
 #if !A_TARGET_PLATFORM_IS_XBOX
     amat4f_t pos = A_MAT4F_IDENTITY;
-    avec3f_t p = A_vec3(position.x, position.y, position.z);
+    avec3f_t p   = A_vec3(position.x, position.y, position.z);
     pos = A_mat4f_translate_vec3(pos, p);
     amat4f_t r = A_mat4f_euler(rotation);
     amat4f_t m = A_mat4f_mul(pos, r);
@@ -1048,12 +1049,12 @@ static void R_RenderMapInternal(void) {
         GfxLightmap* lightmap = &r_mapGlob.lightmaps[i];
         for (uint32_t j = 0; j < lightmap->material_count; j++) {
             GfxMaterial* material = &lightmap->materials[j];
-            //R_RenderMaterial(material);
+            R_RenderMaterial(material);
         }
     }
 
     for (uint32_t i = 0; i < r_mapGlob.scenery_count; i++) {
-        R_RenderScenery(&r_mapGlob.scenery[i]);
+        //R_RenderScenery(&r_mapGlob.scenery[i]);
     }
 
     R_BindShaderProgram(NULL);

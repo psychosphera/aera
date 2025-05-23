@@ -13,7 +13,8 @@
 #endif // !A_TARGET_OS_IS_WINDOWS
 
 #if !A_TARGET_PLATFORM_IS_XBOX
-#include <SDL3/SDL.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_mutex.h>
 #endif // !A_TARGET_PLATFORM_IS_XBOX
 
 #include "acommon/acommon.h"
@@ -24,12 +25,12 @@
 #define DEVCON_MAX_IN 4096
 
 bool       devcon_hasText;
-SDL_Mutex* devcon_ioMutex;
+SDL_mutex* devcon_ioMutex;
 
 #if !A_TARGET_OS_IS_WINDOWS
 static char           devcon_in[DEVCON_MAX_IN];
-static SDL_Mutex*     devcon_inMutex;
-static SDL_Mutex*     devcon_selectMutex;
+static SDL_mutex*     devcon_inMutex;
+static SDL_mutex*     devcon_selectMutex;
 static fd_set         devcon_fds;
 static struct timeval devcon_timeval;
 #endif

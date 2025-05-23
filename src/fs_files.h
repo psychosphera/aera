@@ -3,7 +3,7 @@
 #include "acommon/acommon.h"
 
 #if !A_TARGET_PLATFORM_IS_XBOX
-#include <SDL3/SDL.h>
+#include <SDL2/SDL.h>
 #endif // !A_TARGET_PLATFORM_IS_XBOX
 
 #include "com_defs.h"

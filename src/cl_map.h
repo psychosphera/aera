@@ -88,7 +88,7 @@ typedef struct TagDependency TagDependency;
 A_STATIC_ASSERT(sizeof(TagDependency) == 16);
 
 #if A_PTR_SIZE_IS_32BIT
-#define NATIVE_PTR(T, name) T* name; char __pad##__LINE__##[4]
+#define NATIVE_PTR(T, name) T* name; uint32_t pad__##__LINE__
 #elif A_PTR_SIZE_IS_64BIT
 #define NATIVE_PTR(T, name) T* name
 #else

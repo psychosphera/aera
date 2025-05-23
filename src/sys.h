@@ -3,7 +3,7 @@
 #include "acommon/acommon.h"
 
 #if !A_TARGET_PLATFORM_IS_XBOX
-#include <SDL3/SDL.h>
+#include <SDL2/SDL.h>
 #endif // !A_TARGET_PLATFORM_IS_XBOX
 
 #include "com_defs.h"
@@ -18,12 +18,12 @@ typedef enum thread_t {
 	THREAD_MAIN = 0,
 } thread_t;
 
-#if !A_RENDER_BACKEND_D3D8
+#if !A_TARGET_PLATFORM_IS_XBOX
 typedef struct SDLGlob {
     SDL_Window*   window;
 #if A_RENDER_BACKEND_GL
     SDL_GLContext glContext;
-#endif // A_RENDER_BACKEND_GL
+#endif // A_TARGET_PLATFORM_IS_XBOX
 } SDLGlob;
 extern SDLGlob sys_sdlGlob;
 #endif // A_RENDER_BACKEND_D3D8

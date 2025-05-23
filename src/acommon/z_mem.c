@@ -1,5 +1,6 @@
 #include "z_mem.h"
 
+#include <assert.h>
 #include <stdlib.h>
 
 #include "a_string.h"
@@ -10,6 +11,17 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#else
+#include <winternl.h>
+#include <ntstatus.h>
+NTSYSAPI NTSTATUS NTAPI
+NtAllocateVirtualMemory(
+    IN     HANDLE ProcessHandle,
+    IN OUT PVOID* BaseAddress,
+    IN     ULONG  ZeroBits,
+    IN OUT PULONG RegionSize,
+    IN     ULONG  AllocationType,
+    IN     ULONG  Protect);
 #endif // _WIN32
 
 A_NO_DISCARD void* Z_Alloc(size_t n) {
@@ -30,20 +42,27 @@ void Z_Free(void* p) {
 
 #ifdef _WIN32
 A_NO_DISCARD void* Z_AllocAt(const void* p, size_t n) {
-    void* alloc = VirtualAlloc(
-        (void*)(intptr_t)p, n, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE
-    );
-
-    if (alloc == NULL) {
-        DWORD err = GetLastError();
-        A_UNUSED(err);
+    HANDLE   hProcess = GetCurrentProcess();
+    PVOID    alloc    = (PVOID)p;
+    ULONG    size     = (ULONG)n;
+    NTSTATUS status   = NtAllocateVirtualMemory(hProcess, &alloc, 0, &size, 
+                                                MEM_RESERVE | MEM_COMMIT, 
+                                                PAGE_READWRITE);
+    assert(status == STATUS_SUCCESS);
+    if (status != STATUS_SUCCESS)
         return NULL;
-    }
-    
-    if (alloc < p)
-        alloc = (void*)p;
+    assert(alloc);
+    if (alloc == NULL)
+        return NULL;
+    assert(alloc <= p);
+    assert(size >= n);
+    if (size < n)
+        return NULL;
+    assert((size_t)p + n <= (size_t)alloc + size);
+    if ((size_t)p + n > (size_t)alloc + size)
+        return NULL;
 
-    return alloc == p ? alloc : NULL;
+    return p;
 }
 #else 
 A_NO_DISCARD void* Z_AllocAt(const void* p, size_t n) {

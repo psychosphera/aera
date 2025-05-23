@@ -29,7 +29,7 @@ A_NO_DISCARD void* FS_ReadFile(const char* path, A_OPTIONAL_OUT size_t* sz) {
 
 	void* p = Z_Alloc(len + 1);
 
-	size_t c = SDL_RWread(ops, p, len);
+	size_t c = SDL_RWread(ops, p, 1, len);
 	if ((Sint64)c < len) {
 		Com_Println(
 			CON_DEST_ERR,
@@ -75,7 +75,7 @@ A_NO_DISCARD char* FS_ReadFileText(const char* path,
 
 	char* p = (char*)Z_Alloc(len + 1);
 
-	size_t c = SDL_RWread(ops, p, len);
+	size_t c = SDL_RWread(ops, p, 1, len);
 	if ((Sint64)c < len) {
 		Com_Println(
 			CON_DEST_ERR,
@@ -126,7 +126,7 @@ A_NO_DISCARD StreamFile FS_StreamFile(
 #if !A_TARGET_PLATFORM_IS_XBOX
 	SDL_RWops* f = SDL_RWFromFile(path, mode_str);
 	size_t size  = SDL_RWsize(f);
-	SDL_RWseek(f, 0, SDL_RW_SEEK_SET);
+	SDL_RWseek(f, 0, RW_SEEK_SET);
 	StreamFile s = { .f = f, .size = size };
 	if(from == FS_SEEK_END || off != 0)
 		FS_SeekStream(&s, from, off);
@@ -162,13 +162,13 @@ long long FS_SeekStream(A_INOUT StreamFile* file, SeekFrom from, size_t off) {
 	Sint64 res       = -1;
 	switch (from) {
 	case FS_SEEK_BEGIN:
-		res = SDL_RWseek(file->f, off, SDL_RW_SEEK_SET);
+		res = SDL_RWseek(file->f, off, RW_SEEK_SET);
 		break;
 	case FS_SEEK_END:
-		res = SDL_RWseek(file->f, off, SDL_RW_SEEK_END);
+		res = SDL_RWseek(file->f, off, RW_SEEK_END);
 		break;
 	case FS_SEEK_CUR:
-		res = SDL_RWseek(file->f, (long long)off, SDL_RW_SEEK_CUR);
+		res = SDL_RWseek(file->f, (long long)off, RW_SEEK_CUR);
 		break;
 	default:
 		assert(false && "Bad SeekFrom value");
@@ -199,7 +199,7 @@ A_NO_DISCARD bool FS_ReadStream(A_INOUT StreamFile* file,
 	                            void* dst, size_t count
 ) {
 #if !A_TARGET_PLATFORM_IS_XBOX
-	size_t sz = SDL_RWread(file->f, dst, count);
+	size_t sz = SDL_RWread(file->f, dst, 1, count);
 	if (sz <= 0) {
 		Com_DPrintln(
 			CON_DEST_CLIENT, 
@@ -219,7 +219,7 @@ A_NO_DISCARD bool FS_WriteStream(A_INOUT StreamFile* file,
 	                             const void* src, size_t count
 ) {
 #if !A_TARGET_PLATFORM_IS_XBOX
-	size_t sz = SDL_RWwrite(file->f, src, count);
+	size_t sz = SDL_RWwrite(file->f, src, 1, count);
 	if(sz > 0)
 		file->size += sz;
 	if (sz != count) {

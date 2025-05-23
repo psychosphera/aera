@@ -226,13 +226,57 @@ A_NO_DISCARD amat4f_t A_mat4f_scale_vec3(amat4f_t m, avec3f_t v) {
 }
 
 A_NO_DISCARD amat4f_t A_mat4f_mul(amat4f_t a, amat4f_t b) {
-	assert(false && "unimplemented");
-	return A_MAT4F_IDENTITY;
+	amat4f_t ret = A_MAT4F_ZERO;
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++)
+			for (int k = 0; k < 4; k++)
+				ret.m[i][j] += a.m[i][k] * b.m[k][j];
+	}
+	return ret;
 }
 
 A_NO_DISCARD amat4f_t A_mat4f_euler(avec3f_t angles) {
-	assert(false && "unimplemented");
-	return A_MAT4F_IDENTITY;
+	float sx = A_sinf(angles.x);
+	float cx = A_cosf(angles.x);
+	amat4f_t yaw = A_MAT4F_IDENTITY;
+	yaw.m[0][0] =  cx;
+	yaw.m[0][1] = -sx;
+	yaw.m[0][2] =  0;
+	yaw.m[1][0] =  sx;
+	yaw.m[1][1] =  cx;
+	yaw.m[1][2] =  0;
+	yaw.m[2][0] =  0;
+	yaw.m[2][1] =  0;
+	yaw.m[2][2] =  1;
+	
+	float sy = A_sinf(angles.y);
+	float cy = A_cosf(angles.y);
+	amat4f_t pitch = A_MAT4F_IDENTITY;
+	pitch.m[0][0] =  cy;
+	pitch.m[0][1] =  0;
+	pitch.m[0][2] =  sy;
+	pitch.m[1][0] =  0;
+	pitch.m[1][1] =  1;
+	pitch.m[1][2] =  0;
+	pitch.m[2][0] = -sy;
+	pitch.m[2][1] =  0;
+	pitch.m[2][2] =  cy;
+
+	float sz = A_sinf(angles.z);
+	float cz = A_cosf(angles.z);
+	amat4f_t roll = A_MAT4F_IDENTITY;
+	roll.m[0][0] =  1.0f;
+	roll.m[0][1] =  0.0f;
+	roll.m[0][2] =  0.0f;
+	roll.m[1][0] =  0.0f;
+	roll.m[1][1] =  cz;
+	roll.m[1][2] = -sz;
+	roll.m[2][0] =  0.0f;
+	roll.m[2][1] =  sz;
+	roll.m[2][2] =  cz;
+
+	amat4f_t ret = A_mat4f_mul(yaw, pitch);
+	return A_mat4f_mul(ret, roll);
 }
 
 //A_NO_DISCARD amat4f_t A_mat4f_look_at(avec3f_t eye, 

@@ -1,8 +1,9 @@
 #pragma once
 
 #if A_RENDER_BACKEND_D3D9
-#include <d3dx9mesh.h>
-#include <d3dx9shader.h>
+#include <d3dx9.h>
+#elif A_RENDER_BACKEND_D3D8
+#include <d3dx8.h>
 #endif // A_RENDER_BACKEND_D3D9
 
 #include "com_defs.h"
@@ -39,9 +40,9 @@ typedef struct GfxShaderProgram {
 #elif A_RENDER_BACKEND_D3D9
     int current_location;
 #endif // A_RENDER_BACKEND_GL
-    GfxVertexShader vertex_shader;
-    GfxPixelShader  pixel_shader;
-    int current_uniform;
+    GfxVertexShader     vertex_shader;
+    GfxPixelShader      pixel_shader;
+    int                 current_uniform;
     GfxShaderUniformDef uniforms[R_SHADER_MAX_UNIFORM];
 } GfxShaderProgram;
 

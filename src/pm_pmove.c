@@ -4,6 +4,10 @@
 
 #if A_RENDER_BACKEND_GL
 #include <cglm/cglm.h>
+#elif A_RENDER_BACKEND_D3D9
+#include <d3dx9.h>
+#elif A_RENDER_BACKEND_D3D8
+#include <d3dx8.h>
 #endif // A_RENDER_BACKEND_GL
 
 #include "acommon/a_string.h"
@@ -29,7 +33,12 @@ static void PM_Accelerate(
 	A_INOUT pmove_t* pm, A_INOUT pml_t* pml,
 	avec3f_t wishdir, float wishspeed, float accel
 ) {
-	float currentspeed = A_vec3f_dot(pm->ps->velocity, wishdir);
+#if A_RENDER_BACKEND_GL
+	float currentspeed = glm_vec3_dot(pm->ps->velocity.array, wishdir.array);
+#elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
+	float currentspeed = D3DXVec3Dot(pm->ps->velocity.array, wishdir.array);
+#endif // A_RENDER_BACKEND_GL
+
 	float addspeed = wishspeed - currentspeed;
 
 	if (addspeed <= 0)
@@ -39,14 +48,27 @@ static void PM_Accelerate(
 	if (accelspeed > addspeed)
 		accelspeed = addspeed;
 
-	pm->ps->velocity = A_vec3f_add(pm->ps->velocity, A_vec3f_mul(wishdir, accelspeed));
+#if A_RENDER_BACKEND_GL
+	vec3 velocity;
+	glm_vec3_scale(wishdir.array, accelspeed, velocity);
+	glm_vec3_add(pm->ps->velocity.array, velocity, pm->ps->velocity.array);
+#elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
+	D3DXVECTOR3 velocity = { 0 };
+	D3DXVec3Scale(&velocity, wishdir.array, accelspeed);
+	D3DXVec3Add(pm->ps->velocity.array, &velocity, pm->ps->velocity.array);
+#endif // A_RENDER_BACKEND_GL
 }
 
 static void PM_NoclipMove(A_INOUT pmove_t* pm, A_INOUT pml_t* pml) {
-	float speed = A_vec3f_length(pm->ps->velocity);
+#if A_RENDER_BACKEND_GL
+	float speed = glm_vec3_norm(pm->ps->velocity.array);
+#elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
+	float speed = D3DXVec3Length(pm->ps->velocity.array);
+#endif // A_RENDER_BACKEND_GL
 	if (speed < 1.0f) {
 		pm->ps->velocity = A_VEC3F_ZERO;
-	} else {
+	}
+	else {
 		float friction = PM_FRICTION * 1.5f;
 		float control = speed < PM_STOPSPEED ? PM_STOPSPEED : speed;
 		float drop = control * friction * pml->frametime;
@@ -56,27 +78,57 @@ static void PM_NoclipMove(A_INOUT pmove_t* pm, A_INOUT pml_t* pml) {
 			newspeed = 0;
 		newspeed /= speed;
 
-		pm->ps->velocity = A_vec3f_mul(pm->ps->velocity, newspeed);
+#if A_RENDER_BACKEND_GL
+		vec3 velocity;
+		glm_vec3_scale(pm->ps->velocity.array, newspeed, velocity);
+#elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
+		D3DXVECTOR3 velocity = { 0 };
+		D3DXVec3Scale(&velocity, pm->ps->velocity.array, newspeed);
+#endif // A_RENDER_BACKEND_GL
+		pm->ps->velocity = *(avec3f_t*)&velocity;
 	}
 
-	pml->forward     = A_vec3f_mul(pml->forward, pm->cmd.vel.z);
-	pml->right       = A_vec3f_mul(pml->right,   pm->cmd.vel.x);
-	avec3f_t wishvel = A_vec3f_sub(pml->forward, pml->right);
+#if A_RENDER_BACKEND_GL
+	vec3 forward, right;
+	glm_vec3_scale(pml->forward.array, pm->cmd.vel.z, forward);
+	glm_vec3_scale(pml->right.array, pm->cmd.vel.x, right);
+	avec3f_t wishvel;
+	glm_vec3_sub(forward, right, wishvel.array);
+#elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
+	D3DXVECTOR3 forward = { 0 }, right = { 0 };
+	D3DXVec3Scale(&forward, pml->forward.array, pm->cmd.vel.z);
+	D3DXVec3Scale(&right, pml->right.array, pm->cmd.vel.x);
+	avec3f_t wishvel;
+	D3DXVec3Subtract(wishvel.array, &forward, &right);
+#endif // A_RENDER_BACKEND_GL
 
 	wishvel.y += pm->cmd.vel.y;
 
-	avec3f_t wishdir = A_vec3f_normalize(wishvel);
-	float wishspeed = A_vec3f_length(wishdir);
+	avec3f_t wishdir = wishvel;
+#if A_RENDER_BACKEND_GL
+	glm_vec3_normalize(wishdir.array);
+	float wishspeed = glm_vec3_norm(wishvel.array);
+#elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
+	D3DXVec3Normalize(wishdir.array, wishdir.array);
+	float wishspeed = D3DXVec3Length(wishdir.array);
+#endif // A_RENDER_BACKEND_GL
 	if (A_memcmp(&wishvel, &A_VEC3F_ZERO, sizeof(wishvel))) {
-		wishvel   = A_VEC3F_ZERO;
+		wishdir = A_VEC3F_ZERO;
 		wishspeed = 0;
 	}
 
-	PM_Accelerate(pm, pml, wishvel, wishspeed, PM_ACCELERATE);
+	PM_Accelerate(pm, pml, wishdir, wishspeed, PM_ACCELERATE);
 
 	avec3f_t pos = A_vec3(pm->ps->origin.x, pm->ps->origin.y, pm->ps->origin.z);
-	pm->ps->velocity = A_vec3f_mul(pm->ps->velocity, pml->frametime);
-	pm->ps->velocity = A_vec3f_add(pm->ps->velocity, pos);
+#if A_RENDER_BACKEND_GL
+	vec3 velocity;
+	glm_vec3_scale(pm->ps->velocity.array, pml->frametime, velocity);
+	glm_vec3_add(pos.array, velocity, pos.array);
+#elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
+	D3DXVECTOR3 velocity = { 0 };
+	D3DXVec3Scale(&velocity, pm->ps->velocity.array, pml->frametime);
+	D3DXVec3Add(pos.array, &velocity, pos.array);
+#endif // A_RENDER_BACKEND_GL
 	pm->ps->origin.x = pos.x;
 	pm->ps->origin.y = pos.y;
 	pm->ps->origin.z = pos.z;
@@ -87,8 +139,8 @@ void PM_UpdateViewAngles(A_INOUT playerState_t* ps, const usercmd_t* cmd) {
 	if (ps->pm_type != PM_NOCLIP)
 		return;
 
-	ps->viewyaw   += ps->deltayaw  + cmd->yaw;
-	ps->viewroll  += ps->deltaroll + cmd->roll;
+	ps->viewyaw += ps->deltayaw + cmd->yaw;
+	ps->viewroll += ps->deltaroll + cmd->roll;
 	ps->viewpitch = A_CLAMP(
 		ps->viewpitch + ps->deltapitch + cmd->pitch, -89.0f, 89.0f
 	);
@@ -98,23 +150,23 @@ void PmoveSingle(A_INOUT pmove_t* pm, A_INOUT pml_t* pml) {
 	A_memset(pml, 0, sizeof(*pml));
 
 	pml->msec = A_CLAMP(
-		(uint64_t)((float)pm->cmd.serverTime - (float)pm->ps->commandTime), 
+		(uint64_t)((float)pm->cmd.serverTime - (float)pm->ps->commandTime),
 		(uint64_t)1, (uint64_t)200
 	);
 	pm->ps->commandTime = pm->cmd.serverTime;
-	pml->frametime      = pml->msec * 0.001f;
+	pml->frametime = pml->msec * 0.001f;
 
 	PM_UpdateViewAngles(pm->ps, &pm->cmd);
 	M_AngleVectors(
-		pm->ps->viewyaw, pm->ps->viewpitch, pm->ps->viewroll, 
+		pm->ps->viewyaw, pm->ps->viewpitch, pm->ps->viewroll,
 		&pml->forward, &pml->right, &pml->up
 	);
 
 	if (pm->cmd.vel.y < 10.0f)
-	    pm->ps->pm_flags &= ~PMF_JUMP_HELD;
+		pm->ps->pm_flags &= ~PMF_JUMP_HELD;
 
 	if (pm->ps->pm_type == PM_NOCLIP) {
-	    PM_NoclipMove(pm, pml);
+		PM_NoclipMove(pm, pml);
 	}
 
 	A_memset(&pm->cmd, 0, sizeof(pm->cmd));
@@ -124,7 +176,7 @@ void Pmove(A_INOUT pmove_t* pm, A_INOUT pml_t* pml) {
 	uint64_t finalTime = pm->cmd.serverTime;
 
 	if (finalTime < pm->ps->commandTime) {
-		return;	
+		return;
 	}
 
 	if (finalTime > pm->ps->commandTime + 1000) {

@@ -2,8 +2,7 @@
 /.vscode
 CMakeSettings.json
 CMakePresets.json
-/deps/SDL_image/*
-/deps/SDL_image_build
+/deps/SDL_build
 /build*
 /out
 /assets/maps/*
