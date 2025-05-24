@@ -5,11 +5,11 @@
 #include <limits.h>
 
 #include "acommon/a_string.h"
-#include "acommon/z_mem.h"
 
 #include "cl_client.h"
 #include "cmd_commands.h"
 #include "com_print.h"
+#include "vm_vmem.h"
 
 typedef enum DvarType {
 	DVAR_TYPE_NONE,
@@ -63,6 +63,14 @@ static uint32_t Dvar_HashName(const char* name) {
 		hash += (uint32_t)c * (i+119);
 	}
 	return hash;
+}
+
+static void* Dvar_Alloc(size_t n) {
+	return VM_Alloc(n, VM_ALLOC_DVAR);
+}
+
+static bool Dvar_Free(void* p) {
+	return VM_Free(p, VM_ALLOC_DVAR);
 }
 
 void Dvar_Init(void) {
@@ -144,24 +152,24 @@ static void Dvar_DestroyDvar(dvar_t* d) {
 	if (d->type == DVAR_TYPE_ENUM) {
 		for (int i = 0; i < d->domain.e; i++)
 			A_cstrfree(d->e[i]);
-		Z_Free(d->e);
+		Dvar_Free(d->e);
 	}
 	else if (d->type == DVAR_TYPE_STRING || d->type == DVAR_TYPE_BOOL) {
 		A_cstrfree(d->e[0]);
-		Z_Free(d->e);
+		Dvar_Free(d->e);
 	}
 	else if (d->type == DVAR_TYPE_INT || d->type == DVAR_TYPE_FLOAT ||
 		d->type == DVAR_TYPE_VEC2 || d->type == DVAR_TYPE_VEC3 ||
 		d->type == DVAR_TYPE_VEC4
 		) {
-		Z_Free(d->e[0]);
-		Z_Free(d->e);
+		Dvar_Free(d->e[0]);
+		Dvar_Free(d->e);
 	}
 }
 
 dvar_t Dvar_CreateBool(const char* name, int flags, bool value) {
-	char** e = (char**)Z_Alloc(sizeof(*e));
-	e[0] = (char*)Z_Alloc(6);
+	char** e = (char**)Dvar_Alloc(sizeof(*e));
+	e[0] = (char*)Dvar_Alloc(6);
 	if (value == true)
 		A_cstrncpyz(e[0], "true", 5);
 	else
@@ -183,8 +191,8 @@ dvar_t Dvar_CreateBool(const char* name, int flags, bool value) {
 dvar_t Dvar_CreateInt(const char* name, int flags, 
 	                  int value, int min, int max
 ) {
-	char** e = (char**)Z_Alloc(sizeof(*e));
-	e[0] = (char*)Z_Alloc(12);
+	char** e = (char**)Dvar_Alloc(sizeof(*e));
+	e[0] = (char*)Dvar_Alloc(12);
 	A_itoa(value, e[0], 12);
 
 	dvar_t d;
@@ -205,8 +213,8 @@ dvar_t Dvar_CreateInt(const char* name, int flags,
 dvar_t Dvar_CreateFloat(const char* name, int flags, 
 	                    float value, float min, float max
 ) {
-	char** e = (char**)Z_Alloc(sizeof(*e));
-	e[0] = (char*)Z_Alloc(32);
+	char** e = (char**)Dvar_Alloc(sizeof(*e));
+	e[0] = (char*)Dvar_Alloc(32);
 	A_itoa(value, e[0], 32);
 
 	dvar_t d;
@@ -225,7 +233,7 @@ dvar_t Dvar_CreateFloat(const char* name, int flags,
 }
 
 dvar_t Dvar_CreateString(const char* name, int flags, const char* value) {
-	char** e = (char**)Z_Alloc(sizeof(*e));
+	char** e = (char**)Dvar_Alloc(sizeof(*e));
 	e[0] = (char*)A_cstrdup(value);
 
 	dvar_t d;
@@ -243,7 +251,7 @@ dvar_t Dvar_CreateEnum(
 	const char* name, int flags, int value,
 	const char** domain, size_t domain_count
 ) {
-	char** e = (char**)Z_Alloc(sizeof(*e) * domain_count);
+	char** e = (char**)Dvar_Alloc(sizeof(*e) * domain_count);
 	for (size_t i = 0; i < domain_count; i++)
 		e[i] = (char*)A_cstrdup(domain[i]);
 
@@ -262,8 +270,8 @@ dvar_t Dvar_CreateEnum(
 dvar_t Dvar_CreateVec2(const char* name, int flags, 
                        avec2f_t value, float min, float max
 ) {
-	char** e = (char**)Z_Alloc(sizeof(*e));
-	e[0] = (char*)Z_Alloc(32 + 1 + 32);
+	char** e = (char**)Dvar_Alloc(sizeof(*e));
+	e[0] = (char*)Dvar_Alloc(32 + 1 + 32);
 	size_t pos = A_itoa(value.x, e[0], 32);
 	e[0][pos] = ' ';
 	A_itoa(value.y, &e[0][pos + 1], 32);
@@ -285,8 +293,8 @@ dvar_t Dvar_CreateVec2(const char* name, int flags,
 dvar_t Dvar_CreateVec3(const char* name, int flags, 
 	                   avec3f_t value, float min, float max
 ) {
-	char** e = (char**)Z_Alloc(sizeof(*e));
-	e[0] = (char*)Z_Alloc(32 + 1 + 32 + 1 + 32);
+	char** e = (char**)Dvar_Alloc(sizeof(*e));
+	e[0] = (char*)Dvar_Alloc(32 + 1 + 32 + 1 + 32);
 	size_t pos = A_itoa(value.x, e[0], 32);
 	e[0][pos] = ' ';
 	pos = A_itoa(value.y, &e[0][pos + 1], 32);
@@ -310,8 +318,8 @@ dvar_t Dvar_CreateVec3(const char* name, int flags,
 dvar_t Dvar_CreateVec4(const char* name, int flags, 
 	                   avec4f_t value, float min, float max
 ) {
-	char** e = (char**)Z_Alloc(sizeof(*e));
-	e[0] = (char*)Z_Alloc(32 + 1 + 32 + 1 + 32 + 1 + 32);
+	char** e = (char**)Dvar_Alloc(sizeof(*e));
+	e[0] = (char*)Dvar_Alloc(32 + 1 + 32 + 1 + 32 + 1 + 32);
 	size_t pos = A_itoa(value.x, e[0], 32);
 	e[0][pos] = ' ';
 	pos = A_itoa(value.y, &e[0][pos + 1], 32);
@@ -544,7 +552,7 @@ static dvar_t* Dvar_RegisterDvar(const char* name, const dvar_t* d) {
 	if (d == NULL)
 		return NULL;
 
-	*dvar = (dvar_t*)Z_Alloc(sizeof(*d));
+	*dvar = (dvar_t*)Dvar_Alloc(sizeof(*d));
 	A_memcpy(*dvar, d, sizeof(*d));
 	(*dvar)->name = A_cstrdup(name);
 	return *dvar;
@@ -773,7 +781,7 @@ bool Dvar_Unregister(const char* name) {
 		if (s_dvars[i] && s_dvars[i]->name_hash == Dvar_HashName(name)) {
 			dvar_t** d = &s_dvars[i];
 			Dvar_DestroyDvar(*d);
-			Z_Free(*d);
+			Dvar_Free(*d);
 			*d = NULL;
 			return true;
 		}
@@ -787,7 +795,7 @@ void Dvar_ClearDvars(void) {
 		dvar_t** d = &s_dvars[i];
 		if (*d != NULL) {
 			Dvar_DestroyDvar(*d);
-			Z_Free(*d);
+			Dvar_Free(*d);
 			*d = NULL;
 		}
 	}
@@ -843,7 +851,7 @@ static dvar_t* Dvar_RegisterLocalDvar(int localClientNum,
 	if (d == NULL)
 		return NULL;
 
-	*dvar = (dvar_t*)Z_Alloc(sizeof(*d));
+	*dvar = (dvar_t*)Dvar_Alloc(sizeof(*d));
 	A_memcpy(*dvar, d, sizeof(*d));
 	(*dvar)->name = A_cstrdup(name);
 	return *dvar;
@@ -1092,7 +1100,7 @@ bool Dvar_UnregisterLocal(int localClientNum, const char* name) {
 		) {
 			dvar_t** d = &s_localDvars[localClientNum][i];
 			Dvar_DestroyDvar(*d);
-			Z_Free(*d);
+			Dvar_Free(*d);
 			*d = NULL;
 			return true;
 		}
@@ -1106,7 +1114,7 @@ void Dvar_ClearLocalDvars(int localClientNum) {
 		dvar_t** d = &s_localDvars[localClientNum][i];
 		if (*d != NULL) {
 			Dvar_DestroyDvar(*d);
-			Z_Free(*d);
+			Dvar_Free(*d);
 			*d = NULL;
 		}
 	}

@@ -22,15 +22,22 @@ float4x4 uModel;
 float4x4 uView;
 float4x4 uPerspectiveProjection;
 
+float3 Vec3SwapYZ(float3 v) {
+    float temp = v.y;
+    v.y = v.z;
+    v.z = temp;
+    return v;
+}
+
 VS_OUTPUT main(VS_INPUT Input) {
     VS_OUTPUT Output;
     float4x4 ClipSpace = uPerspectiveProjection * uView * uModel;
-    Output.Pos               = mul(ClipSpace, float4(Input.Pos, 1.0));
-    Output.Normal            = Input.Normal;
-    Output.Biormal           = Input.Biormal;
+    Output.Pos               = mul(ClipSpace, float4(Vec3SwapYZ(Input.Pos), 1.0));
+    Output.Normal            = Vec3SwapYZ(Input.Normal);
+    Output.Biormal           = Vec3SwapYZ(Input.Biormal);
+    Output.Tangent           = Vec3SwapYZ(Input.Tangent);
     Output.TexCoords         = Input.TexCoords;
-    Output.Tangent           = Input.Tangent;
-    Output.LightmapNormal    = Input.LightmapNormal;
+    Output.LightmapNormal    = Vec3SwapYZ(Input.LightmapNormal);
     Output.LightmapTexCoords = Input.LightmapTexCoords;
     return Output;
 }

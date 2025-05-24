@@ -4,10 +4,18 @@
 
 #include "acommon/a_io.h"
 #include "acommon/a_string.h"
-#include "acommon/z_mem.h"
 
 #include "com_defs.h"
 #include "com_print.h"
+#include "vm_vmem.h"
+
+static void* FS_Alloc(size_t n) {
+	return VM_Alloc(n, VM_ALLOC_FILE);
+}
+
+static bool FS_Free(void* p) {
+	return VM_Free(p, VM_ALLOC_FILE);
+}
 
 A_NO_DISCARD void* FS_ReadFile(const char* path, A_OPTIONAL_OUT size_t* sz) {
 	if (sz)
@@ -27,7 +35,7 @@ A_NO_DISCARD void* FS_ReadFile(const char* path, A_OPTIONAL_OUT size_t* sz) {
 
 	Sint64 len = SDL_RWsize(ops);
 
-	void* p = Z_Alloc(len + 1);
+	void* p = FS_Alloc(len + 1);
 
 	size_t c = SDL_RWread(ops, p, 1, len);
 	if ((Sint64)c < len) {
@@ -50,7 +58,7 @@ A_NO_DISCARD void* FS_ReadFile(const char* path, A_OPTIONAL_OUT size_t* sz) {
 }
 
 void FS_FreeFile(void* p) {
-	Z_Free(p);
+	FS_Free(p);
 }
 
 A_NO_DISCARD char* FS_ReadFileText(const char* path, 
@@ -73,7 +81,7 @@ A_NO_DISCARD char* FS_ReadFileText(const char* path,
 
 	Sint64 len = SDL_RWsize(ops);
 
-	char* p = (char*)Z_Alloc(len + 1);
+	char* p = (char*)FS_Alloc(len + 1);
 
 	size_t c = SDL_RWread(ops, p, 1, len);
 	if ((Sint64)c < len) {
@@ -99,7 +107,7 @@ A_NO_DISCARD char* FS_ReadFileText(const char* path,
 }
 
 void FS_FreeFileText(char* text) {
-	Z_Free(text);
+	FS_Free(text);
 }
 
 A_NO_DISCARD StreamFile FS_StreamFile(

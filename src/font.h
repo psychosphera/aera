@@ -21,13 +21,13 @@ typedef struct GlyphDef {
 	void* pixels;
 } GlyphDef;
 
-typedef struct FontDef {
+struct FontDef {
     int atlas_width,     atlas_height;
     GfxShaderProgram     prog;
 	GfxVertexDeclaration vertex_declaration;
 	GfxImage             atlas;
     GlyphDef             glyphs[95];
-} FontDef;
+};
 
 A_EXTERN_C void Font_Init(void);
 A_EXTERN_C A_NO_DISCARD bool Font_Load(

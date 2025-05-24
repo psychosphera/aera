@@ -166,7 +166,7 @@ void R_CreateUniformVec4i(const char* name, avec4i_t value,
         .name        = A_cstrdup(name),
         .name_hash   = R_HashUniformName(name),
         .vs_location = -1,
-        .vs_location = -1,
+        .ps_location = -1,
         .type        = UNIFORM_TYPE_VEC4I,
         .value.v4i   = value
     };
@@ -223,7 +223,7 @@ void R_CreateUniformMat3f(const char* name, amat3f_t value,
         .name        = A_cstrdup(name),
         .name_hash   = R_HashUniformName(name),
         .vs_location = -1,
-        .vs_location = -1,
+        .ps_location = -1,
         .type        = UNIFORM_TYPE_MAT3F,
         .value.m3f   = value
     };

@@ -19,6 +19,5 @@ A_EXTERN_C size_t   CL_ClientWithKbmFocus(void);
 A_EXTERN_C KeyFocus CL_KeyFocus(size_t localClientNum);
 A_EXTERN_C void     CL_SetKeyFocus(size_t localClientNum, KeyFocus f);
 #endif // !A_TARGET_PLATFORM_IS_XBOX
-A_EXTERN_C bool     CL_UnloadMap(void);
 A_EXTERN_C bool     CL_IsMapLoaded(void);
 A_EXTERN_C void     CL_Shutdown(void);

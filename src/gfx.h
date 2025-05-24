@@ -1,5 +1,7 @@
 #pragma once
 
+#include "acommon/acommon.h"
+
 #include "com_defs.h"
 #include "dvar.h"
 #include "gfx_defs.h"

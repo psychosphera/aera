@@ -7,6 +7,7 @@
 #include "com_print.h"
 #include "db_files.h"
 #include "gfx_text.h"
+#include "vm_vmem.h"
 
 #if !A_TARGET_PLATFORM_IS_XBOX
 static FT_Library s_ft;
@@ -55,7 +56,7 @@ A_EXTERN_C A_NO_DISCARD bool Font_Load(
 		glyph.top       = face->glyph->bitmap_top;
 		glyph.advance_x = face->glyph->advance.x >> 6;
 		glyph.advance_y = face->glyph->advance.y >> 6;
-		glyph.pixels    = Z_Alloc(glyph.width * glyph.height);
+		glyph.pixels    = VM_Alloc(glyph.width * glyph.height, VM_ALLOC_FONT);
 		A_memcpy(
 			glyph.pixels, face->glyph->bitmap.buffer,
 			glyph.width * glyph.height
@@ -106,7 +107,7 @@ A_EXTERN_C bool Font_RemoveGlyph(A_INOUT FontDef* fd, char c) {
 	if (c < 32 || c > 127)
 		return false;
 
-	Z_Free(fd->glyphs[c - 32].pixels);
+	VM_Free(fd->glyphs[c - 32].pixels, VM_ALLOC_FONT);
 	A_memset(&fd->glyphs[c - 32], 0, sizeof(GlyphDef));
 	return true;
 }

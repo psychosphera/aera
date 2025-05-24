@@ -791,6 +791,7 @@ static bool R_ShaderSetUniform(const GfxShaderProgram* prog, int location,
 ) {
 #if A_RENDER_BACKEND_GL
     R_ShaderSetUniformGL(prog->program, location, uniform);
+    (void)shader_type;
     return true;
 #elif A_RENDER_BACKEND_D3D9
     bool b = true;

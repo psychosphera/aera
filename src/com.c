@@ -12,6 +12,7 @@
 #include "in_input.h"
 #include "pm_pmove.h"
 #include "sys.h"
+#include "vm_vmem.h"
 
 static uint64_t s_lastFrameTime;
 static uint64_t s_deltaTime;
@@ -23,11 +24,11 @@ void Com_Quit_f(void) {
 }
 
 bool Com_Init(void) {
-    com_maxfps = Dvar_RegisterInt("com_maxfps", DVAR_FLAG_NONE, 165, 1, 1000);
-
+    VM_Init();
     Cmd_Init();
     Cmd_AddCommand("quit", Com_Quit_f);
     Dvar_Init();
+    com_maxfps = Dvar_RegisterInt("com_maxfps", DVAR_FLAG_NONE, 165, 1, 1000);
     //Font_Init();
     PM_Init();
     CG_Init();
@@ -103,4 +104,5 @@ void Com_Shutdown(void) {
     com_maxfps = NULL;
     Dvar_Shutdown();
     Cmd_Shutdown();
+    VM_Shutdown();
 }

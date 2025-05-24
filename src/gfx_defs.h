@@ -71,8 +71,12 @@ typedef enum ImageType {
 typedef texture_t GfxTexture;
 #elif A_RENDER_BACKEND_D3D9
 typedef LPDIRECT3DTEXTURE9 GfxTexture;
+#define D3DWRAP_S (D3DWRAPCOORD_0 | D3DWRAPCOORD_1)
+#define D3DWRAP_T (D3DWRAPCOORD_2 | D3DWRAPCOORD_3)
 #elif A_RENDER_BACKEND_D3D8
 typedef LPDIRECT3DTEXTURE8 GfxTexture;
+#define D3DWRAP_S (D3DWRAPCOORD_0 | D3DWRAPCOORD_1)
+#define D3DWRAP_T (D3DWRAPCOORD_2 | D3DWRAPCOORD_3)
 #endif // A_RENDER_BACKEND_GL
 
 typedef enum ImageFilter {
@@ -147,15 +151,6 @@ A_EXTERN_C GfxVertexBuffer* R_AddVertexBufferToVertexDeclaration(
 //);
 A_EXTERN_C bool R_DeleteVertexBuffer(A_INOUT GfxVertexBuffer* vb);
 A_EXTERN_C bool R_DeleteVertexDeclaration(A_IN GfxVertexDeclaration* vertex_declaration);
-
-#if A_RENDER_BACKEND_GL
-typedef texture_t          GfxTexture;
-#elif A_RENDER_BACKEND_D3D9
-typedef LPDIRECT3DTEXTURE9 GfxTexture;
-// FIXME: not sure if it's 0/1 and 2/3 or 0/2 and 1/3
-#define D3DWRAP_S (D3DWRAPCOORD_0 | D3DWRAPCOORD_1)
-#define D3DWRAP_T (D3DWRAPCOORD_2 | D3DWRAPCOORD_3)
-#endif // A_RENDER_BACKEND_GL
 
 #if A_RENDER_BACKEND_GL
 A_NO_DISCARD GLint R_ImageFilterToGL(ImageFilter filter);

@@ -18,13 +18,20 @@ uniform mat4 uModel;
 uniform mat4 uView;
 uniform mat4 uPerspectiveProjection;
 
+vec3 Vec3SwapYZ(vec3 v) {
+	float temp = v.y;
+	v.y = v.z;
+	v.z = temp;
+	return v;
+}
+
 void main() {
 	gl_Position = 
-		uPerspectiveProjection * uView * uModel * vec4(aPos, 1.0);
-	normal              = aNormal;
-	binormal            = aBiormal;
-	tangent             = aTangent;
+		uPerspectiveProjection * uView * uModel * vec4(Vec3SwapYZ(aPos), 1.0);
+	normal              = Vec3SwapYZ(aNormal);
+	binormal            = Vec3SwapYZ(aBiormal);
+	tangent             = Vec3SwapYZ(aTangent);
 	tex_coords          = aTexCoords;
-	lightmap_normal     = aLightmapNormal;
+	lightmap_normal     = Vec3SwapYZ(aLightmapNormal);
 	lightmap_tex_coords = aLightmapTexCoords;
 }

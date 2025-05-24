@@ -30,9 +30,9 @@ endif()
 
 #set(VCPKG_TOOLCHAIN) 
 #if(EXISTS VCPKG_TOOLCHAIN)
-#if (MSVC)
+if (MSVC)
     include("F:/vcpkg/scripts/buildsystems/vcpkg.cmake")
-#endif()
+endif()
 #endif()
 
 find_package(cglm     REQUIRED)
@@ -58,7 +58,7 @@ set(COMMON_SRC
 	src/devcon.c  src/devgui.c src/dvar.c src/font.c src/fs_files.c 
 	src/gfx.c src/gfx_backend.c src/gfx_defs.c src/gfx_map.c 
 	src/gfx_shader.c  src/gfx_text.c src/gfx_uniform.c  src/in_input.c
-	src/m_math.c src/main.c  src/pm_pmove.c src/sys.c
+	src/m_math.c src/main.c  src/pm_pmove.c src/sys.c src/vm_vmem.c
 )
 
 set(COMMON_LIBS 

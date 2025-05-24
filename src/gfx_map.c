@@ -7,7 +7,6 @@
 #endif // A_RENDER_BACKEND_GL
 
 #include "acommon/a_string.h"
-#include "acommon/z_mem.h"
 
 #include "cl_client.h"
 #include "cl_map.h"
@@ -18,6 +17,7 @@
 #include "gfx_defs.h"
 #include "gfx_shader.h"
 #include "gfx_uniform.h"
+#include "vm_vmem.h"
 
 extern dvar_t* r_wireframe;
 
@@ -415,9 +415,9 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
                bsp_material->rendered_vertices_count);
     }
     BSPRenderedVertex* rendered_vertices = 
-        (BSPRenderedVertex*)Z_Alloc(3 * surf_count * sizeof(BSPRenderedVertex));
+        (BSPRenderedVertex*)VM_Zalloc(3 * surf_count * sizeof(BSPRenderedVertex), VM_ALLOC_BSP);
     BSPLightmapVertex* lightmap_vertices = bsp_material->lightmap_vertices_count > 0 ?
-        (BSPLightmapVertex*)Z_Alloc(3 * surf_count * sizeof(BSPLightmapVertex)) : NULL;
+        (BSPLightmapVertex*)VM_Zalloc(3 * surf_count * sizeof(BSPLightmapVertex), VM_ALLOC_BSP) : NULL;
     const BSPRenderedVertex* bsp_rendered_vertices =
         (const BSPRenderedVertex*)bsp_material->uncompressed_vertices.pointer;
     const BSPLightmapVertex* bsp_lightmap_vertices =
@@ -432,7 +432,6 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
             BSPRenderedVertex* rendered_vertex = &rendered_vertices[k * 3 + l];
             const BSPRenderedVertex* bsp_rendered_vertex = &bsp_rendered_vertices[bsp_vert];
             *rendered_vertex = *bsp_rendered_vertex;
-            R_SwapRenderedVertexYZ(rendered_vertex);
         }
     }
     if (bsp_material->lightmap_vertices_count > 0) {
@@ -443,7 +442,6 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
                 BSPLightmapVertex* lightmap_vertex = &lightmap_vertices[k * 3 + l];
                 const BSPLightmapVertex* bsp_lightmap_vertex = &bsp_lightmap_vertices[bsp_vert];
                 *lightmap_vertex = *bsp_lightmap_vertex;
-                R_SwapLightmapVertexYZ(lightmap_vertex);
             }
         }
     }
@@ -597,14 +595,16 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
     assert(decl);
     material->vertex_declaration.decl = decl;
 #endif // A_RENDER_BACKEND_GL
-    Z_Free(rendered_vertices);
-    Z_Free(lightmap_vertices);
+    VM_Free(rendered_vertices, VM_ALLOC_BSP);
+    if (bsp_material->lightmap_vertices_count > 0)
+        VM_Free(lightmap_vertices, VM_ALLOC_BSP);
 }
 
 static void R_LoadLightmap(const BSPLightmap* bsp_lightmap, GfxLightmap* lightmap) {
-    lightmap->materials = (GfxMaterial*)Z_Zalloc(
+    lightmap->materials = (GfxMaterial*)VM_Zalloc(
         bsp_lightmap->materials.count *
-        sizeof(*lightmap->materials)
+        sizeof(*lightmap->materials),
+        VM_ALLOC_BSP
     );
     lightmap->material_count = bsp_lightmap->materials.count;
     const BSPMaterial* bsp_materials =
@@ -726,7 +726,7 @@ static void R_LoadModelPart(const BSPModelGeometryPart* bsp_part, GfxModelPart* 
 
 static void R_LoadModelGeometry(const BSPModelGeometry* bsp_geometry, GfxModelGeometry* geometry) {
     geometry->part_count = bsp_geometry->parts.count;
-    geometry->parts = (GfxModelPart*)Z_Zalloc(geometry->part_count * sizeof(*geometry->parts));
+    geometry->parts = (GfxModelPart*)VM_Zalloc(geometry->part_count * sizeof(*geometry->parts), VM_ALLOC_MODEL);
     assert(geometry->parts);
     BSPModelGeometryPart* bsp_parts = (BSPModelGeometryPart*)bsp_geometry->parts.pointer;
     for (int i = 0; i < bsp_geometry->parts.count; i++) {
@@ -736,7 +736,7 @@ static void R_LoadModelGeometry(const BSPModelGeometry* bsp_geometry, GfxModelGe
 
 static void R_LoadModel(const BSPModel* bsp_model, GfxModel* model) {
     model->geometry_count = bsp_model->geometries.count;
-    model->geometries = (GfxModelGeometry*)Z_Zalloc(model->geometry_count * sizeof(*model->geometries));
+    model->geometries = (GfxModelGeometry*)VM_Zalloc(model->geometry_count * sizeof(*model->geometries), VM_ALLOC_MODEL);
     assert(model->geometries);
     BSPModelGeometry* bsp_geometries = (BSPModelGeometry*)bsp_model->geometries.pointer;
     for (int i = 0; i < bsp_model->geometries.count; i++) {
@@ -773,8 +773,9 @@ static void R_LoadSceneryPalette(const BSPScenarioSceneryPalette* bsp_scenery_pa
 
 void R_LoadMap(void) {
     r_mapGlob.lightmap_count = CL_Map_LightmapCount();
-    r_mapGlob.lightmaps = (GfxLightmap*)Z_Zalloc(
-        r_mapGlob.lightmap_count * sizeof(*r_mapGlob.lightmaps)
+    r_mapGlob.lightmaps = (GfxLightmap*)VM_Zalloc(
+        r_mapGlob.lightmap_count * sizeof(*r_mapGlob.lightmaps),
+        VM_ALLOC_BSP
     );
     for (uint32_t i = 0; i < r_mapGlob.lightmap_count; i++) {
         const BSPLightmap* bsp_lightmap = CL_Map_Lightmap(i);
@@ -782,19 +783,19 @@ void R_LoadMap(void) {
         R_LoadLightmap(bsp_lightmap, lightmap);
     }
 
-    r_mapGlob.scenery_palette_count = CL_Map_ScenarioSceneryPaletteCount();
-    r_mapGlob.scenery_palette = (GfxSceneryPalette*)Z_Zalloc(r_mapGlob.scenery_palette_count * sizeof(*r_mapGlob.scenery_palette));
-    for (uint32_t i = 0; i < r_mapGlob.scenery_palette_count; i++) {
-        BSPScenarioSceneryPalette* bsp_scenery_palette = CL_Map_ScenarioSceneryPalette(i);
-        R_LoadSceneryPalette(bsp_scenery_palette, &r_mapGlob.scenery_palette[i]);
-    }
+    //r_mapGlob.scenery_palette_count = CL_Map_ScenarioSceneryPaletteCount();
+    //r_mapGlob.scenery_palette = (GfxSceneryPalette*)VM_Zalloc(r_mapGlob.scenery_palette_count * sizeof(*r_mapGlob.scenery_palette), VM_ALLOC_MODEL);
+    //for (uint32_t i = 0; i < r_mapGlob.scenery_palette_count; i++) {
+    //    BSPScenarioSceneryPalette* bsp_scenery_palette = CL_Map_ScenarioSceneryPalette(i);
+    //    R_LoadSceneryPalette(bsp_scenery_palette, &r_mapGlob.scenery_palette[i]);
+    //}
 
-    r_mapGlob.scenery_count = CL_Map_ScenarioSceneryCount();
-    r_mapGlob.scenery = (GfxScenery*)Z_Zalloc(r_mapGlob.scenery_count * sizeof(*r_mapGlob.scenery));
-    for (uint32_t i = 0; i < r_mapGlob.scenery_count; i++) {
-        BSPScenarioScenery* bsp_scenery = CL_Map_ScenarioScenery(i);
-        R_LoadScenarioScenery(bsp_scenery, &r_mapGlob.scenery[i]);
-    }
+    //r_mapGlob.scenery_count = CL_Map_ScenarioSceneryCount();
+    //r_mapGlob.scenery = (GfxScenery*)VM_Zalloc(r_mapGlob.scenery_count * sizeof(*r_mapGlob.scenery), VM_ALLOC_MODEL);
+    //for (uint32_t i = 0; i < r_mapGlob.scenery_count; i++) {
+    //    BSPScenarioScenery* bsp_scenery = CL_Map_ScenarioScenery(i);
+    //    R_LoadScenarioScenery(bsp_scenery, &r_mapGlob.scenery[i]);
+    //}
 }
 
 static bool R_RenderShaderEnvironment(GfxShaderEnvironment* shader_environment, 
@@ -1112,7 +1113,7 @@ void R_UnloadLightmap(A_IN GfxLightmap* lightmap) {
         GfxMaterial* material = &lightmap->materials[i];
         R_UnloadMaterial(material);
     }
-    Z_Free(lightmap->materials);
+    VM_Free(lightmap->materials, VM_ALLOC_BSP);
 }
 
 void R_UnloadModelPart(A_IN GfxModelPart* part) {
@@ -1127,7 +1128,9 @@ void R_UnloadModel(A_IN GfxModel* model) {
             GfxModelPart* part = &geometry->parts[j];
             R_UnloadModelPart(part);
         }
+        VM_Free(geometry, VM_ALLOC_MODEL);
     }
+    VM_Free(geometries, VM_ALLOC_MODEL);
 
     for (int i = 0; i < A_countof(model->shaders); i++) {
         R_UnloadShader(&model->shaders[i]);
@@ -1149,7 +1152,7 @@ void R_UnloadMap(void) {
     for (uint32_t i = 0; i < r_mapGlob.scenery_palette_count; i++)
         R_UnloadSceneryPalette(&r_mapGlob.scenery_palette[i]);
     
-    Z_Free(r_mapGlob.lightmaps);
+    VM_Free(r_mapGlob.lightmaps, VM_ALLOC_BSP);
 }
 
 void R_ShutdownMap(void) {

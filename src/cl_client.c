@@ -31,7 +31,7 @@ typedef struct cl_t {
 	dvar_t* drawfps;
 #if !A_TARGET_PLATFORM_IS_XBOX
 	bool    hasKbmFocus;
-#endif !A_TARGET_PLATFORM_IS_XBOX
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 } cl_t;
 cl_t s_cl[MAX_LOCAL_CLIENTS];
 

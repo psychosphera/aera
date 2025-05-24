@@ -13,6 +13,7 @@
 #include <SDL2/SDL_syswm.h>
 #endif // !A_TARGET_PLATFORM_IS_XBOX
 
+#include "acommon/acommon.h"
 #include "acommon/a_string.h"
 
 #include "cg_cgame.h"

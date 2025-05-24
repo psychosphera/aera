@@ -23,13 +23,13 @@
 #include "acommon/acommon.h"
 #include "acommon/a_math.h"
 #include "acommon/a_string.h"
-#include "acommon/z_mem.h"
 
 #include "cg_cgame.h"
 #include "com_print.h"
 #include "db_files.h"
 #include "fs_files.h"
 #include "gfx.h"
+#include "vm_vmem.h"
 
 #define BSP_MAX_COLLISION_MATERIALS 512
 #define BSP_MAX_SKIES 8
@@ -259,7 +259,7 @@ bool CL_LoadMap(const char* map_name) {
 			size_t decompressed_vertices_size =
 				decompressed_rendered_vertices_size + decompressed_lightmap_vertices_size;
 
-			void* decompressed_vertices = Z_Alloc(decompressed_vertices_size);
+			void* decompressed_vertices = VM_Alloc(decompressed_vertices_size, VM_ALLOC_BSP);
 			material->uncompressed_vertices.pointer = decompressed_vertices;
 			material->uncompressed_vertices.size    = decompressed_vertices_size;
 			BSPRenderedVertex* rendered_vertices =
@@ -328,8 +328,8 @@ bool CL_LoadMap(const char* map_name) {
 					"CL_LoadMap: found scenery %s", 
 					scenery_palette_tag->name.path_pointer);
 
-		bool b = CL_LoadMap_Object(scenery_palette_tag->name.id);
-		assert(b);
+		//bool b = CL_LoadMap_Object(scenery_palette_tag->name.id);
+		//assert(b);
 	}
 
 	g_load.scenario_scenery = (BSPScenarioScenery*)scenario->scenery.pointer.read();
@@ -357,7 +357,7 @@ void CL_UnloadModel(BSPModel* model) {
 		for (int j = 0; j < geometry->parts.count; j++) {
 			BSPModelGeometryPart* part = &parts[i];
 			// FIXME: more heap corruption
-			//Z_Free(part->decompressed_vertices.pointer);
+			VM_Free(part->decompressed_vertices.pointer, VM_ALLOC_MODEL);
 			part->decompressed_vertices.count = 0;
 			part->decompressed_vertices.pointer = NULL;
 		}
@@ -397,7 +397,7 @@ bool CL_UnloadMap(void) {
 				BSPModelGeometryPart* part = &parts[k];
 				assert(part->compressed_vertices.count ==
 					part->decompressed_vertices.count);
-				Z_Free(part->decompressed_vertices.pointer);
+				VM_Free(part->decompressed_vertices.pointer, VM_ALLOC_MODEL);
 			}
 		}
 	}
@@ -409,7 +409,7 @@ bool CL_UnloadMap(void) {
 		BSPMaterial* materials = (BSPMaterial*)lightmap->materials.pointer.read();
 		for (uint32_t j = 0; j < lightmap->materials.count; j++) {
 			BSPMaterial* material = &materials[j];
-			Z_Free(material->uncompressed_vertices.pointer);
+			VM_Free(material->uncompressed_vertices.pointer, VM_ALLOC_BSP);
 
 			if (material->shader.id.index == 0xFFFF)
 				continue;
@@ -444,7 +444,7 @@ bool CL_UnloadMap(void) {
 							bitmap_data[k].pixels != (void*)0xFFFFFFFF);
 						// FIXME: leak is intentional for now 
 						// this call to Z_Free is corrupting the heap somehow
-						//Z_Free(bitmap_data[k].pixels);
+						//VM_Free(bitmap_data[k].pixels, VM_ALLOC_BITMAP);
 					}
 				}
 
@@ -474,7 +474,7 @@ bool CL_UnloadMap(void) {
 							bitmap_data[k].pixels != (void*)0xFFFFFFFF);
 						// FIXME: leak is intentional for now 
 						// this call to Z_Free is corrupting the heap somehow
-						//Z_Free(bitmap_data[k].pixels);
+						//VM_Free(bitmap_data[k].pixels, VM_ALLOC_BITMAP);
 					}
 				}
 
@@ -502,7 +502,7 @@ bool CL_UnloadMap(void) {
 							bitmap_data[k].pixels != (void*)0xFFFFFFFF);
 						// FIXME: leak is intentional for now 
 						// this call to Z_Free is corrupting the heap somehow
-						//Z_Free(bitmap_data[k].pixels);
+						//VM_Free(bitmap_data[k].pixels, VM_ALLOC_BITMAP);
 					}
 				}
 
@@ -530,7 +530,7 @@ bool CL_UnloadMap(void) {
 							bitmap_data[k].pixels != (void*)0xFFFFFFFF);
 						// FIXME: leak is intentional for now 
 						// this call to Z_Free is corrupting the heap somehow
-						//Z_Free(bitmap_data[k].pixels);
+						//VM_Free(bitmap_data[k].pixels, VM_ALLOC_BITMAP);
 					}
 				}
 			}
@@ -543,11 +543,11 @@ bool CL_UnloadMap(void) {
 		assert(scenery_tag);
 		assert(scenery_tag->primary_class == TAG_FOURCC_SCENERY);
 		BSPScenery* scenery = (BSPScenery*)scenery_tag->tag_data;
-		CL_UnloadScenery(scenery);
+		//CL_UnloadScenery(scenery);
 	}
 
 	if (g_load.p && g_load.n > 0) {
-		Z_FreeAt(g_load.p, g_load.n);
+		VM_FreeAt(g_load.p, VM_ALLOC_TAG_DATA);
 		g_load.p                        = NULL;
 		g_load.n                        = 0;
 		g_load.collision_materials      = NULL;
@@ -748,7 +748,7 @@ static bool CL_LoadMap_Decompress(
 		FileMapping f = DB_LoadMap_Mmap(map_name);
 		size_t decompressed_map_size =
 			(size_t)header->decompressed_file_size;
-		void* decompressed = Z_Zalloc(decompressed_map_size);
+		void* decompressed = VM_Alloc(decompressed_map_size, VM_ALLOC_MAP);
 		A_memcpy(decompressed, header, sizeof(*header));
 
 		z_stream stream;
@@ -781,7 +781,7 @@ static bool CL_LoadMap_Decompress(
 		assert(b);
 		FS_CloseStream(&g_load.f);
 		g_load.f = decompressed_map;
-		Z_Free(decompressed);
+		VM_Free(decompressed, VM_ALLOC_MAP);
 		b = Z_UnmapFile(&f);
 		assert(b);
 	}
@@ -847,7 +847,7 @@ static bool CL_LoadMap_TagData(
 	Com_DPrintln(CON_DEST_CLIENT, "CL_LoadMap: allocating %zu bytes for tag data.",
 		total_tag_space);
 	g_load.n = total_tag_space;
-	g_load.p = Z_AllocAt(tag_base, g_load.n);
+	g_load.p = VM_AllocAt(tag_base, g_load.n, VM_ALLOC_TAG_DATA);
 	assert(g_load.p == tag_base);
 	A_memcpy(g_load.p, tag_header, tag_header_size);
 	bool b = FS_ReadStream(&g_load.f, (char*)g_load.p + tag_header_size, (size_t)header->tag_data_size);
@@ -999,8 +999,6 @@ static size_t CL_BitmapDataSize(const BSPBitmapData* bitmap_data) {
 	size_t bpp = CL_BitmapDataFormatBPP((BSPBitmapDataFormat)bitmap_data->format);
 
 	size_t size = (bitmap_data->width * bitmap_data->height * bitmap_data->depth * bpp) / 8;
-	if (bitmap_data->format == BSP_BITMAP_DATA_FORMAT_DXT1 && size == 8192 && bitmap_data->width == 256)
-		__debugbreak();
 	assert(A_IS_MULTIPLE_OF(size, 8));
 	return size;
 }
@@ -1025,7 +1023,7 @@ static bool CL_LoadMap_Bitmap(TagId tag_id) {
 
 		bitmap_data[i].actual_size = CL_BitmapDataSize(&bitmap_data[i]);
 		assert(bitmap_data[i].actual_size < 4 * 1024 * 1024);
-		bitmap_data[i].pixels = Z_Alloc(bitmap_data[i].actual_size);
+		bitmap_data[i].pixels = VM_Alloc(bitmap_data[i].actual_size, VM_ALLOC_BITMAP);
 		assert(bitmap_data[i].pixels);
 		long long pos = FS_SeekStream(&g_load.f, FS_SEEK_BEGIN, bitmap_data[i].pixel_data_offset);
 		assert(pos == bitmap_data[i].pixel_data_offset);
@@ -1039,11 +1037,11 @@ static bool CL_LoadMap_Bitmap(TagId tag_id) {
 }
 
 static bool CL_LoadMap_Sky(TagId id) {
-	Tag* sky_tag = CL_Map_Tag(id);
-	assert(sky_tag->primary_class == TAG_FOURCC_SKY);
-	BSPSky* sky = (BSPSky*)sky_tag->tag_data;
-	if (sky->model.id.index != 0xFFFF)
-		return CL_LoadMap_Model(sky->model.id);
+	//Tag* sky_tag = CL_Map_Tag(id);
+	//assert(sky_tag->primary_class == TAG_FOURCC_SKY);
+	//BSPSky* sky = (BSPSky*)sky_tag->tag_data;
+	//if (sky->model.id.index != 0xFFFF)
+	//	return CL_LoadMap_Model(sky->model.id);
 	return true;
 }
 
@@ -1133,7 +1131,7 @@ static bool CL_LoadMap_Model(TagId id) {
 			BSPModelDecompressedVertex* decompressed_verts = NULL;
 			assert(part->vertex_type == BSP_VERTEX_TYPE_COMPRESSED_MODEL);
 			decompressed_verts = (BSPModelDecompressedVertex*)
-				Z_Alloc(part->tri_count * sizeof(*decompressed_verts));
+				VM_Alloc(part->tri_count * sizeof(*decompressed_verts), VM_ALLOC_MODEL);
 			uint16_t* tri_indices = (uint16_t*)part->tri_offset;
 			assert(decompressed_verts);
 			for (int k = 0; k < part->tri_count; k++) {
@@ -1142,7 +1140,7 @@ static bool CL_LoadMap_Model(TagId id) {
 				CL_DecompressModelVertex(compressed_vert, decompressed_vert);
 			}
 			part->decompressed_vertices.pointer = decompressed_verts;
-			part->decompressed_vertices.count = part->tri_count;
+			part->decompressed_vertices.count   = part->tri_count;
 		}
 	}
 
