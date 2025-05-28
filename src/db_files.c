@@ -32,7 +32,7 @@ A_NO_DISCARD static const char* DB_AssetDirForType(AssetType at) {
 	return s_assetDirs[at];
 }
 
-static const char* s_assetsDir = A_PROJECT_ROOT "/assets";
+static const char* s_assetsDir = A_PROJECT_ROOT A_PATH_SEPARATOR "assets";
 
 A_NO_DISCARD static const char* DB_AssetPath(
 	AssetType at, const char* assetName, const char* ext
@@ -44,7 +44,7 @@ A_NO_DISCARD const char* DB_ImagePath(const char* image_name) {
 	return DB_AssetPath(AT_IMAGE, image_name, NULL);
 }
 
-A_NO_DISCARD static const char* DB_MapPath(const char* map_name) {
+A_NO_DISCARD const char* DB_MapPath(const char* map_name) {
 	return DB_AssetPath(AT_MAP, map_name, NULL);
 }
 

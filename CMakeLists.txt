@@ -53,7 +53,7 @@ set(COMMON_SRC
 	
 	src/acommon/z_mem.c
 	
-	src/cg_cgame.c src/cl_client.c src/cl_map.cpp src/cmd_commands.c 
+	src/cg_cgame.c src/cl_client.c src/cl_map.c src/cmd_commands.c 
 	src/com.c src/com_print.c src/con_console.c src/db_files.c 
 	src/devcon.c  src/devgui.c src/dvar.c src/font.c src/fs_files.c 
 	src/gfx.c src/gfx_backend.c src/gfx_defs.c src/gfx_map.c 
@@ -65,7 +65,6 @@ set(COMMON_LIBS
 	SDL2::SDL2 cglm::cglm Freetype::Freetype ZLIB::ZLIB
 )
 
-set(COMMON_INCLUDE_DIRS       ${CMAKE_SOURCE_DIR}/deps/invader/include)
 set(COMMON_COMPILE_DEFS       A_PROJECT_ROOT="${CMAKE_SOURCE_DIR}")
 set(COMMON_DEBUG_COMPILE_DEFS _DEBUG=1)
 

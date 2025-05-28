@@ -6,6 +6,7 @@
 #include "fs_files.h"
 
 A_EXTERN_C A_NO_DISCARD const char* DB_ImagePath(const char* image_name);
+A_EXTERN_C A_NO_DISCARD const char* DB_MapPath  (const char* map_name);
 
 A_EXTERN_C A_NO_DISCARD char*       DB_LoadShader(const char* shader_name);
 A_EXTERN_C              void        DB_UnloadShader    (char* shader);

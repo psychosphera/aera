@@ -3,6 +3,12 @@
 #include <stddef.h>
 #include <limits.h>
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#endif // _WIN32
+
 #define A_countof(a) (sizeof((a)) / sizeof(*(a))) 
 
 #define SIZE_BIT ((size_t)((size_t)CHAR_BIT * sizeof(size_t)))
@@ -223,6 +229,22 @@ typedef uint32_t size_t;
 #define A_UNUSED(a) (void)(a)
 
 #define A_EXPAND(a) a
+
+#ifdef _WIN32
+#define A_OS_MAX_PATH MAX_PATH
+#elif defined(PATH_MAX)
+#define A_OS_MAX_PATH PATH_MAX
+#else
+#define A_OS_MAX_PATH 256
+#warning "Maximum file path length not defined. Defaulting to 256."
+#endif // _WIN32
+
+#ifdef _WIN32
+//#define A_PATH_SEPARATOR "\\"
+#define A_PATH_SEPARATOR "/"
+#else
+#define A_PATH_SEPARATOR "/"
+#endif // _WIN32
 
 #define A_CAT_INTERNAL(a, b) a##b
 #define A_CAT(a, b) A_CAT_INTERNAL(a, b)

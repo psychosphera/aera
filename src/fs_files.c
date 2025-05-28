@@ -133,6 +133,9 @@ A_NO_DISCARD StreamFile FS_StreamFile(
 
 #if !A_TARGET_PLATFORM_IS_XBOX
 	SDL_RWops* f = SDL_RWFromFile(path, mode_str);
+	if (f == NULL) {
+		Com_Errorln(-1, "FS_StreamFile: failed to open or create '%s': %s", path, SDL_GetError());
+	}
 	size_t size  = SDL_RWsize(f);
 	SDL_RWseek(f, 0, RW_SEEK_SET);
 	StreamFile s = { .f = f, .size = size };

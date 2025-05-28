@@ -150,6 +150,162 @@ A_PACK(struct TagHeaderCommon {
 typedef struct TagHeaderCommon TagHeaderCommon;
 A_STATIC_ASSERT(sizeof(TagHeaderCommon) == 20);
 
+typedef enum BSPScenarioType {
+	BSP_SCENARIO_TYPE_SINGLEPLAYER = 0,
+	BSP_SCENARIO_TYPE_MULTIPLAYER = 1,
+	BSP_SCENARIO_TYPE_UI = 2
+} BSPScenarioType;
+
+typedef enum BSPScenarioFlags {
+	BSP_SCENARIO_FLAG_CORTANA_HACK                             = 0x01,
+	BSP_SCENARIO_FLAG_USE_DEMO_UI                              = 0x02,
+	BSP_SCENARIO_FLAG_COLOR_CORRECTION_NTSC_TO_SRGB            = 0x04,
+	BSP_SCENARIO_FLAG_DO_NOT_APPLY_BUNGIE_CAMPAIGN_TAG_PATCHES = 0x08
+} BSPScenarioFlags;
+
+A_PACK(struct BSPScenario {
+	char          __pad1[48];
+	TagReflexive  skies;
+	// BSPScenarioType
+	uint16_t      type;
+	// BSPScenarioFlags
+	uint16_t      flags;
+	TagReflexive  child_scenarios;
+	float         local_north;
+	char          __pad2[156];
+	TagReflexive  predicted_resources;
+	TagReflexive  functions;
+	TagDataOffset editor_scenario_data;
+	TagReflexive  comments;
+	TagReflexive  scavenger_hunt_objects;
+	char          __pad3[212];
+	TagReflexive  object_names;
+	TagReflexive  scenery;
+	TagReflexive  scenery_palette;
+	TagReflexive  bipeds;
+	TagReflexive  biped_palette;
+	TagReflexive  vehicles;
+	TagReflexive  vehicle_palette;
+	TagReflexive  equipment;
+	TagReflexive  equipment_palette;
+	TagReflexive  weapons;
+	TagReflexive  weapon_palette;
+	TagReflexive  device_groups;
+	TagReflexive  machines;
+	TagReflexive  machine_palette;
+	TagReflexive  controls;
+	TagReflexive  control_palette;
+	TagReflexive  light_fixtures;
+	TagReflexive  light_fixture_palette;
+	TagReflexive  sound_scenery;
+	TagReflexive  sound_scenery_palette;
+	char          __pad4[84];
+	TagReflexive  player_starting_profile;
+	TagReflexive  player_starting_locations;
+	TagReflexive  trigger_volumes;
+	TagReflexive  recorded_animations;
+	TagReflexive  netgame_flags;
+	TagReflexive  netgame_equipment;
+	TagReflexive  starting_equipment;
+	TagReflexive  bsp_switch_trigger_volumes;
+	TagReflexive  decals;
+	TagReflexive  decal_palette;
+	TagReflexive  detail_object_collection_palette;
+	char          __pad5[84];
+	TagReflexive  actor_palette;
+	TagReflexive  encounters;
+	TagReflexive  command_lists;
+	TagReflexive  ai_animation_references;
+	TagReflexive  ai_script_references;
+	TagReflexive  ai_recording_references;
+	TagReflexive  ai_conversations;
+	TagDataOffset script_syntax_data;
+	TagDataOffset script_string_data;
+	TagReflexive  scripts;
+	TagReflexive  globals;
+	TagReflexive  references;
+	TagReflexive  source_files;
+	char          __pad6[24];
+	TagReflexive  cutscene_flags;
+	TagReflexive  cutscene_camera_points;
+	TagReflexive  cutscene_titles;
+	char          __pad7[108];
+	TagDependency custom_object_names;
+	TagDependency ingame_help_text;
+	TagDependency hud_messages;
+	TagReflexive  structure_bsps;
+});
+typedef struct BSPScenario BSPScenario;
+A_STATIC_ASSERT(sizeof(BSPScenario) == 1456);
+
+A_PACK(struct BSPScenarioStructureBSP {
+	TagDependency lightmaps_bitmap;
+	float vehicle_floor;
+	float vehicle_ceiling;
+	char __pad1[20];
+	acolor_rgb_t default_ambient_color;
+	char __pad2[4];
+	acolor_rgb_t default_distant_light_0_color;
+	avec3f_t default_distant_light_0_dir;
+	acolor_rgb_t default_distant_light_1_color;
+	avec3f_t default_distant_light_1_dir;
+	char __pad3[12];
+	acolor_argb_t default_reflection_tint;
+	avec3f_t default_shadow_vector;
+	acolor_rgb_t default_shadow_color;
+	char __pad4[4];
+	TagReflexive collision_materials;
+	TagReflexive collision_bsp;
+	TagReflexive nodes;
+	float world_bounds_x_min;
+	float world_bounds_x_max;
+	float world_bounds_y_min;
+	float world_bounds_y_max;
+	float world_bounds_z_min;
+	float world_bounds_z_max;
+	TagReflexive leaves;
+	TagReflexive leaf_surfaces;
+	TagReflexive surfaces;
+	TagReflexive lightmaps;
+	char __pad5[12];
+	TagReflexive lens_flares;
+	TagReflexive lens_flare_markers;
+	TagReflexive clusters;
+	TagDataOffset cluster_data;
+	TagReflexive cluster_portals;
+	char __pad6[12];
+	TagReflexive breakable_surfaces;
+	TagReflexive fog_planes;
+	TagReflexive fog_regions;
+	TagReflexive fog_palette;
+	char __pad7[24];
+	TagReflexive weather_palette;
+	TagReflexive weather_polyhedra;
+	char __pad8[24];
+	TagReflexive pathfinding_surfaces;
+	TagReflexive pathfinding_edges;
+	TagReflexive background_sound_palette;
+	TagReflexive sound_environment_palette;
+	TagDataOffset sound_pas_data;
+	char __pad9[24];
+	TagReflexive markers;
+	TagReflexive detail_objects;
+	TagReflexive runtime_decals;
+	char __pad10[12];
+	TagReflexive leaf_map_leaves;
+	TagReflexive leaf_map_portals;
+});
+typedef struct BSPScenarioStructureBSP BSPScenarioStructureBSP;
+A_STATIC_ASSERT(sizeof(BSPScenarioStructureBSP) == 648);
+
+A_PACK(struct BSPScenarioStructureBSPLightmap {
+	uint16_t bitmap;
+	char __pad[18];
+	TagReflexive materials;
+});
+typedef struct BSPScenarioStructureBSPLightmap BSPScenarioStructureBSPLightmap;
+A_STATIC_ASSERT(sizeof(BSPScenarioStructureBSPLightmap) == 32);
+
 A_PACK(struct BSPModelPartVerticesIndirect {
 	uint32_t __pad1;
 	uint32_t vertices;
