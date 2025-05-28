@@ -4,12 +4,17 @@
 
 #if A_RENDER_BACKEND_GL
 #include <GL/glew.h>
+#include <cglm/cglm.h>
 #elif A_RENDER_BACKEND_D3D9
 #include <d3d9.h>
-#elif A_TARGET_PLATFORM_IS_XBOX
-#include <xtl.h>
+#include <d3dx9.h>
 #elif A_RENDER_BACKEND_D3D8
+#if A_TARGET_PLATFORM_IS_XBOX
+#include <Xtl.h>
+#else
 #include <d3d8.h>
+#endif // A_TARGET_PLATFORM_IS_XBOX
+#include <d3dx8.h>
 #endif // A_RENDER_BACKEND_GL
 
 #include "acommon/a_math.h"

@@ -22,7 +22,9 @@ struct MapLoadData {
 	const char* 		       map_name;
 	void*                      p;
 	size_t      		       n;
+#if !A_TARGET_PLATFORM_IS_XBOX
 	FileMapping                bitmaps_map;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 							   
 	Tag*                       tags;
 	uint32_t                   tag_count;
@@ -84,10 +86,12 @@ static bool CL_LoadMap_Object(TagId id);
 
 void CL_InitMap(void) {
 	A_memset((void*)&g_load, 0, sizeof(g_load));
+#if !A_TARGET_PLATFORM_IS_XBOX
 	Com_DPrintln(CON_DEST_CLIENT,
 		"CL_Init: Successfully mapped bitmaps.map at 0x%08X (%zu bytes)",
 		(size_t)g_load.bitmaps_map.p, g_load.bitmaps_map.n
 	);
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 bool CL_LoadMap(const char* map_name) {
@@ -109,8 +113,10 @@ bool CL_LoadMap(const char* map_name) {
 
 		CL_LoadMap_Decompress(map_name, &header);
 	} else {
+#if !A_TARGET_PLATFORM_IS_XBOX
 		g_load.bitmaps_map = DB_LoadMap_Mmap("bitmaps.map");
 		assert(g_load.bitmaps_map.p && g_load.bitmaps_map.n > 0);
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 	}
 
 	TagHeader tag_header;
@@ -500,7 +506,9 @@ bool CL_UnloadMap(void) {
 
 void CL_ShutdownMap(void) {
 	CL_UnloadMap();
+#if !A_TARGET_PLATFORM_IS_XBOX
 	DB_UnloadMap_Mmap(&g_load.bitmaps_map);
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 	A_memset((void*)&g_load, 0, sizeof(g_load));
 }
 
@@ -589,7 +597,7 @@ uint32_t CL_Map_ScenarioSceneryPaletteCount(void) {
 (float)(                                                       \
 	((f) & CL_DECOMPRESS_FLOAT_MASK(bits)) /                   \
 		   CL_DECOMPRESS_FLOAT_MASK(bits)                      \
-) * ((f) & CL_DECOMPRESS_FLOAT_SIGN_BIT(bits) ? -1.0f : 1.0f)) 
+) * ((f) & CL_DECOMPRESS_FLOAT_SIGN_BIT(bits) ? -1.0 : 1.0)) 
 
 static void CL_DecompressVector(A_OUT avec3f_t* decompressed, uint32_t compressed) {
 	// uint32_t compressed_x = compressed >> 0;
@@ -649,9 +657,18 @@ static bool CL_LoadMap_Decompress(
 	const char* path = DB_MapPath(decompressed_map_name);
 
 	if (!FS_FileExists(path)) {
-		FileMapping f = DB_LoadMap_Mmap(map_name);
 		size_t decompressed_map_size =
 			(size_t)header->decompressed_file_size;
+#if !A_TARGET_PLATFORM_IS_XBOX
+		FileMapping f = DB_LoadMap_Mmap(map_name);
+		size_t compressed_map_size = FS_FileSize(&f);
+		Bytef* p = f.p;
+#else 
+		StreamFile f = DB_LoadMap_Stream(map_name);
+		size_t compressed_map_size = f.size;
+		Bytef* p = (Bytef*)VM_Alloc(compressed_map_size, VM_ALLOC_MAP);
+		FS_ReadStream(&f, p, compressed_map_size);
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 		void* decompressed = VM_Alloc(decompressed_map_size, VM_ALLOC_MAP);
 		A_memcpy(decompressed, header, sizeof(*header));
 
@@ -659,8 +676,8 @@ static bool CL_LoadMap_Decompress(
 		stream.zalloc    = Z_NULL;
 		stream.zfree     = Z_NULL;
 		stream.opaque    = Z_NULL;
-		stream.avail_in  = f.n - sizeof(*header);
-		stream.next_in   = (Bytef*)f.p + sizeof(*header);
+		stream.avail_in  = compressed_map_size - sizeof(*header);
+		stream.next_in   = p + sizeof(*header);
 		stream.avail_out = decompressed_map_size - sizeof(*header);
 		stream.next_out  = (Bytef*)decompressed + sizeof(*header);
 
@@ -679,14 +696,19 @@ static bool CL_LoadMap_Decompress(
 		StreamFile decompressed_map = FS_StreamFile(path, FS_SEEK_BEGIN,
 			                                        FS_STREAM_READ_WRITE_NEW, 0);
 		assert(decompressed_map.f);
-		
+
 		bool b = FS_WriteStream(&decompressed_map, decompressed, decompressed_map_size);
 		assert(b);
 		FS_CloseStream(&g_load.f);
 		g_load.f = decompressed_map;
 		VM_Free(decompressed, VM_ALLOC_MAP);
+#if !A_TARGET_PLATFORM_IS_XBOX
 		b = Z_UnmapFile(&f);
 		assert(b);
+#else 
+		VM_Free(p, VM_ALLOC_MAP);
+		FS_CloseStream(&f);
+#endif // !A_TARGET_PLATFORM_IS_XBOX	
 	}
 	else {
 		g_load.f = FS_StreamFile(path, FS_SEEK_BEGIN,

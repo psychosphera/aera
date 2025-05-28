@@ -1,11 +1,5 @@
 #pragma once
 
-#if A_RENDER_BACKEND_D3D9
-#include <d3dx9.h>
-#elif A_RENDER_BACKEND_D3D8
-#include <d3dx8.h>
-#endif // A_RENDER_BACKEND_D3D9
-
 #include "com_defs.h"
 #include "gfx_defs.h"
 #include "gfx_uniform.h"

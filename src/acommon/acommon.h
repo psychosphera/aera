@@ -3,10 +3,12 @@
 #include <stddef.h>
 #include <limits.h>
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_XBOX)
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
-#include <windows.h>
+#include <Windows.h>
+#elif defined (_XBOX)
+#include <Xtl.h>
 #endif // _WIN32
 
 #define A_countof(a) (sizeof((a)) / sizeof(*(a))) 

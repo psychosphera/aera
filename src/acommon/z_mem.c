@@ -11,7 +11,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#else
+#elif !defined(_XBOX)
 #include <winternl.h>
 #include <ntstatus.h>
 NTSYSAPI NTSTATUS NTAPI
@@ -22,6 +22,8 @@ NtAllocateVirtualMemory(
     IN OUT PULONG RegionSize,
     IN     ULONG  AllocationType,
     IN     ULONG  Protect);
+#elif defined(_XBOX)
+#include <Xtl.h>
 #endif // _WIN32
 
 A_NO_DISCARD void* Z_Alloc(size_t n) {
@@ -40,7 +42,7 @@ void Z_Free(void* p) {
     free(p);
 }
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_XBOX)
 A_NO_DISCARD void* Z_AllocAt(const void* p, size_t n) {
     HANDLE   hProcess = GetCurrentProcess();
     PVOID    alloc    = (PVOID)p;
@@ -63,6 +65,28 @@ A_NO_DISCARD void* Z_AllocAt(const void* p, size_t n) {
         return NULL;
 
     return p;
+}
+#elif defined(_XBOX)
+A_NO_DISCARD void* Z_AllocAt(const void* p, size_t n) {
+	void* alloc = VirtualAlloc((void*)p, n, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	if (alloc == p)
+		return alloc;
+	assert(alloc);
+	if (alloc == NULL)
+		return NULL;
+
+	MEMORY_BASIC_INFORMATION mi;
+	size_t s = VirtualQuery(p, &mi, sizeof(mi));
+	assert(s > 0);
+	if (s == 0)
+		return NULL;
+	assert(mi.AllocationBase <= p);
+	assert(mi.RegionSize >= n);
+    assert((size_t)p + n <= (size_t)mi.AllocationBase + mi.RegionSize);
+    if ((size_t)p + n > (size_t)alloc + mi.RegionSize)
+        return NULL;
+
+	return (void*)p;
 }
 #else 
 A_NO_DISCARD void* Z_AllocAt(const void* p, size_t n) {

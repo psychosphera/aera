@@ -2,14 +2,6 @@
 
 #include <assert.h>
 
-#if A_RENDER_BACKEND_GL
-#include <cglm/cglm.h>
-#elif A_RENDER_BACKEND_D3D9
-#include <d3dx9.h>
-#elif A_RENDER_BACKEND_D3D8
-#include <d3dx8.h>
-#endif // A_RENDER_BACKEND_GL
-
 #include "acommon/a_string.h"
 #include "acommon/a_math.h"
 
@@ -36,7 +28,7 @@ static void PM_Accelerate(
 #if A_RENDER_BACKEND_GL
 	float currentspeed = glm_vec3_dot(pm->ps->velocity.array, wishdir.array);
 #elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
-	float currentspeed = D3DXVec3Dot(pm->ps->velocity.array, wishdir.array);
+	float currentspeed = D3DXVec3Dot((D3DXVECTOR3*)pm->ps->velocity.array, (D3DXVECTOR3*)wishdir.array);
 #endif // A_RENDER_BACKEND_GL
 
 	float addspeed = wishspeed - currentspeed;
@@ -53,9 +45,9 @@ static void PM_Accelerate(
 	glm_vec3_scale(wishdir.array, accelspeed, velocity);
 	glm_vec3_add(pm->ps->velocity.array, velocity, pm->ps->velocity.array);
 #elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
-	D3DXVECTOR3 velocity = { 0 };
-	D3DXVec3Scale(&velocity, wishdir.array, accelspeed);
-	D3DXVec3Add(pm->ps->velocity.array, &velocity, pm->ps->velocity.array);
+	D3DXVECTOR3 velocity;
+	D3DXVec3Scale(&velocity, (D3DXVECTOR3*)wishdir.array, accelspeed);
+	D3DXVec3Add((D3DXVECTOR3*)pm->ps->velocity.array, &velocity, (D3DXVECTOR3*)pm->ps->velocity.array);
 #endif // A_RENDER_BACKEND_GL
 }
 
@@ -63,7 +55,7 @@ static void PM_NoclipMove(A_INOUT pmove_t* pm, A_INOUT pml_t* pml) {
 #if A_RENDER_BACKEND_GL
 	float speed = glm_vec3_norm(pm->ps->velocity.array);
 #elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
-	float speed = D3DXVec3Length(pm->ps->velocity.array);
+	float speed = D3DXVec3Length((D3DXVECTOR3*)pm->ps->velocity.array);
 #endif // A_RENDER_BACKEND_GL
 	if (speed < 1.0f) {
 		pm->ps->velocity = A_VEC3F_ZERO;
@@ -82,8 +74,8 @@ static void PM_NoclipMove(A_INOUT pmove_t* pm, A_INOUT pml_t* pml) {
 		vec3 velocity;
 		glm_vec3_scale(pm->ps->velocity.array, newspeed, velocity);
 #elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
-		D3DXVECTOR3 velocity = { 0 };
-		D3DXVec3Scale(&velocity, pm->ps->velocity.array, newspeed);
+		D3DXVECTOR3 velocity;
+		D3DXVec3Scale(&velocity, (D3DXVECTOR3*)pm->ps->velocity.array, newspeed);
 #endif // A_RENDER_BACKEND_GL
 		pm->ps->velocity = *(avec3f_t*)&velocity;
 	}
@@ -95,11 +87,11 @@ static void PM_NoclipMove(A_INOUT pmove_t* pm, A_INOUT pml_t* pml) {
 	avec3f_t wishvel;
 	glm_vec3_sub(forward, right, wishvel.array);
 #elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
-	D3DXVECTOR3 forward = { 0 }, right = { 0 };
-	D3DXVec3Scale(&forward, pml->forward.array, pm->cmd.vel.z);
-	D3DXVec3Scale(&right, pml->right.array, pm->cmd.vel.x);
+	D3DXVECTOR3 forward, right;
+	D3DXVec3Scale(&forward, (D3DXVECTOR3*)pml->forward.array, pm->cmd.vel.z);
+	D3DXVec3Scale(&right, (D3DXVECTOR3*)pml->right.array, pm->cmd.vel.x);
 	avec3f_t wishvel;
-	D3DXVec3Subtract(wishvel.array, &forward, &right);
+	D3DXVec3Subtract((D3DXVECTOR3*)wishvel.array, &forward, &right);
 #endif // A_RENDER_BACKEND_GL
 
 	wishvel.y += pm->cmd.vel.y;
@@ -109,8 +101,8 @@ static void PM_NoclipMove(A_INOUT pmove_t* pm, A_INOUT pml_t* pml) {
 	glm_vec3_normalize(wishdir.array);
 	float wishspeed = glm_vec3_norm(wishvel.array);
 #elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
-	D3DXVec3Normalize(wishdir.array, wishdir.array);
-	float wishspeed = D3DXVec3Length(wishdir.array);
+	D3DXVec3Normalize((D3DXVECTOR3*)wishdir.array, (D3DXVECTOR3*)wishdir.array);
+	float wishspeed = D3DXVec3Length((D3DXVECTOR3*)wishvel.array);
 #endif // A_RENDER_BACKEND_GL
 	if (A_memcmp(&wishvel, &A_VEC3F_ZERO, sizeof(wishvel))) {
 		wishdir = A_VEC3F_ZERO;
@@ -125,9 +117,9 @@ static void PM_NoclipMove(A_INOUT pmove_t* pm, A_INOUT pml_t* pml) {
 	glm_vec3_scale(pm->ps->velocity.array, pml->frametime, velocity);
 	glm_vec3_add(pos.array, velocity, pos.array);
 #elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
-	D3DXVECTOR3 velocity = { 0 };
-	D3DXVec3Scale(&velocity, pm->ps->velocity.array, pml->frametime);
-	D3DXVec3Add(pos.array, &velocity, pos.array);
+	D3DXVECTOR3 velocity;
+	D3DXVec3Scale(&velocity, (D3DXVECTOR3*)pm->ps->velocity.array, pml->frametime);
+	D3DXVec3Add((D3DXVECTOR3*)pos.array, &velocity, (D3DXVECTOR3*)pos.array);
 #endif // A_RENDER_BACKEND_GL
 	pm->ps->origin.x = pos.x;
 	pm->ps->origin.y = pos.y;

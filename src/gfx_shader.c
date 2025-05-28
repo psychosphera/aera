@@ -2,10 +2,6 @@
 
 #include <assert.h>
 
-#if A_RENDER_BACKEND_D3D9
-#include <d3dx9shader.h>
-#endif // A_RENDER_BACKEND_D3D9
-
 #include "acommon/a_math.h"
 #include "acommon/a_string.h"
 #include "acommon/z_mem.h"

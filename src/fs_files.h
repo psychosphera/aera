@@ -11,6 +11,8 @@
 typedef struct StreamFile {
 #if !A_TARGET_PLATFORM_IS_XBOX
 	SDL_RWops* f;
+#else 
+	HANDLE f;
 #endif // !A_TARGET_PLATFORM_IS_XBOX
 	size_t size;
 } StreamFile;

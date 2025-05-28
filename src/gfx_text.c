@@ -185,7 +185,7 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
 }
 // ============================================================================
 
-void R_DeleteTextureAtlas(A_INOUT FontDef* f) {
+A_EXTERN_C void R_DeleteTextureAtlas(A_INOUT FontDef* f) {
     R_DeleteShaderProgram(&f->prog);
     R_DeleteImage(&f->atlas);
     R_DeleteVertexDeclaration(&f->vertex_declaration);
@@ -360,6 +360,7 @@ void R_DrawText(
     R_DisableTransparencyBlending();
 #else
 	assert(false && "unimplemented"); // FIXME
+	return false;
 #endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 

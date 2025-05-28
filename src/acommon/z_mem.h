@@ -4,12 +4,12 @@
 
 #include "acommon.h"
 
-#if A_TARGET_OS_IS_WINDOWS && !A_TARGET_PLATFORM_IS_XBOX
+#if A_TARGET_PLATFORM_IS_XBOX
+#include <Xtl.h>
+#elif A_TARGET_OS_IS_WINDOWS
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <Windows.h>
-#elif A_TARGET_PLATFORM_IS_XBOX
-#include <Xtl.h>
 #endif // _WIN32
 
 #if !A_TARGET_PLATFORM_IS_XBOX
