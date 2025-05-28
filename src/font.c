@@ -121,9 +121,11 @@ A_EXTERN_C size_t Font_GlyphCount(const FontDef* fd) {
 }
 
 A_EXTERN_C void Font_Unload(A_INOUT FontDef* fd) {
+#if !A_TARGET_PLATFORM_IS_XBOX
 	R_DeleteTextureAtlas(fd);
 	for (char c = 32; c < 127; c++)	
 		Font_RemoveGlyph(fd, c);
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 A_EXTERN_C void Font_Shutdown(void) {

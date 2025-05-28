@@ -185,13 +185,15 @@ A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f) {
 }
 // ============================================================================
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 A_EXTERN_C void R_DeleteTextureAtlas(A_INOUT FontDef* f) {
     R_DeleteShaderProgram(&f->prog);
     R_DeleteImage(&f->atlas);
     R_DeleteVertexDeclaration(&f->vertex_declaration);
 }
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
-void R_DrawText(
+A_EXTERN_C void R_DrawText(
     size_t localClientNum, A_OPTIONAL_INOUT FontDef* font, 
     const RectDef* rect, const char* text,
     float xscale, float yscale, acolor_rgb_t color,
@@ -459,6 +461,7 @@ A_EXTERN_C void R_ClearTextDrawDefs(size_t localClientNum) {
 }
 
 A_EXTERN_C void R_DrawTextDrawDefs(size_t localClientNum) {
+#if !A_TARGET_PLATFORM_IS_XBOX
     for (int i = 0; i < A_countof(r_textDraws); i++) {
         for (int j = 0; j < A_countof(r_textDraws[i]); j++) {
             GfxTextDraw* d = &r_textDraws[i][j];
@@ -470,4 +473,5 @@ A_EXTERN_C void R_DrawTextDrawDefs(size_t localClientNum) {
             }
         }
     }
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
