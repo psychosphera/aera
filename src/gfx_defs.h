@@ -17,6 +17,12 @@
 #include <d3dx8.h>
 #endif // A_RENDER_BACKEND_GL
 
+#if A_RENDER_BACKEND_D3D8 || A_RENDER_BACKEND_D3D9
+#define A_RENDER_BACKEND_D3D 1
+#else
+#define A_RENDER_BACKEND_D3D 0
+#endif // A_RENDER_BACKEND_D3D8 || A_RENDER_BACKEND_D3D9
+
 #include "acommon/a_math.h"
 
 #include "com_defs.h"
@@ -45,6 +51,17 @@ typedef struct D3D9RenderGlob {
     HWND              hWnd;
     IDirect3D9*       d3d9;
     IDirect3DDevice9* d3ddev;
+
+    D3DCOLOR          clear_color_argb;
+} D3D9RenderGlob;
+extern D3D9RenderGlob r_d3d9Glob;
+#elif A_RENDER_BACKEND_D3D8
+typedef struct D3D8RenderGlob {
+#if !A_TARGET_PLATFORM_IS_XBOX
+    HWND              hWnd;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
+    IDirect3D8*       d3d8;
+    IDirect3DDevice8* d3ddev;
 
     D3DCOLOR          clear_color_argb;
 } D3D9RenderGlob;
@@ -103,8 +120,12 @@ typedef struct GfxVertexBuffer {
 #if A_RENDER_BACKEND_GL
     vao_t  vao;
     vbo_t  vbo;
-#elif A_RENDER_BACKEND_D3D9
+#elif A_RENDER_BACKEND_D3D
+#if A_RENDER_BACKEND_D3D9
     IDirect3DVertexBuffer9* buffer;
+#elif A_RENDER_BACKEND_D3D8
+    IDirect3DVertexBuffer8* buffer;
+#endif // A_RENDER_BACKEND_D3D9
     size_t stride;
 #endif // A_RENDER_BACKEND_GL
     size_t bytes, capacity;
@@ -199,7 +220,7 @@ A_EXTERN_C A_NO_DISCARD ImageFormat R_ImageFormatFromD3D  (D3DFORMAT   format);
 A_EXTERN_C A_NO_DISCARD int         R_ImageFormatBPP      (ImageFormat format);
 A_EXTERN_C A_NO_DISCARD bool        R_ImageFormatIsDXT    (ImageFormat format);
 
-#if A_RENDER_BACKEND_D3D9
+#if A_RENDER_BACKEND_D3D
 A_EXTERN_C A_NO_DISCARD D3DCOLOR    R_ColorRGBAToD3DARGB  (acolor_rgba_t rgba);
 #endif // A_RENDER_BACKEND_D3D9
 

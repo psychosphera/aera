@@ -12,6 +12,5 @@ CMakePresets.json
 *.jpg
 *.ttf
 *.dll
-*.cmake
 *.sln
 *.vcxproj*

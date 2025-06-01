@@ -13,7 +13,7 @@ typedef enum KeyFocus {
 KeyFocus CL_KeyFocus(size_t localClientNum);
 
 #include "gfx_text.h"
-#include "in_input.h"
+#include "in_kbm.h"
 
 typedef struct dgl_t {
 	size_t promptDrawId;

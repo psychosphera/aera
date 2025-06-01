@@ -11,6 +11,10 @@
 #include <Xtl.h>
 #endif // _WIN32
 
+#ifdef _WIN32
+#pragma runtime_checks("scu", off)
+#endif
+
 #define A_countof(a) (sizeof((a)) / sizeof(*(a))) 
 
 #define SIZE_BIT ((size_t)((size_t)CHAR_BIT * sizeof(size_t)))

@@ -51,10 +51,10 @@ bool Com_Frame(void) {
 
     IN_Frame();
 
+#if !A_TARGET_PLATFORM_IS_XBOX
     while (Sys_HandleEvent())
         ;
 
-#if !A_TARGET_PLATFORM_IS_XBOX
     DevCon_Frame();
 #endif // !A_TARGET_PLATFORM_IS_XBOX
 

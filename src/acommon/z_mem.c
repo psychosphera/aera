@@ -119,25 +119,31 @@ bool Z_FreeAt(const void* p, size_t n) {
 
 #if A_TARGET_OS_IS_WINDOWS && !A_TARGET_PLATFORM_IS_XBOX
 A_NO_DISCARD FileMapping Z_MapFile(const char* filename) {
-    FileMapping f = { /*.p =*/ NULL, /*.n =*/ 0, /*.__hFile =*/ NULL, /*.__hMap =*/ NULL };
+    FileMapping f;
+    f.__hFile = NULL;
+    f.__hMap  = NULL;
+    f.n       = 0;
+    f.p       = NULL;
     HANDLE hFile = CreateFileA(
         filename, GENERIC_READ, FILE_SHARE_READ, NULL, 
         OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0
     );
-    if(hFile == NULL)
+    if (hFile == NULL)
         return f;
+        
     f.__hFile = hFile;
 
     LARGE_INTEGER sz;
     size_t n = 0;
-    if(GetFileSizeEx(hFile, &sz) != 0) {
+    if(GetFileSizeEx(hFile, &sz) != FALSE) {
         n = sz.QuadPart;
     }
     f.n = n;
 
-    HANDLE hMap = CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
-    if(hMap == NULL)
+    HANDLE hMap = CreateFileMappingA(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
+    if (hMap == NULL)
         return f;
+        
     f.__hMap = hMap;
 
     void* p = MapViewOfFile(hMap, FILE_MAP_READ, 0, 0, 0);

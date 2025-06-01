@@ -264,6 +264,7 @@ A_EXTERN_C dvar_t* Dvar_RegisterLocalVec4(
 A_EXTERN_C bool    Dvar_UnregisterLocal(int localClientNum, const char* name);
 A_EXTERN_C void    Dvar_ClearLocalDvars(int localClientNum);
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 A_EXTERN_C bool    Dvar_SetFromString        (A_INOUT dvar_t* d,
 	                                          int argc, const char** argv);
 A_EXTERN_C dvar_t* Dvar_RegisterNewFromString(const char* name, int flags,
@@ -276,3 +277,4 @@ A_EXTERN_C void Dvar_Set_f  (void);
 A_EXTERN_C void Dvar_SetA_f (void);
 A_EXTERN_C void Dvar_SetL_f (void);
 A_EXTERN_C void Dvar_SetLA_f(void);
+#endif // !A_TARGET_PLATFORM_IS_XBOX

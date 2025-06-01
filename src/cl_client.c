@@ -2,7 +2,9 @@
 
 #include <assert.h>
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 #include <zlib.h>
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 #include "acommon/a_string.h"
 #include "acommon/z_mem.h"
@@ -13,7 +15,9 @@
 #include "dvar.h"
 #include "gfx.h"
 #include "gfx_text.h"
-#include "in_input.h"
+#if !A_TARGET_PLATFORM_IS_XBOX
+#include "in_kbm.h"
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 extern dvar_t* vid_width;
 extern dvar_t* vid_height;

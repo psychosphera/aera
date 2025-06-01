@@ -5,6 +5,7 @@
 #include "acommon/a_string.h"
 #include "acommon/a_math.h"
 
+#include "gfx_defs.h"
 #include "m_math.h"
 
 pm_t s_pm[MAX_LOCAL_CLIENTS];

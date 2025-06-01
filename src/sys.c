@@ -19,7 +19,10 @@ dvar_t* vid_ypos;
 dvar_t* vid_width;
 dvar_t* vid_height;
 
+#if A_TARGET_PLATFORM_IS_XBOX
+static uint64_t s_counterFreq;
 static uint64_t s_timeBase;
+#endif // A_TARGET_PLATFORM_IS_XBOX
 
 //static size_t Sys_InitCmdline(const char** argv);
 static void   Sys_InitThreads(void);
@@ -33,19 +36,32 @@ void Sys_Init(const char** argv) {
     A_UNUSED(argv);
 
 #if !A_TARGET_PLATFORM_IS_XBOX
-    s_timeBase = (uint64_t)SDL_GetTicks();
-
-    SDL_Init(SDL_INIT_VIDEO);
+    int i = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);
+    assert(i == 0);
+    if (i < 0) {
+        fprintf(stderr, "Sys_Init: Failed to initialize SDL: %s", SDL_GetError());
+        exit(-1);
+    }
 #else
-	assert(false && "unimplemented"); // FIXME
-#endif // !A_TARGET_PLATFORM_IS_XBOX
+    LARGE_INTEGER count;
+    BOOL b = QueryPerformanceCounter(&count);
+    assert(b != FALSE);
+    s_timeBase = count.QuadPart;
+    LARGE_INTEGER freq;
+    b = QueryPerformanceFrequency(&freq);
+    assert(b != FALSE);
+    s_counterFreq = freq.QuadPart;
 
-    vid_width  = Dvar_RegisterInt(
-        "vid_width", DVAR_FLAG_NONE, VID_WIDTH_DEFAULT,  1, INT_MAX
-    );
+    XDEVICE_PREALLOC_TYPE deviceTypes[1];
+    deviceTypes[0].DeviceType      = XDEVICE_TYPE_GAMEPAD;
+    deviceTypes[0].dwPreallocCount = 4;
+    
+    XInitDevices(A_countof(deviceTypes), deviceTypes);
+#endif // !A_TARGET_PLATFORM_IS_XBOX
+    vid_width = Dvar_RegisterInt(
+        "vid_width", DVAR_FLAG_NONE, VID_WIDTH_DEFAULT, 1, INT_MAX);
     vid_height = Dvar_RegisterInt(
-        "vid_hight", DVAR_FLAG_NONE, VID_HEIGHT_DEFAULT, 1, INT_MAX
-    );
+        "vid_hight", DVAR_FLAG_NONE, VID_HEIGHT_DEFAULT, 1, INT_MAX);
 
 #if !A_TARGET_PLATFORM_IS_XBOX
     sys_sdlGlob.window = SDL_CreateWindow(
@@ -68,7 +84,8 @@ void Sys_Init(const char** argv) {
         Sys_NormalExit(-2);
     }
 #else
-	assert(false && "unimplemented"); // FIXME
+    vid_xpos = Dvar_RegisterInt("vid_xpos", DVAR_FLAG_NONE, 0, 0, INT_MAX);
+    vid_ypos = Dvar_RegisterInt("vid_ypos", DVAR_FLAG_NONE, 0, 0, INT_MAX);
 #endif // !A_TARGET_PLATFORM_IS_XBOX
 
     //Sys_InitCmdline(argv);
@@ -81,22 +98,23 @@ void Sys_Init(const char** argv) {
 
 // Returns true if an event was handled, false if not 
 // (most likely, if event queue was empty).
-bool Sys_HandleEvent(void) {
 #if !A_TARGET_PLATFORM_IS_XBOX
+bool Sys_HandleEvent(void) {
     SDL_Event ev;
     if (SDL_PollEvent(&ev)) {
         switch (ev.type) {
         case SDL_KEYDOWN:
             if (ev.key.keysym.sym == SDLK_ESCAPE) {
                 Sys_NormalExit(1);
-            } else {
+            }
+            else {
                 IN_Key_Down(CL_ClientWithKbmFocus(),
                     IN_Key_SDLKToKeycode(ev.key.keysym.sym));
             }
             break;
         case SDL_KEYUP:
-            IN_Key_Up(CL_ClientWithKbmFocus(), 
-                      IN_Key_SDLKToKeycode(ev.key.keysym.sym));
+            IN_Key_Up(CL_ClientWithKbmFocus(),
+                IN_Key_SDLKToKeycode(ev.key.keysym.sym));
             break;
         case SDL_MOUSEBUTTONDOWN:
             IN_Mouse_Down(CL_ClientWithKbmFocus(), ev.button.button);
@@ -126,22 +144,88 @@ bool Sys_HandleEvent(void) {
                 break;
             }
             break;
-        }
+            // FIXME: add controller support for multiple local clients
+        case SDL_CONTROLLERDEVICEREMOVED:
+        case SDL_CONTROLLERDEVICEADDED:
+        case SDL_CONTROLLERBUTTONUP:
+        case SDL_CONTROLLERAXISMOTION:
+            SDL_GameController* controller = IN_GPad_SDLController(0);
+            SDL_Joystick* joystick = SDL_GameControllerGetJoystick(controller);
+            switch (ev.type) {
+            case SDL_CONTROLLERDEVICEADDED:
+                if (!IN_LocalClientHasGPad(0))
+                    IN_GPad_Add(0, ev.cdevice.which);
+                break;
+            case SDL_CONTROLLERDEVICEREMOVED:
+                if (ev.cdevice.which == SDL_JoystickInstanceID(joystick) && IN_LocalClientHasGPad(0))
+                    IN_GPad_Remove(0);
+                break;
+            case SDL_CONTROLLERBUTTONDOWN:
+                if (ev.cdevice.which != SDL_JoystickInstanceID(joystick) || !IN_LocalClientHasGPad(0))
+                    break;
 
+                GPadButtonCode button = IN_GPad_ButtonFromSDL(ev.cbutton.button);
+                IN_GPad_Down(0, button);
+                break;
+            case SDL_CONTROLLERBUTTONUP:
+                if (ev.cdevice.which != SDL_JoystickInstanceID(joystick) || !IN_LocalClientHasGPad(0))
+                    break;
+
+                button = IN_GPad_ButtonFromSDL(ev.cbutton.button);
+                IN_GPad_Up(0, button);
+                break;
+            case SDL_CONTROLLERAXISMOTION:
+                if (ev.cdevice.which != SDL_JoystickInstanceID(joystick) || !IN_LocalClientHasGPad(0))
+                    break;
+
+                float x = 0.0f, y = 0.0f;
+                switch (ev.caxis.axis) {
+                case SDL_CONTROLLER_AXIS_LEFTX:
+                    x = 1.0f / (float)(ev.caxis.value + 32768);
+                    IN_GPad_MoveStick(0, IN_GPAD_STICK_LEFT, x, 0.0f);
+                    break;
+                case SDL_CONTROLLER_AXIS_LEFTY:
+                    y = 1.0f / (float)(ev.caxis.value + 32768);
+                    IN_GPad_MoveStick(0, IN_GPAD_STICK_LEFT, 0.0f, y);
+                    break;
+                case SDL_CONTROLLER_AXIS_RIGHTX:
+                    x = 1.0f / (float)(ev.caxis.value + 32768);
+                    IN_GPad_MoveStick(0, IN_GPAD_STICK_RIGHT, x, 0.0f);
+                    break;
+                case SDL_CONTROLLER_AXIS_RIGHTY:
+                    y = 1.0f / (float)(ev.caxis.value + 32768);
+                    IN_GPad_MoveStick(0, IN_GPAD_STICK_RIGHT, 0.0f, y);
+                    break;
+                case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
+                    float value = 1.0f / (float)(ev.caxis.value + 32768);
+                    IN_GPad_MoveTrigger(0, IN_GPAD_TRIGGER_LEFT, value);
+                    break;
+                case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
+                    value = 1.0f / (float)(ev.caxis.value + 32768);
+                    IN_GPad_MoveTrigger(0, IN_GPAD_TRIGGER_RIGHT, value);
+                    break;
+                default:
+                    assert(false);
+                    break;
+                }
+                break;
+            }
+            break;
+        }
         return true;
     }
-#else
-	assert(false && "unimplemented");
-#endif // !A_TARGET_PLATFORM_IS_XBOX
     return false;
 }
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 uint64_t Sys_Milliseconds(void) {
 #if !A_TARGET_PLATFORM_IS_XBOX
-    return (uint64_t)SDL_GetTicks() - s_timeBase;
+    return (uint64_t)SDL_GetTicks();
 #else
-	assert(false && "unimplemented");
-	return 0;
+    LARGE_INTEGER count;
+    BOOL b = QueryPerformanceCounter(&count);
+    assert(b != FALSE);
+    return (count.QuadPart - s_timeBase) / (s_counterFreq * 1000);
 #endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 

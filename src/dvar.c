@@ -74,11 +74,12 @@ static bool Dvar_Free(void* p) {
 }
 
 void Dvar_Init(void) {
+#if !A_TARGET_PLATFORM_IS_XBOX
 	Cmd_AddCommand("set",   Dvar_Set_f  );
 	Cmd_AddCommand("seta",  Dvar_SetA_f );
 	Cmd_AddCommand("setl",  Dvar_SetL_f );
 	Cmd_AddCommand("setla", Dvar_SetLA_f);
-
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 	A_memset(s_dvars, 0, sizeof(s_dvars));
 	s_dvarCount = 0;
@@ -181,6 +182,7 @@ dvar_t Dvar_CreateBool(const char* name, int flags, bool value) {
 	d.type       = DVAR_TYPE_BOOL;
 	d.value.b    = value;
 	d.latched.b  = false;
+	d.flags      = flags;
 	d.e          = e;
 	d.modified   = false;
 	d.hasLatched = false;
@@ -203,6 +205,7 @@ dvar_t Dvar_CreateInt(const char* name, int flags,
 	d.domain.i.max = max;
 	d.value.i      = value;
 	d.latched.i    = 0;
+	d.flags        = flags;
 	d.e            = e;
 	d.modified     = false;
 	d.hasLatched   = false;
@@ -225,6 +228,7 @@ dvar_t Dvar_CreateFloat(const char* name, int flags,
 	d.domain.f.max = max;
 	d.value.f      = value;
 	d.latched.f    = 0.0f;
+	d.flags        = flags;
 	d.e            = e;
 	d.modified     = false;
 	d.hasLatched   = false;
@@ -240,6 +244,7 @@ dvar_t Dvar_CreateString(const char* name, int flags, const char* value) {
 	d.name       = (char*)name;
 	d.name_hash  = Dvar_HashName(name);
 	d.type       = DVAR_TYPE_STRING;
+	d.flags      = flags;
 	d.e          = e;
 	d.modified   = false;
 	d.hasLatched = false;
@@ -260,6 +265,7 @@ dvar_t Dvar_CreateEnum(
 	d.name_hash  = Dvar_HashName(name);
 	d.type       = DVAR_TYPE_ENUM;
 	d.domain.e   = domain_count;
+	d.flags      = flags;
 	d.e          = e;
 	d.i          = value;
 	d.modified   = false;
@@ -283,6 +289,7 @@ dvar_t Dvar_CreateVec2(const char* name, int flags,
 	d.domain.f.min = min;
 	d.domain.f.max = max;
 	d.value.v2     = value;
+	d.flags        = flags;
 	d.e            = e;
 	d.modified     = false;
 	d.hasLatched   = false;
@@ -308,6 +315,7 @@ dvar_t Dvar_CreateVec3(const char* name, int flags,
 	d.domain.f.min = min;
 	d.domain.f.max = max;
 	d.value.v3     = value;
+	d.flags        = flags;
 	d.e            = e;
 	d.modified     = false;
 	d.hasLatched   = false;
@@ -335,6 +343,7 @@ dvar_t Dvar_CreateVec4(const char* name, int flags,
 	d.domain.f.min = min;
 	d.domain.f.max = max;
 	d.value.v4     = value;
+	d.flags        = flags;
 	d.e            = e;
 	d.modified     = false;
 	d.hasLatched   = false;
@@ -1120,6 +1129,7 @@ void Dvar_ClearLocalDvars(int localClientNum) {
 	}
 }
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 bool Dvar_SetFromString(A_INOUT dvar_t* d, int argc, const char** argv) {
 	assert(d);
 	assert(argc > 0);
@@ -1434,7 +1444,6 @@ void Dvar_SetL_f(void) {
 	if (argc <= 6)
 		argv[3] = Cmd_Argv(5);
 
-#if !A_TARGET_PLATFORM_IS_XBOX
 	int activeLocalClient = CL_ClientWithKbmFocus();
 	dvar_t* d = Dvar_FindLocal(activeLocalClient, name);
 	if (d) {
@@ -1445,9 +1454,6 @@ void Dvar_SetL_f(void) {
 		Dvar_RegisterNewLocalFromString(activeLocalClient,
 			name, DVAR_FLAG_NONE, A_MIN(argc - 2, 4), argv);
 	}
-#else
-	assert(false && "unimplemented"); // FIXME
-#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
 void Dvar_SetLA_f(void) {
@@ -1460,21 +1466,19 @@ void Dvar_SetLA_f(void) {
 	Dvar_SetL_f();
 	const char* name = Cmd_Argv(1);
 
-#if !A_TARGET_PLATFORM_IS_XBOX
 	int activeLocalClient = CL_ClientWithKbmFocus();
 	dvar_t* d = Dvar_FindLocal(activeLocalClient, name);
 	Dvar_AddFlags(d, DVAR_FLAG_ARCHIVE);
-#else
-	assert(false && "unimplemented"); // FIXME
-#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
-
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 void Dvar_Shutdown(void) {
+#if !A_TARGET_PLATFORM_IS_XBOX
 	Cmd_RemoveCommand("set");
 	Cmd_RemoveCommand("seta");
 	Cmd_RemoveCommand("setl");
 	Cmd_RemoveCommand("setla");
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 	Dvar_ClearDvars();
 	for(size_t i = 0; i < MAX_LOCAL_CLIENTS; i++)

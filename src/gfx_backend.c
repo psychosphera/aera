@@ -30,12 +30,12 @@ void RB_EnableWindowResize(bool resizeable) {
     if (!resizeable) {
         int w = Dvar_GetInt(vid_width);
         int h = Dvar_GetInt(vid_height);
-        vid_width = Dvar_ReregisterInt("vid_width",
-            DVAR_FLAG_READONLY,
-            w, 0, INT_MAX);
-        vid_height = Dvar_ReregisterInt("vid_height",
-            DVAR_FLAG_READONLY,
-            h, 0, INT_MAX);
+        vid_width = Dvar_ReregisterInt("vid_width", 
+                                       DVAR_FLAG_READONLY,
+                                       w, 0, INT_MAX);
+        vid_height = Dvar_ReregisterInt("vid_height", 
+                                        DVAR_FLAG_READONLY,
+                                        h, 0, INT_MAX);
     }
 #endif // A_TARGET_PLATFORM_IS_XBOX
 }
