@@ -2,6 +2,7 @@
 /.vscode
 CMakeSettings.json
 CMakePresets.json
+/deps/SDL_build
 /deps/zlib_build
 /build*
 /out
