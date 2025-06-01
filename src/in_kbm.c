@@ -186,7 +186,8 @@ static char IN_Key_SDLKToChar(SDL_Keycode k, bool shift) {
 	}
 }
 
-static int IN_Mouse_SDLButtonToIndex(Uint8 button) {
+#if !A_TARGET_PLATFORM_IS_XBOX
+int IN_Mouse_SDLButtonToIndex(Uint8 button) {
 	switch (button) {
 	case SDL_BUTTON_LEFT:
 		return 0;
@@ -203,6 +204,7 @@ static int IN_Mouse_SDLButtonToIndex(Uint8 button) {
 		return -1;
 	}
 }
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 void IN_Key_Init(void) {
 	for (size_t localClientNum = 0;
@@ -351,29 +353,25 @@ void IN_Mouse_Init(void) {
 	}
 }
 
-A_NO_DISCARD bool IN_Mouse_IsDown(size_t localClientNum, Uint8 button) {
-	int i = IN_Mouse_SDLButtonToIndex(button);
-	return IN_GetLocalClientLocals(localClientNum)->mouse.buttons.array[i] == true;
+A_NO_DISCARD bool IN_Mouse_IsDown(size_t localClientNum, int button) {
+	return IN_GetLocalClientLocals(localClientNum)->mouse.buttons.array[button] == true;
 }
 
-A_NO_DISCARD bool IN_Mouse_IsUp(size_t localClientNum, Uint8 button) {
-	int i = IN_Mouse_SDLButtonToIndex(button);
+A_NO_DISCARD bool IN_Mouse_IsUp(size_t localClientNum, int button) {
 	return IN_GetLocalClientLocals(
 		localClientNum
-	)->mouse.buttons.array[i] == false;
+	)->mouse.buttons.array[button] == false;
 }
 
-bool IN_Mouse_Down(size_t localClientNum, Uint8 button) {
-	int i = IN_Mouse_SDLButtonToIndex(button);
+bool IN_Mouse_Down(size_t localClientNum, int button) {
 	bool b = IN_Mouse_IsDown(localClientNum, button);
-	IN_GetLocalClientLocals(localClientNum)->mouse.buttons.array[i] = true;
+	IN_GetLocalClientLocals(localClientNum)->mouse.buttons.array[button] = true;
 	return b;
 }
 
-bool IN_Mouse_Up(size_t localClientNum, Uint8 button) {
-	int i = IN_Mouse_SDLButtonToIndex(button);
+bool IN_Mouse_Up(size_t localClientNum, int button) {
 	bool b = IN_Mouse_IsDown(localClientNum, button);
-	IN_GetLocalClientLocals(localClientNum)->mouse.buttons.array[i] = false;
+	IN_GetLocalClientLocals(localClientNum)->mouse.buttons.array[button] = false;
 	return b;
 }
 

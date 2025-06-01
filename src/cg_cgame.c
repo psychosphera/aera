@@ -8,6 +8,8 @@
 #include "com_print.h"
 #include "dvar.h"
 #include "gfx_defs.h"
+#include "in_input.h"
+#include "in_gpad.h"
 #if !A_TARGET_PLATFORM_IS_XBOX
 #include "in_kbm.h"
 #endif // !A_TARGET_PLATFORM_IS_XBOX
@@ -94,6 +96,7 @@ void CG_Teleport(size_t localClientNum, apoint3f_t pos) {
 	PM_GetLocalClientGlobals(localClientNum)->pm.ps->origin = pos;
 }
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 void CG_Teleport_f(void) {
 	int argc = Cmd_Argc();
 	if (argc < 4) {
@@ -105,12 +108,9 @@ void CG_Teleport_f(void) {
 	A_atof(Cmd_Argv(1), &p.x);
 	A_atof(Cmd_Argv(2), &p.y);
 	A_atof(Cmd_Argv(3), &p.z);
-#if !A_TARGET_PLATFORM_IS_XBOX
 	CG_Teleport(CL_ClientWithKbmFocus(), p);
-#else
-	assert(false && "unimplemented"); // FIXME
-#endif // !A_TARGET_PLATFORM_IS_XBOX
 }
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 void CG_SetSpawn(size_t localClientNum, apoint3f_t spawn, float facing) {
 	cg_t* cg = CG_GetLocalClientGlobals(localClientNum);
@@ -235,7 +235,31 @@ void CG_Frame(uint64_t deltaTime) {
 
 			pm->pm.cmd.serverTime = Sys_Milliseconds();
 			Pmove(&pm->pm, &pm->pml);
+		} else if (IN_LocalClientHasGPad(localClientNum)) {
+			float vel = 100.0f;
+			if (IN_GPad_IsDown(localClientNum, IN_GPAD_BUTTON_LEFT_STICK))
+				vel *= 1.5f;
+
+			pm->pm.cmd.vel.z += IN_GPad_StickY(localClientNum, IN_GPAD_STICK_LEFT) * vel;
+			pm->pm.cmd.vel.x += IN_GPad_StickX(localClientNum, IN_GPAD_STICK_LEFT) * vel;
+
+			if (IN_GPad_IsDown(localClientNum, IN_GPAD_BUTTON_SOUTH))
+				pm->pm.cmd.vel.y += vel;
+			if (IN_GPad_IsDown(localClientNum, IN_GPAD_BUTTON_EAST))
+				pm->pm.cmd.vel.y -= vel;
 		}
+#else 
+		float vel = 100.0f;
+		if (IN_GPad_IsDown(localClientNum, IN_GPAD_BUTTON_LEFT_STICK))
+			vel *= 1.5f;
+
+		pm->pm.cmd.vel.z += IN_GPad_StickY(localClientNum, IN_GPAD_STICK_LEFT) * vel;
+		pm->pm.cmd.vel.x += IN_GPad_StickX(localClientNum, IN_GPAD_STICK_LEFT) * vel;
+
+		if (IN_GPad_IsDown(localClientNum, IN_GPAD_BUTTON_SOUTH))
+			pm->pm.cmd.vel.y += vel;
+		if (IN_GPad_IsDown(localClientNum, IN_GPAD_BUTTON_EAST))
+			pm->pm.cmd.vel.y -= vel;
 #endif // !A_TARGET_PLATFORM_IS_XBOX
 		cg->camera.pos   = pm->pm.ps->origin;
 		cg->camera.front = pm->pml.forward;

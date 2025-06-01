@@ -137,6 +137,9 @@ typedef struct GfxVertexDeclaration {
     size_t                       vertices_count;
 #if A_RENDER_BACKEND_D3D9
     IDirect3DVertexDeclaration9* decl;
+#elif A_RENDER_BACKEND_D3D8
+    D3DVERTEXATTRIBUTEFORMAT format;
+    size_t format_count;
 #endif // A_RENDER_BACKEND_D3D9
 } GfxVertexDeclaration;
 
@@ -180,7 +183,7 @@ A_EXTERN_C bool R_DeleteVertexDeclaration(A_IN GfxVertexDeclaration* vertex_decl
 
 #if A_RENDER_BACKEND_GL
 A_NO_DISCARD GLint R_ImageFilterToGL(ImageFilter filter);
-#elif A_RENDER_BACKEND_D3D9
+#elif A_RENDER_BACKEND_D3D
 A_NO_DISCARD DWORD R_ImageFilterToD3D(ImageFilter filter);
 #endif // A_RENDER_BACKEND_D3D9
 

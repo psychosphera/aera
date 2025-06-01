@@ -10,7 +10,7 @@
 #define IN_KEYCODE_COUNT_ON_CURRENT_FRAME 8
 
 #if A_TARGET_PLATFORM_IS_XBOX
-typedef HANDLE GPadInteral;
+typedef HANDLE GPadInternal;
 #else
 typedef SDL_GameController* GPadInternal;
 #endif // A_TARGET_PLATFORM_IS_XBOX
@@ -22,12 +22,12 @@ typedef struct inl_t {
 	Keycode keysPressedOnCurrentFrame[IN_KEYCODE_COUNT_ON_CURRENT_FRAME];
 	Mouse   mouse;
 #endif // !A_TARGET_PLATFORM_IS_XBOX
-	GPadButton  buttons[IN_GPAD_BUTTON_COUNT];
-	GPadStick   sticks[2];
-	GPadTrigger triggers[2];
-	int         gpad_id;
-	GPadInteral gpad_internal;
-	bool        hasGPad;
+	GPadButton   buttons[IN_GPAD_BUTTON_COUNT];
+	GPadStick    sticks[2];
+	GPadTrigger  triggers[2];
+	int          gpad_id;
+	GPadInternal gpad_internal;
+	bool         hasGPad;
 } inl_t;
 
 A_EXTERN_C void   IN_Init                (void);

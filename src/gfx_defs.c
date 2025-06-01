@@ -74,6 +74,30 @@ bool R_CreateVertexBuffer(const void* data, size_t n, size_t capacity,
         D3D_CALL(buffer, Unlock);
     }
     vb->stride = stride;
+#elif A_RENDER_BACKEND_D3D8
+    IDirect3DVertexBuffer8* buffer = NULL;
+    HRESULT hr = IDirect3DDevice8_CreateVertexBuffer(
+        r_d3d9Glob.d3ddev, capacity, 0, 0,
+        D3DPOOL_DEFAULT, &buffer
+    );
+    assert(hr == D3D_OK);
+
+    vb->buffer = buffer;
+
+    if (data && n) {
+        BYTE* p = NULL;
+#if A_TARGET_PLATFORM_IS_XBOX
+        DWORD flags = 0;
+#else
+        DWORD flags = D3DLOCK_DISCARD;
+#endif // A_TARGET_PLATFORM_IS_XBOX
+        hr = IDirect3DVertexBuffer8_Lock(buffer, off, n, &p, flags);
+        assert(hr == D3D_OK);
+        A_memcpy(p, data, n);
+        hr = IDirect3DVertexBuffer8_Unlock(buffer);
+        assert(hr == D3D_OK);
+    }
+    vb->stride = stride;
 #endif
     vb->bytes    = n;
     vb->capacity = capacity;
@@ -104,6 +128,18 @@ bool R_UploadVertexData(A_INOUT GfxVertexBuffer* vb,
     D3D_CALL(vb->buffer, Lock, off, n, &p, D3DLOCK_DISCARD);
     A_memcpy(p, data, n);
     D3D_CALL(vb->buffer, Unlock);
+#elif A_RENDER_BACKEND_D3D8
+    BYTE* p = NULL;
+#if A_TARGET_PLATFORM_IS_XBOX
+    DWORD flags = 0;
+#else
+    DWORD flags = D3DLOCK_DISCARD;
+#endif // A_TARGET_PLATFORM_IS_XBOX
+    HRESULT hr = IDirect3DVertexBuffer8_Lock(vb->buffer, off, n, &p, flags);
+    assert(hr == D3D_OK);
+    A_memcpy(p, data, n);
+    hr = IDirect3DVertexBuffer8_Unlock(vb->buffer);
+    assert(hr == D3D_OK);
 #endif // A_RENDER_BACKEND_GL
     return true;
 }
@@ -136,6 +172,18 @@ bool R_AppendVertexData(A_INOUT GfxVertexBuffer* vb,
     D3D_CALL(vb->buffer, Lock, vb->bytes, n, &p, D3DLOCK_DISCARD);
     A_memcpy(p, data, n);
     D3D_CALL(vb->buffer, Unlock);
+#elif A_RENDER_BACKEND_D3D8
+    BYTE* p = NULL;
+#if A_TARGET_PLATFORM_IS_XBOX
+    DWORD flags = 0;
+#else
+    DWORD flags = D3DLOCK_DISCARD;
+#endif // A_TARGET_PLATFORM_IS_XBOX
+    HRESULT hr = IDirect3DVertexBuffer8_Lock(vb->buffer, vb->bytes, n, &p, flags);
+    assert(hr == D3D_OK);
+    A_memcpy(p, data, n);
+    hr = IDirect3DVertexBuffer8_Unlock(vb->buffer);
+    assert(hr == D3D_OK);
 #endif // A_RENDER_BACKEND_GL
     vb->bytes += n;
     return true;
@@ -175,6 +223,10 @@ bool R_DeleteVertexBuffer(A_INOUT GfxVertexBuffer* vb) {
     vb->vbo = 0;
 #elif A_RENDER_BACKEND_D3D9
     D3D_CALL(vb->buffer, Release);
+    vb->buffer = NULL;
+#elif A_RENDER_BACKEND_D3D8
+    HRESULT hr = IDirect3DVertexBuffer8_Release(vb->buffer);
+    assert(hr == D3D_OK);
     vb->buffer = NULL;
 #endif // A_RENDER_BACKEND_GL
     vb->bytes    = 0;
@@ -236,7 +288,7 @@ A_NO_DISCARD GLenum R_ImageFormatToGL(ImageFormat format) {
 
     return gl_format;
 }
-#elif A_RENDER_BACKEND_D3D9 || A_RENDER_BACKEND_D3D8
+#elif A_RENDER_BACKEND_D3D
 A_NO_DISCARD D3DFORMAT R_ImageFormatToD3D(ImageFormat format) {
     D3DFORMAT d3dfmt = D3DFMT_UNKNOWN;
     switch (format) {
@@ -303,7 +355,7 @@ A_NO_DISCARD ImageFormat R_ImageFormatFromGL(GLenum format) {
 
     return img_format;
 }
-#elif A_RENDER_BACKEND_D3D9
+#elif A_RENDER_BACKEND_D3D
 A_NO_DISCARD ImageFormat R_ImageFormatFromD3D(D3DFORMAT format) {
     ImageFormat img_format = R_IMAGE_FORMAT_UNKNOWN;
     switch (format) {
@@ -313,9 +365,11 @@ A_NO_DISCARD ImageFormat R_ImageFormatFromD3D(D3DFORMAT format) {
     case D3DFMT_R5G6B5:
         img_format = R_IMAGE_FORMAT_RGB565;
         break;
+#if A_RENDER_BACKEND_D3D9
     case D3DFMT_R8G8B8:
         img_format = R_IMAGE_FORMAT_RGB888;
         break;
+#endif // A_RENDER_BACKEND_D3D9
     case D3DFMT_DXT1:
         img_format = R_IMAGE_FORMAT_DXT1;
         break;
@@ -400,7 +454,7 @@ A_NO_DISCARD GLint R_ImageFilterToGL(ImageFilter filter) {
     }
     return 0;
 }
-#elif A_RENDER_BACKEND_D3D9
+#elif A_RENDER_BACKEND_D3D
 A_NO_DISCARD DWORD R_ImageFilterToD3D(ImageFilter filter) {
     switch (filter) {
     case R_IMAGE_FILTER_LINEAR:

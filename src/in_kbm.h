@@ -164,18 +164,19 @@ A_EXTERN_C A_NO_DISCARD Keycode* IN_Key_AllPressedOnCurrentFrame(
 	size_t localClientNum,
 	A_OUT size_t* nKeys
 );
-A_EXTERN_C              void IN_Key_Frame(void);
-A_EXTERN_C              void IN_Key_Shutdown(void);
+A_EXTERN_C              void  IN_Key_Frame(void);
+A_EXTERN_C              void  IN_Key_Shutdown(void);
 
-A_EXTERN_C              void IN_Mouse_Init(void);
+A_EXTERN_C              int   IN_Mouse_SDLButtonToIndex(Uint8 button);
+A_EXTERN_C              void  IN_Mouse_Init(void);
 A_EXTERN_C A_NO_DISCARD bool  IN_Mouse_IsDown(size_t localClientNum,
-	                                          Uint8 button);
+	                                          int button);
 A_EXTERN_C A_NO_DISCARD bool  IN_Mouse_IsUp(size_t localClientNum,
-	                                        Uint8 button);
+	                                        int button);
 A_EXTERN_C              bool  IN_Mouse_Down(size_t localClientNum,
-	                                        Uint8 button);
+	                                        int button);
 A_EXTERN_C              bool  IN_Mouse_Up(size_t localClientNum,
-	                                      Uint8 button);
+	                                      int button);
 A_EXTERN_C              void  IN_Mouse_Move(size_t localClientNum,
 	                                        float xOff, float yOff);
 A_EXTERN_C A_NO_DISCARD float IN_Mouse_X(size_t localClientNum);

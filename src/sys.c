@@ -61,7 +61,7 @@ void Sys_Init(const char** argv) {
     vid_width = Dvar_RegisterInt(
         "vid_width", DVAR_FLAG_NONE, VID_WIDTH_DEFAULT, 1, INT_MAX);
     vid_height = Dvar_RegisterInt(
-        "vid_hight", DVAR_FLAG_NONE, VID_HEIGHT_DEFAULT, 1, INT_MAX);
+        "vid_height", DVAR_FLAG_NONE, VID_HEIGHT_DEFAULT, 1, INT_MAX);
 
 #if !A_TARGET_PLATFORM_IS_XBOX
     sys_sdlGlob.window = SDL_CreateWindow(
@@ -117,10 +117,10 @@ bool Sys_HandleEvent(void) {
                 IN_Key_SDLKToKeycode(ev.key.keysym.sym));
             break;
         case SDL_MOUSEBUTTONDOWN:
-            IN_Mouse_Down(CL_ClientWithKbmFocus(), ev.button.button);
+            IN_Mouse_Down(CL_ClientWithKbmFocus(), IN_Mouse_SDLButtonToIndex(ev.button.button));
             break;
         case SDL_MOUSEBUTTONUP:
-            IN_Mouse_Up(CL_ClientWithKbmFocus(), ev.button.button);
+            IN_Mouse_Up(CL_ClientWithKbmFocus(), IN_Mouse_SDLButtonToIndex(ev.button.button));
             break;
         case SDL_MOUSEMOTION:
             IN_Mouse_Move(
@@ -178,30 +178,30 @@ bool Sys_HandleEvent(void) {
                 if (ev.cdevice.which != SDL_JoystickInstanceID(joystick) || !IN_LocalClientHasGPad(0))
                     break;
 
-                float x = 0.0f, y = 0.0f;
+                float x = 0.0f, y = 0.0f, value = 0.0f;
                 switch (ev.caxis.axis) {
                 case SDL_CONTROLLER_AXIS_LEFTX:
-                    x = 1.0f / (float)(ev.caxis.value + 32768);
+                    x = 1.0f / (float)((Sint32)ev.caxis.value + 32768);
                     IN_GPad_MoveStick(0, IN_GPAD_STICK_LEFT, x, 0.0f);
                     break;
                 case SDL_CONTROLLER_AXIS_LEFTY:
-                    y = 1.0f / (float)(ev.caxis.value + 32768);
+                    y = 1.0f / (float)((Sint32)ev.caxis.value + 32768);
                     IN_GPad_MoveStick(0, IN_GPAD_STICK_LEFT, 0.0f, y);
                     break;
                 case SDL_CONTROLLER_AXIS_RIGHTX:
-                    x = 1.0f / (float)(ev.caxis.value + 32768);
+                    x = 1.0f / (float)((Sint32)ev.caxis.value + 32768);
                     IN_GPad_MoveStick(0, IN_GPAD_STICK_RIGHT, x, 0.0f);
                     break;
                 case SDL_CONTROLLER_AXIS_RIGHTY:
-                    y = 1.0f / (float)(ev.caxis.value + 32768);
+                    y = 1.0f / (float)((Sint32)ev.caxis.value + 32768);
                     IN_GPad_MoveStick(0, IN_GPAD_STICK_RIGHT, 0.0f, y);
                     break;
                 case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
-                    float value = 1.0f / (float)(ev.caxis.value + 32768);
+                    value = 1.0f / (float)((Sint32)ev.caxis.value + 32768);
                     IN_GPad_MoveTrigger(0, IN_GPAD_TRIGGER_LEFT, value);
                     break;
                 case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
-                    value = 1.0f / (float)(ev.caxis.value + 32768);
+                    value = 1.0f / (float)((Sint32)ev.caxis.value + 32768);
                     IN_GPad_MoveTrigger(0, IN_GPAD_TRIGGER_RIGHT, value);
                     break;
                 default:

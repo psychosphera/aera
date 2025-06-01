@@ -594,6 +594,51 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
                                                          &decl);
     assert(decl);
     material->vertex_declaration.decl = decl;
+#elif A_RENDER_BACKEND_D3D8
+    if (bsp_material->lightmap_vertices_count > 0) {
+        b = R_CreateVertexBuffer(lightmap_vertices,
+            lightmap_vertices_size,
+            lightmap_vertices_size, 0,
+            sizeof(BSPLightmapVertex),
+            &vb);
+        assert(b);
+        pVb = R_AddVertexBufferToVertexDeclaration(&material->vertex_declaration, &vb);
+        assert(pVb);
+        (void)pVb;
+    }
+
+    // FIXME: use compressed vector formats on Xbox
+    material->vertex_declaration.format.Input[0].StreamIndex = 0;
+    material->vertex_declaration.format.Input[0].Offset      = offsetof(BSPRenderedVertex, pos);
+    material->vertex_declaration.format.Input[0].Format      = D3DVSDT_FLOAT3;
+    material->vertex_declaration.format.Input[1].StreamIndex = 0;
+    material->vertex_declaration.format.Input[1].Offset      = offsetof(BSPRenderedVertex, normal);
+    material->vertex_declaration.format.Input[1].Format      = D3DVSDT_FLOAT3;
+    material->vertex_declaration.format.Input[2].StreamIndex = 0;
+    material->vertex_declaration.format.Input[2].Offset      = offsetof(BSPRenderedVertex, binormal);
+    material->vertex_declaration.format.Input[2].Format      = D3DVSDT_FLOAT3;
+    material->vertex_declaration.format.Input[3].StreamIndex = 0;
+    material->vertex_declaration.format.Input[3].Offset      = offsetof(BSPRenderedVertex, tangent);
+    material->vertex_declaration.format.Input[3].Format      = D3DVSDT_FLOAT3;
+    material->vertex_declaration.format.Input[4].StreamIndex = 0;
+    material->vertex_declaration.format.Input[4].Offset      = offsetof(BSPRenderedVertex, tex_coords);
+    material->vertex_declaration.format.Input[4].Format      = D3DVSDT_FLOAT2;
+    material->vertex_declaration.format.Input[5].StreamIndex = 0;
+    material->vertex_declaration.format.Input[5].Offset      = offsetof(BSPLightmapVertex, normal);
+    material->vertex_declaration.format.Input[5].Format      = D3DVSDT_FLOAT3;
+    material->vertex_declaration.format.Input[6].StreamIndex = 0;
+    material->vertex_declaration.format.Input[6].Offset      = offsetof(BSPLightmapVertex, tex_coords);
+    material->vertex_declaration.format.Input[6].Format      = D3DVSDT_FLOAT2;
+    material->vertex_declaration.format.Input[7].Format      = D3DVSDT_NONE;
+    material->vertex_declaration.format.Input[8].Format      = D3DVSDT_NONE;
+    material->vertex_declaration.format.Input[9].Format      = D3DVSDT_NONE;
+    material->vertex_declaration.format.Input[10].Format     = D3DVSDT_NONE;
+    material->vertex_declaration.format.Input[11].Format     = D3DVSDT_NONE;
+    material->vertex_declaration.format.Input[12].Format     = D3DVSDT_NONE;
+    material->vertex_declaration.format.Input[13].Format     = D3DVSDT_NONE;
+    material->vertex_declaration.format.Input[14].Format     = D3DVSDT_NONE;
+    material->vertex_declaration.format.Input[15].Format     = D3DVSDT_NONE;
+    material->vertex_declaration.format_count = 7;
 #endif // A_RENDER_BACKEND_GL
     VM_Free(rendered_vertices, VM_ALLOC_BSP);
     if (bsp_material->lightmap_vertices_count > 0)
@@ -721,6 +766,34 @@ static void R_LoadModelPart(const BSPModelGeometryPart* bsp_part, GfxModelPart* 
         &decl);
     assert(decl);
     part->vertex_declaration.decl = decl;
+#elif A_RENDER_BACKEND_D3D8
+    part->vertex_declaration.format.Input[0].StreamIndex = 0;
+    part->vertex_declaration.format.Input[0].Offset      = offsetof(BSPModelDecompressedVertex, position);
+    part->vertex_declaration.format.Input[0].Format      = D3DVSDT_FLOAT3;
+    part->vertex_declaration.format.Input[1].StreamIndex = 0;
+    part->vertex_declaration.format.Input[1].Offset      = offsetof(BSPModelDecompressedVertex, normal);
+    part->vertex_declaration.format.Input[1].Format      = D3DVSDT_FLOAT3;
+    part->vertex_declaration.format.Input[2].StreamIndex = 0;
+    part->vertex_declaration.format.Input[2].Offset      = offsetof(BSPModelDecompressedVertex, binormal);
+    part->vertex_declaration.format.Input[2].Format      = D3DVSDT_FLOAT3;
+    part->vertex_declaration.format.Input[3].StreamIndex = 0;
+    part->vertex_declaration.format.Input[3].Offset      = offsetof(BSPModelDecompressedVertex, tangent);
+    part->vertex_declaration.format.Input[3].Format      = D3DVSDT_FLOAT3;
+    part->vertex_declaration.format.Input[4].StreamIndex = 0;
+    part->vertex_declaration.format.Input[4].Offset      = offsetof(BSPModelDecompressedVertex, texcoords);
+    part->vertex_declaration.format.Input[4].Format      = D3DVSDT_FLOAT2;
+    part->vertex_declaration.format.Input[5].Format      = D3DVSDT_NONE;
+    part->vertex_declaration.format.Input[6].Format      = D3DVSDT_NONE;
+    part->vertex_declaration.format.Input[7].Format      = D3DVSDT_NONE;
+    part->vertex_declaration.format.Input[8].Format      = D3DVSDT_NONE;
+    part->vertex_declaration.format.Input[9].Format      = D3DVSDT_NONE;
+    part->vertex_declaration.format.Input[10].Format     = D3DVSDT_NONE;
+    part->vertex_declaration.format.Input[11].Format     = D3DVSDT_NONE;
+    part->vertex_declaration.format.Input[12].Format     = D3DVSDT_NONE;
+    part->vertex_declaration.format.Input[13].Format     = D3DVSDT_NONE;
+    part->vertex_declaration.format.Input[14].Format     = D3DVSDT_NONE;
+    part->vertex_declaration.format.Input[15].Format     = D3DVSDT_NONE;
+    part->vertex_declaration.format_count = 5;
 #endif // A_RENDER_BACKEND_GL
 }
 
@@ -814,8 +887,19 @@ static bool R_RenderShaderEnvironment(GfxShaderEnvironment* shader_environment,
 #elif A_RENDER_BACKEND_D3D9
     assert(vertex_declaration->decl);
     D3D_CALL(r_d3d9Glob.d3ddev, SetVertexDeclaration, vertex_declaration->decl);
+#elif A_RENDER_BACKEND_D3D8
+    D3DSTREAM_INPUT stream_inputs[R_MATERIAL_PASS_MAX_VBS];
+    UINT offset = 0;
+    for (int i = 0; i < A_countof(stream_inputs); i++) {
+        UINT stride = vertex_declaration->vbs[i].stride;
+        stream_inputs[i].VertexBuffer = vertex_declaration->vbs[i].buffer;
+        stream_inputs[i].Offset       = offset;
+        stream_inputs[i].Stride       = stride;
+        offset += stride;
+    }
+    HRESULT hr = IDirect3DDevice8_SetVertexShaderInputDirect(r_d3d8Glob.d3ddev, &vertex_declaration->format, vertex_declaration->vb_count, stream_inputs);
+    assert(hr == D3D_OK);
 #endif
-
     bool b = true;
     for (int i = 0; i < vertex_declaration->vb_count; i++) {
         b = R_BindVertexBuffer(&vertex_declaration->vbs[i], i);
@@ -869,6 +953,18 @@ static bool R_RenderShaderModel(GfxShaderModel* shader_model,
 #elif A_RENDER_BACKEND_D3D9
     assert(vertex_declaration->decl);
     D3D_CALL(r_d3d9Glob.d3ddev, SetVertexDeclaration, vertex_declaration->decl);
+#elif A_RENDER_BACKEND_D3D8
+    D3DSTREAM_INPUT stream_inputs[R_MATERIAL_PASS_MAX_VBS];
+    UINT offset = 0;
+    for (int i = 0; i < A_countof(stream_inputs); i++) {
+        UINT stride = vertex_declaration->vbs[i].stride;
+        stream_inputs[i].VertexBuffer = vertex_declaration->vbs[i].buffer;
+        stream_inputs[i].Offset = offset;
+        stream_inputs[i].Stride = stride;
+        offset += stride;
+    }
+    HRESULT hr = IDirect3DDevice8_SetVertexShaderInputDirect(r_d3d8Glob.d3ddev, &vertex_declaration->format, vertex_declaration->vb_count, stream_inputs);
+    assert(hr == D3D_OK); 
 #endif
 
     bool b = true;
