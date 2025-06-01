@@ -208,6 +208,8 @@ RenderGlob r_renderGlob;
 
 #if A_RENDER_BACKEND_D3D9
 D3D9RenderGlob r_d3d9Glob;
+#elif A_RENDER_BACKEND_D3D8
+D3D8RenderGlob r_d3d8Glob;
 #endif // A_RENDER_BACKEND_D3D9
 
 #if A_RENDER_BACKEND_GL
@@ -341,6 +343,102 @@ static bool R_InitD3D9(void) {
                                                 D3DBLEND_INVSRCALPHA);
     return true;
 }
+#elif A_RENDER_BACKEND_D3D8
+#if !A_TARGET_PLATFORM_IS_XBOX
+static HWND R_GetHwnd(SDL_Window* window) {
+    SDL_SysWMinfo info;
+    SDL_VERSION(&info.version);
+    int res = SDL_GetWindowWMInfo(window, &info);
+    assert(res == SDL_TRUE);
+    HWND hWnd = info.info.win.window;
+    return hWnd;
+}
+#endif // !A_TARGET_PLATFORM_IS_XBOX
+
+static UINT R_ChooseAdapter(IDirect3D8* d3d8) {
+    (void)d3d8;
+    return D3DADAPTER_DEFAULT;
+}
+
+static IDirect3DDevice8* R_CreateDevice(HWND hWnd, IDirect3D8* d3d8, UINT adapter) {
+#if A_TARGET_PLATFORM_IS_XBOX
+    assert(hWnd    == NULL);
+    assert(adapter == D3DADAPTER_DEFAULT);
+#endif // A_TARGET_PLATFORM_IS_XBOX
+    DWORD behavior_flags = D3DCREATE_HARDWARE_VERTEXPROCESSING;
+
+    UINT interval = Dvar_GetBool(r_vsync) ?
+        D3DPRESENT_INTERVAL_ONE :
+        D3DPRESENT_INTERVAL_IMMEDIATE;
+
+#if A_TARGET_PLATFORM_IS_XBOX
+    D3DDISPLAYMODE d3dmode;
+    HRESULT hr = IDirect3D8_GetAdapterDisplayMode(d3d8, D3DADAPTER_DEFAULT, &d3dmode);
+    assert(hr == D3D_OK);
+    UINT      width  = d3dmode.Width;
+    UINT      height = d3dmode.Height;
+    D3DFORMAT format = d3dmode.Format;
+    Dvar_SetInt(vid_width,  width);
+    Dvar_SetInt(vid_height, height);
+#else
+    HRESULT   hr     = D3D_OK;
+    UINT      width  = 0;
+    UINT      height = 0;
+    D3DFORMAT format = D3DFMT_UNKNOWN;
+#endif // A_TARGET_PLATFORM_IS_XBOX
+    D3DPRESENT_PARAMETERS d3dpp;
+    A_memset(&d3dpp, 0, sizeof(d3dpp));
+    d3dpp.BackBufferWidth                 = width;
+    d3dpp.BackBufferHeight                = height;
+    d3dpp.BackBufferFormat                = format;
+    d3dpp.BackBufferCount                 = 1;
+    d3dpp.EnableAutoDepthStencil          = TRUE;
+    d3dpp.AutoDepthStencilFormat          = D3DFMT_D24S8;
+    d3dpp.SwapEffect                      = D3DSWAPEFFECT_DISCARD;
+    d3dpp.FullScreen_PresentationInterval = interval;
+
+    IDirect3DDevice8* d3ddev = NULL;
+    hr = IDirect3D8_CreateDevice(d3d8, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, 
+                                 hWnd, behavior_flags, &d3dpp, &d3ddev);
+    assert(hr == D3D_OK);
+
+    if (hr == D3D_OK)
+        assert(d3ddev);
+
+    return d3ddev;
+}
+
+static bool R_InitD3D8(void) {
+    A_memset(&r_d3d8Glob, 0, sizeof(r_d3d8Glob));
+
+#if !A_TARGET_PLATFORM_IS_XBOX
+    HWND hWnd = R_GetHwnd(sys_sdlGlob.window);
+    r_d3d8Glob.hWnd = hWnd;
+#else 
+    HWND hWnd = NULL;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
+
+    IDirect3D8* d3d8 = Direct3DCreate8(D3D_SDK_VERSION);
+    assert(d3d8);
+    r_d3d8Glob.d3d8 = d3d8;
+
+    UINT adapter = R_ChooseAdapter(d3d8);
+
+    IDirect3DDevice8* d3ddev = R_CreateDevice(hWnd, d3d8, adapter);
+    assert(d3ddev);
+    r_d3d8Glob.d3ddev = d3ddev;
+
+    r_d3d9Glob.clear_color_argb =
+        R_ColorRGBAToD3DARGB(r_renderGlob.clear_color);
+
+    HRESULT hr = IDirect3DDevice8_SetRenderState(d3ddev, D3DRS_BLENDOP, D3DBLENDOP_ADD);
+    assert(hr == D3D_OK);
+    hr = IDirect3DDevice8_SetRenderState(d3ddev, D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+    assert(hr == D3D_OK);
+    hr = IDirect3DDevice8_SetRenderState(d3ddev, D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+    assert(hr == D3D_OK);
+    return true;
+}
 #endif // A_RENDER_BACKEND_GL
 
 void R_Init(void) {
@@ -364,8 +462,10 @@ void R_Init(void) {
     if (!b)
         Com_Errorln(-1, "Failed to initialize D3D9.");
 #elif A_RENDER_BACKEND_D3D8
-	bool b = false;
-	assert(false && "D3D8 unimplemented"); // FIXME
+    bool b = R_InitD3D8();
+    assert(b && "Failed to initialize D3D8.");
+    if (!b)
+        Com_Errorln(-1, "Failed to initialize D3D8.");
 #endif // A_RENDER_BACKEND_GL
     
     for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
@@ -454,6 +554,8 @@ static bool R_EnableScissorTest(void) {
     GL_CALL(glEnable, GL_SCISSOR_TEST);
 #elif A_RENDER_BACKEND_D3D9
     D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_SCISSORTESTENABLE, TRUE);
+#elif A_RENDER_BACKEND_D3D8
+    return false;
 #endif // A_RENDER_BACKEND_GL
     return true;
 }
@@ -464,6 +566,8 @@ static bool R_DisableScissorTest(void) {
 #elif A_RENDER_BACKEND_D3D9
     D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_SCISSORTESTENABLE, 
                                                 FALSE);
+#elif A_RENDER_BACKEND_D3D8
+    return false;
 #endif // A_RENDER_BACKEND_GL
     return true;
 }
@@ -472,6 +576,9 @@ static void R_BeginFrame(void) {
     // intentionally a no-op for GL since there's nothing to do
 #if A_RENDER_BACKEND_D3D9
     D3D_CALL(r_d3d9Glob.d3ddev, BeginScene);
+#elif A_RENDER_BACKEND_D3D8
+    HRESULT hr = IDirect3DDevice8_BeginScene(r_d3d8Glob.d3ddev);
+    assert(hr == D3D_OK);
 #endif // A_RENDER_BACKEND_D3D9
 }
 
@@ -484,6 +591,11 @@ static void R_EndFrame(void) {
 #if A_RENDER_BACKEND_D3D9
     D3D_CALL(r_d3d9Glob.d3ddev, EndScene);
     D3D_CALL(r_d3d9Glob.d3ddev, Present, NULL, NULL, NULL, NULL);
+#elif A_RENDER_BACKEND_D3D8
+    HRESULT hr = IDirect3DDevice8_EndScene(r_d3d8Glob.d3ddev);
+    assert(hr == D3D_OK);
+    hr = IDirect3DDevice8_Present(r_d3d8Glob.d3ddev, NULL, NULL, NULL, NULL);
+    assert(hr == D3D_OK);
 #endif // A_RENDER_BACKEND_D3D9
 }
 
@@ -646,7 +758,52 @@ A_NO_DISCARD bool R_CreateImage2D(const void* pixels, size_t pixels_size,
     D3DFORMAT          d3dfmt          = R_ImageFormatToD3D(format);
     ImageFormat        internal_format = format;
     IDirect3DTexture8* tex             = NULL;
-	assert(false && "D3D8 unimplemented");
+
+    HRESULT hr = IDirect3DDevice8_CreateTexture(r_d3d9Glob.d3ddev, width, height, 
+                                                1, 0, d3dfmt, D3DPOOL_MANAGED, &tex);
+    assert(hr == D3D_OK);
+    assert(tex);
+    D3DLOCKED_RECT locked_rect;
+    RECT rect;
+    rect.left   = 0;
+    rect.right  = width;
+    rect.top    = 0;
+    rect.bottom = height;
+#if !A_TARGET_PLATFORM_IS_XBOX
+    DWORD flags = D3DLOCK_DISCARD;
+#else
+    DWORD flags = 0;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
+    hr = IDirect3DTexture8_LockRect(tex, 0, &locked_rect, &rect, flags);
+    assert(hr == D3D_OK);
+
+    INT pitch = locked_rect.Pitch;
+    if (format == R_IMAGE_FORMAT_DXT1)
+        pitch /= 16;
+    else if (format == R_IMAGE_FORMAT_DXT3 || format == R_IMAGE_FORMAT_DXT5)
+        pitch /= 4;
+
+    int bpp = R_ImageFormatBPP(format);
+    int block_size = R_ImageFormatIsDXT(format) ? 4 : 1;
+    // pitch can be greater than width * pixel_size, 
+    // but it should never be less
+    assert(width * bpp / 8 / block_size <= pitch);
+
+    // if they're equal, a single full copy will work
+    if (width * bpp / 8 == pitch) {
+        A_memcpy(locked_rect.pBits, pixels, width * height * bpp / 8);
+    }
+    // if not, copy line-by-line
+    else if (pixels_size > 0) {
+        for (int i = 0; i < height; i++) {
+            A_memcpy((char*)locked_rect.pBits + i * pitch * block_size,
+                (char*)pixels + i * pitch * block_size,
+                pitch * block_size
+            );
+        }
+    }
+    hr = IDirect3DTexture8_UnlockRect(tex, 0);
+    assert(hr == D3D_OK);
 #endif // A_RENDER_BACKEND_GL
     image->width           = width;
     image->height          = height;
@@ -733,6 +890,41 @@ A_NO_DISCARD bool R_ImageSubData(A_INOUT GfxImage* image,
         }
     }
     D3D_CALL(tex, UnlockRect, 0);
+#elif A_RENDER_BACKEND_D3D8
+    IDirect3DTexture8* tex = image->tex;
+    D3DLOCKED_RECT locked_rect;
+    RECT rect;
+    rect.left   = xoff;
+    rect.right  = xoff + width;
+    rect.top    = yoff;
+    rect.bottom = yoff + height;
+#if A_TARGET_PLATFORM_IS_XBOX
+    DWORD flags = 0;
+#else
+    DWORD flags = D3DLOCK_DISCARD;
+#endif // A_TARGET_PLATFORM_IS_XBOX
+    HRESULT hr = IDirect3DTexture8_LockRect(tex, 0, &locked_rect, &rect, flags);
+    assert(hr == D3D_OK);
+    INT pitch = locked_rect.Pitch;
+    int bpp = R_ImageFormatBPP(format);
+    // pitch can be greater than width * pixel_size,
+    // but it should never be less
+    assert(width * bpp / 8 <= pitch);
+    // if they're equal, a single full copy will work
+    if (width * bpp / 8 == pitch && xoff == 0 && yoff == 0) {
+        A_memcpy(locked_rect.pBits, pixels, pixels_size);
+    }
+    // if not, copy line-by-line
+    else {
+        for (int i = yoff; i < height; i++) {
+            A_memcpy((char*)locked_rect.pBits + i * pitch,
+                (char*)pixels + i * width,
+                width
+            );
+        }
+    }
+    hr = IDirect3DTexture8_UnlockRect(tex, 0);
+    assert(hr == D3D_OK);
 #endif // A_RENDER_BACKEND_GL
     return true;
 }
@@ -745,6 +937,11 @@ void R_DeleteImage(A_INOUT GfxImage* image) {
         D3D_CALL(image->tex, Release);
         image->tex = NULL;
     }
+#elif A_RENDER_BACKEND_D3D8
+    if (image->tex) {
+        IDirect3DTexture8_Release(image->tex);
+        image->tex = NULL;
+    }
 #endif // A_RENDER_BACKEND_GL
 }
 
@@ -753,6 +950,9 @@ bool R_EnableDepthTest(void) {
     GL_CALL(glEnable, GL_DEPTH_TEST);
 #elif A_RENDER_BACKEND_D3D9
     D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_ZENABLE, TRUE);
+#elif A_RENDER_BACKEND_D3D8
+    HRESULT hr = IDirect3DDevice8_SetRenderState(r_d3d8Glob.d3ddev, D3DRS_ZENABLE, TRUE);
+    assert(hr == D3D_OK);
 #endif // A_RENDER_BACKEND_GL
     return true;
 }
@@ -762,6 +962,9 @@ bool R_DisableDepthTest(void) {
     GL_CALL(glDisable, GL_DEPTH_TEST);
 #elif A_RENDER_BACKEND_D3D9
     D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_ZENABLE, FALSE);
+#elif A_RENDER_BACKEND_D3D8
+    HRESULT hr = IDirect3DDevice8_SetRenderState(r_d3d8Glob.d3ddev, D3DRS_ZENABLE, FALSE);
+    assert(hr == D3D_OK);
 #endif // A_RENDER_BACKEND_GL
     return true;
 }
@@ -771,6 +974,9 @@ bool R_EnableBackFaceCulling(void) {
     GL_CALL(glEnable, GL_CULL_FACE);
 #elif A_RENDER_BACKEND_D3D9
     D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_CULLMODE, D3DCULL_CCW);
+#elif A_RENDER_BACKEND_D3D8
+    HRESULT hr = IDirect3DDevice8_SetRenderState(r_d3d8Glob.d3ddev, D3DRS_CULLMODE, D3DCULL_CCW);
+    assert(hr == D3D_OK);
 #endif // A_RENDER_BACKEND_GL
     return true;
 }
@@ -780,6 +986,9 @@ bool R_DisableBackFaceCulling(void) {
     GL_CALL(glDisable, GL_CULL_FACE);
 #elif A_RENDER_BACKEND_D3D9
     D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_CULLMODE, 0);
+#elif A_RENDER_BACKEND_D3D8
+    HRESULT hr = IDirect3DDevice8_SetRenderState(r_d3d8Glob.d3ddev, D3DRS_CULLMODE, 0);
+    assert(hr == D3D_OK);
 #endif // A_RENDER_BACKEND_GL
     return true;
 }
@@ -789,6 +998,9 @@ bool R_EnableTransparencyBlending(void) {
     GL_CALL(glEnable, GL_BLEND);
 #elif A_RENDER_BACKEND_D3D9
     D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_ALPHABLENDENABLE, TRUE);
+#elif A_RENDER_BACKEND_D3D8
+    HRESULT hr = IDirect3DDevice8_SetRenderState(r_d3d8Glob.d3ddev, D3DRS_ALPHABLENDENABLE, TRUE);
+    assert(hr == D3D_OK);
 #endif // A_RENDER_BACKEND_GL
     return true;
 }
@@ -798,6 +1010,9 @@ bool R_DisableTransparencyBlending(void) {
     GL_CALL(glDisable, GL_BLEND);
 #elif A_RENDER_BACKEND_D3D9
     D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_ALPHABLENDENABLE, FALSE);
+#elif A_RENDER_BACKEND_D3D8
+    HRESULT hr = IDirect3DDevice8_SetRenderState(r_d3d8Glob.d3ddev, D3DRS_ALPHABLENDENABLE, FALSE);
+    assert(hr == D3D_OK);
 #endif // A_RENDER_BACKEND_GL
     return true;
 }
@@ -817,8 +1032,8 @@ static GLenum R_PolygonModeToGL(GfxPolygonMode mode) {
 }
 #endif // A_RENDER_BACKEND_GL
 
-#if A_RENDER_BACKEND_D3D9
-static DWORD R_PolygonModeToD3D9(GfxPolygonMode mode) {
+#if A_RENDER_BACKEND_D3D
+static DWORD R_PolygonModeToD3D(GfxPolygonMode mode) {
     switch (mode) {
     case R_POLYGON_MODE_FILL:
         return D3DFILL_SOLID;
@@ -836,9 +1051,14 @@ bool R_SetPolygonMode(GfxPolygonMode mode) {
 #if A_RENDER_BACKEND_GL
     GLenum fill_mode = R_PolygonModeToGL(mode);
     GL_CALL(glPolygonMode, GL_FRONT_AND_BACK, fill_mode);
-#elif A_RENDER_BACKEND_D3D9
-    DWORD fill_mode = R_PolygonModeToD3D9(mode);
-    D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_FILLMODE, fill_mode);                                       
+#elif A_RENDER_BACKEND_D3D
+    DWORD fill_mode = R_PolygonModeToD3D(mode);
+#if A_RENDER_BACKEND_D3D9
+    D3D_CALL(r_d3d9Glob.d3ddev, SetRenderState, D3DRS_FILLMODE, fill_mode);   
+#elif A_RENDER_BACKEND_D3D8
+    HRESULT hr = IDirect3DDevice8_SetRenderState(r_d3d8Glob.d3ddev, D3DRS_FILLMODE, fill_mode);
+    assert(hr == D3D_OK);
+#endif // A_RENDER_BACKEND_D3D9
 #endif // A_RENDER_BACKEND_GL
     return true;
 }
@@ -880,6 +1100,11 @@ void R_Clear(void) {
     D3D_CALL(r_d3d9Glob.d3ddev, Clear, 0, NULL, 
                                        D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,
                                        r_d3d9Glob.clear_color_argb, 0.0f, 0);
+#elif A_RENDER_BACKEND_D3D8
+    HRESULT hr = IDirect3DDevice8_Clear(r_d3d8Glob.d3ddev, 0, NULL,
+                                        D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,
+                                        r_d3d9Glob.clear_color_argb, 0.0f, 0);
+    assert(hr == D3D_OK);
 #endif // A_RENDER_BACKEND_GL
 }
 
@@ -893,12 +1118,23 @@ bool R_BindVertexBuffer(const GfxVertexBuffer* vb, int stream) {
         GL_CALL(glBindVertexArray, 0);
         GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, 0);
     }
-#elif A_RENDER_BACKEND_D3D9
+#elif A_RENDER_BACKEND_D3D
     if (vb) {
+#if A_RENDER_BACKEND_D3D9
         D3D_CALL(r_d3d9Glob.d3ddev, SetStreamSource, stream, vb->buffer,
                                                      0, vb->stride);
+#elif A_RENDER_BACKEND_D3D8
+        HRESULT hr = IDirect3DDevice8_SetStreamSource(r_d3d8Glob.d3ddev, stream, 
+                                                      vb->buffer, vb->stride);
+        assert(hr == D3D_OK);
+#endif // A_RENDER_BACKEND_D3D9
     } else {
+#if A_RENDER_BACKEND_D3D9
         D3D_CALL(r_d3d9Glob.d3ddev, SetStreamSource, stream, NULL, 0, 0);
+#elif A_RENDER_BACKEND_D3D8
+        HRESULT hr = IDirect3DDevice8_SetStreamSource(r_d3d8Glob.d3ddev, stream, NULL, 0);
+        assert(hr == D3D_OK);
+#endif // A_RENDER_BACKEND_D3D9
     }
 #endif // A_RENDER_BACKEND_GL
     return true;
@@ -913,12 +1149,22 @@ bool R_BindImage(A_INOUT GfxImage* image, int index) {
         GL_CALL(glActiveTexture, GL_TEXTURE0 + index);
         GL_CALL(glBindTexture, GL_TEXTURE_2D, 0);
     }
-#elif A_RENDER_BACKEND_D3D9
+#elif A_RENDER_BACKEND_D3D
     if (image) {
+#if A_RENDER_BACKEND_D3D9
         D3D_CALL(r_d3d9Glob.d3ddev, SetTexture, index, 
                  (IDirect3DBaseTexture9*)image->tex);
+#elif A_RENDER_BACKEND_D3D8
+        HRESULT hr = IDirect3DDevice8_SetTexture(r_d3d8Glob.d3ddev, index, (IDirect3DBaseTexture8*)image->tex);
+        assert(hr == D3D_OK);
+#endif // A_RENDER_BACKEND_D3D9
     } else {
+#if A_RENDER_BACKEND_D3D9
         D3D_CALL(r_d3d9Glob.d3ddev, SetTexture, index, NULL);
+#elif A_RENDER_BACKEND_D3D8
+        HRESULT hr = IDirect3DDevice8_SetTexture(r_d3d8Glob.d3ddev, index, NULL);
+        assert(hr == D3D_OK);
+#endif // A_RENDER_BACKEND_D3D9
     }
 #endif // A_RENDER_BACKEND_GL
     return true;
@@ -939,6 +1185,8 @@ bool R_BindShaderProgram(const GfxShaderProgram* prog) {
         D3D_CALL(r_d3d9Glob.d3ddev, SetVertexShader, NULL);
         D3D_CALL(r_d3d9Glob.d3ddev, SetPixelShader,  NULL);
     }
+#else
+    assert(false && "unimplemented"); // FIXME
 #endif // A_RENDER_BACKEND_GL
     return true;
 }
@@ -959,8 +1207,8 @@ static GLenum R_PrimitiveTypeToGL(GfxPrimitiveType type) {
         );
     }
 }
-#elif A_RENDER_BACKEND_D3D9
-static DWORD R_PrimitiveTypeToD3D9(GfxPrimitiveType type) {
+#elif A_RENDER_BACKEND_D3D
+static D3DPRIMITIVETYPE R_PrimitiveTypeToD3D(GfxPrimitiveType type) {
     switch (type) {
     case PRIMITIVE_TYPE_TRI:
         return D3DPT_TRIANGLELIST;
@@ -983,11 +1231,16 @@ bool R_DrawPrimitives(GfxPrimitiveType type, int primitive_count, int primitive_
     GLenum mode = R_PrimitiveTypeToGL(type);
     GLsizei count = type == PRIMITIVE_TYPE_TRI ? primitive_count * 3 : type == PRIMITIVE_TYPE_TRI_STRIP ? primitive_count + 2 : -1;
     GL_CALL(glDrawArrays, mode, off, count);
-#elif A_RENDER_BACKEND_D3D9
-    DWORD primitive_type = R_PrimitiveTypeToD3D9(type);
+#elif A_RENDER_BACKEND_D3D
+    D3DPRIMITIVETYPE primitive_type = R_PrimitiveTypeToD3D(type);
+#if A_RENDER_BACKEND_D3D9
     D3D_CALL(r_d3d9Glob.d3ddev, DrawPrimitive, primitive_type,
-        primitive_count,
-        off);
+                                               off
+                                               primitive_count);
+#elif A_RENDER_BACKEND_D3D8
+    HRESULT hr = IDirect3DDevice8_DrawPrimitive(r_d3d8Glob.d3ddev, primitive_type, off, primitive_count);
+    assert(hr == D3D_OK);
+#endif // A_RENDER_BACKEND_D3D9
 #endif // A_RENDER_BACKEND_GL
     return true;
 }
@@ -1089,6 +1342,23 @@ static void R_ShutdownD3D9(void) {
     r_d3d9Glob.clear_color_argb = 0;
     r_d3d9Glob.hWnd             = NULL;
 }
+#elif A_RENDER_BACKEND_D3D8
+static void R_ShutdownD3D8(void) {
+    if (r_d3d8Glob.d3ddev) {
+        IDirect3DDevice8_Release(r_d3d8Glob.d3ddev);
+        r_d3d8Glob.d3ddev = NULL;
+    }
+
+    if (r_d3d9Glob.d3d8) {
+        IDirect3D8_Release(r_d3d8Glob.d3d8);
+        r_d3d8Glob.d3d8 = NULL;
+    }
+
+    r_d3d9Glob.clear_color_argb = 0;
+#if !A_TARGET_PLATFORM_IS_XBOX
+    r_d3d8Glob.hWnd = NULL;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
+}
 #endif // A_RENDER_BACKEND_D3D9
 
 A_EXTERN_C void R_Shutdown(void) {
@@ -1102,6 +1372,8 @@ A_EXTERN_C void R_Shutdown(void) {
     R_ShutdownGL();
 #elif A_RENDER_BACKEND_D3D9
     R_ShutdownD3D9();
+#elif A_RENDER_BACKEND_D3D8
+    R_ShutdownD3D8();
 #endif // A_RENDER_BACKEND_D3D9
 
     RB_Shutdown();

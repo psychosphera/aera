@@ -2,7 +2,7 @@
 /.vscode
 CMakeSettings.json
 CMakePresets.json
-/deps/SDL_build
+/deps/zlib_build
 /build*
 /out
 /assets/maps/*
@@ -12,6 +12,5 @@ CMakePresets.json
 *.jpg
 *.ttf
 *.dll
-*.cmake
 *.sln
 *.vcxproj*

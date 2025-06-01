@@ -8,7 +8,9 @@
 #include "com_print.h"
 #include "dvar.h"
 #include "gfx_defs.h"
-#include "in_input.h"
+#if !A_TARGET_PLATFORM_IS_XBOX
+#include "in_kbm.h"
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 #include "pm_pmove.h"
 
 #if !A_TARGET_PLATFORM_IS_XBOX

@@ -34,7 +34,9 @@ extern dvar_t*     vid_xpos;
 extern dvar_t*     vid_ypos;
 
 A_EXTERN_C void Sys_Init          (const char** argv);
+#if !A_TARGET_PLATFORM_IS_XBOX
 A_EXTERN_C bool Sys_HandleEvent   (void);
+#endif // A_TARGET_PLATFORM_IS_XBOX
 A_EXTERN_C bool Sys_AwaitingThread(thread_t thread);
 A_EXTERN_C void Sys_Shutdown      (void);
 //A_NO_RETURN Sys_NormalExit(int ec);

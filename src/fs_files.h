@@ -8,22 +8,6 @@
 
 #include "com_defs.h"
 
-typedef struct StreamFile {
-#if !A_TARGET_PLATFORM_IS_XBOX
-	SDL_RWops* f;
-#else 
-	HANDLE f;
-#endif // !A_TARGET_PLATFORM_IS_XBOX
-	size_t size;
-} StreamFile;
-
-A_EXTERN_C A_NO_DISCARD void* FS_ReadFile    (const char* path,
-	                                          A_OPTIONAL_OUT size_t* sz);
-A_EXTERN_C              void  FS_FreeFile    (void* p);
-A_EXTERN_C A_NO_DISCARD char* FS_ReadFileText(const char* path, 
-	                                          A_OPTIONAL_OUT size_t* sz);
-A_EXTERN_C              void  FS_FreeFileText(char* text);
-
 typedef enum SeekFrom {
 	FS_SEEK_BEGIN,
 	FS_SEEK_CUR,
@@ -37,6 +21,24 @@ typedef enum StreamMode {
 	FS_STREAM_READ_WRITE_NEW,
 	FS_STREAM_APPEND
 } StreamMode;
+
+typedef struct StreamFile {
+#if !A_TARGET_PLATFORM_IS_XBOX
+	SDL_RWops* f;
+#else 
+	HANDLE     f;
+	StreamMode mode;
+	size_t     off;
+#endif // !A_TARGET_PLATFORM_IS_XBOX
+	size_t     size;
+} StreamFile;
+
+A_EXTERN_C A_NO_DISCARD void* FS_ReadFile    (const char* path,
+	                                          A_OPTIONAL_OUT size_t* sz);
+A_EXTERN_C              void  FS_FreeFile    (void* p);
+A_EXTERN_C A_NO_DISCARD char* FS_ReadFileText(const char* path, 
+	                                          A_OPTIONAL_OUT size_t* sz);
+A_EXTERN_C              void  FS_FreeFileText(char* text);
 
 A_EXTERN_C A_NO_DISCARD StreamFile FS_StreamFile(
 	const char* path, SeekFrom from, StreamMode mode, size_t off

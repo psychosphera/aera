@@ -2,7 +2,9 @@
 
 #include <assert.h>
 
-#include <zlib.h>
+#if !A_TARGET_PLATFORM_IS_XBOX
+	#include <zlib.h>
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 #include "acommon/acommon.h"
 #include "acommon/a_math.h"
@@ -663,7 +665,7 @@ static bool CL_LoadMap_Decompress(
 		FileMapping f = DB_LoadMap_Mmap(map_name);
 		size_t compressed_map_size = FS_FileSize(&f);
 		Bytef* p = f.p;
-#else 
+#elif 0 
 		StreamFile f = DB_LoadMap_Stream(map_name);
 		size_t compressed_map_size = f.size;
 		Bytef* p = (Bytef*)VM_Alloc(compressed_map_size, VM_ALLOC_MAP);
@@ -672,6 +674,7 @@ static bool CL_LoadMap_Decompress(
 		void* decompressed = VM_Alloc(decompressed_map_size, VM_ALLOC_MAP);
 		A_memcpy(decompressed, header, sizeof(*header));
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 		z_stream stream;
 		stream.zalloc    = Z_NULL;
 		stream.zfree     = Z_NULL;
@@ -692,6 +695,9 @@ static bool CL_LoadMap_Decompress(
 			"CL_LoadMap: Decompressed %lu bytes (%d %s), expected %zu.",
 			stream.total_out, ret, stream.msg ? stream.msg : "<NULL>",
 			decompressed_map_size - sizeof(header));
+#else
+		assert(false && "unimplemented"); // FIXME: zlib
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 		path = DB_MapPath(decompressed_map_name);
 		StreamFile decompressed_map = FS_StreamFile(path, FS_SEEK_BEGIN,
 			                                        FS_STREAM_READ_WRITE_NEW, 0);
@@ -705,7 +711,7 @@ static bool CL_LoadMap_Decompress(
 #if !A_TARGET_PLATFORM_IS_XBOX
 		b = Z_UnmapFile(&f);
 		assert(b);
-#else 
+#elif 0 
 		VM_Free(p, VM_ALLOC_MAP);
 		FS_CloseStream(&f);
 #endif // !A_TARGET_PLATFORM_IS_XBOX	

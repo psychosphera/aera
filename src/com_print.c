@@ -22,7 +22,7 @@ void Com_PrintMessage(print_msg_dest_t dest, const char* msg) {
 #if !A_TARGET_PLATFORM_IS_XBOX
         DevCon_PrintMessage(msg);
 #else
-		assert(false && "unimplemented");
+        OutputDebugStringA(msg);
 #endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 

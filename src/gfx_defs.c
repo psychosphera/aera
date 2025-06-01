@@ -412,7 +412,7 @@ A_NO_DISCARD DWORD R_ImageFilterToD3D(ImageFilter filter) {
 }
 #endif // A_RENDER_BACKEND_D3D9
 
-#if A_RENDER_BACKEND_D3D9
+#if A_RENDER_BACKEND_D3D
 A_NO_DISCARD D3DCOLOR R_ColorRGBAToD3DARGB(acolor_rgba_t rgba) {
     DWORD r = rgba.r * 255;
     DWORD g = rgba.g * 255;
