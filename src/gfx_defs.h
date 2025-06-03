@@ -65,7 +65,7 @@ typedef struct D3D8RenderGlob {
 
     D3DCOLOR          clear_color_argb;
 } D3D9RenderGlob;
-extern D3D9RenderGlob r_d3d9Glob;
+extern D3D8RenderGlob r_d3d8Glob;
 #endif // A_RENDER_BACKEND_D3D9
 
 typedef enum ImageFormat {

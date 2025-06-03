@@ -25,7 +25,9 @@ static cg_t s_cg[MAX_LOCAL_CLIENTS];
 extern dvar_t* vid_width;
 extern dvar_t* vid_height;
 
+#if !A_TARGET_PLATFORM_IS_XBOX
 void CG_Teleport_f(void);
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 cg_t* CG_GetLocalClientGlobals(size_t localClientNum) {
 	assert(localClientNum < MAX_LOCAL_CLIENTS);
@@ -49,9 +51,9 @@ void CG_Init(void) {
 	s_firstMouse = true;
 	s_lastMouseX = IN_Mouse_X(0);
 	s_lastMouseY = IN_Mouse_Y(0);
-#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 	Cmd_AddCommand("teleport", CG_Teleport_f);
+#endif // !A_TARGET_PLATFORM_IS_XBOX
 
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		cg_t* cg = CG_GetLocalClientGlobals(i);

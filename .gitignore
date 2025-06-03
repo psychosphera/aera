@@ -13,5 +13,4 @@ CMakePresets.json
 *.jpg
 *.ttf
 *.dll
-*.sln
-*.vcxproj*
+/projects/xbox/aera.vs2003/*

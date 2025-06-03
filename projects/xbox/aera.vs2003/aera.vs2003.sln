@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "aera.vs2003", "aera.vs2003.vcproj", "{E1E85081-E639-4A78-AF3C-B082C74F085D}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfiguration) = preSolution
+		Debug = Debug
+		Profile = Profile
+		Profile_FastCap = Profile_FastCap
+		Release = Release
+		Release_LTCG = Release_LTCG
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{E1E85081-E639-4A78-AF3C-B082C74F085D}.Debug.ActiveCfg = Debug|Xbox
+		{E1E85081-E639-4A78-AF3C-B082C74F085D}.Debug.Build.0 = Debug|Xbox
+		{E1E85081-E639-4A78-AF3C-B082C74F085D}.Profile.ActiveCfg = Profile|Xbox
+		{E1E85081-E639-4A78-AF3C-B082C74F085D}.Profile.Build.0 = Profile|Xbox
+		{E1E85081-E639-4A78-AF3C-B082C74F085D}.Profile_FastCap.ActiveCfg = Profile_FastCap|Xbox
+		{E1E85081-E639-4A78-AF3C-B082C74F085D}.Profile_FastCap.Build.0 = Profile_FastCap|Xbox
+		{E1E85081-E639-4A78-AF3C-B082C74F085D}.Release.ActiveCfg = Release|Xbox
+		{E1E85081-E639-4A78-AF3C-B082C74F085D}.Release.Build.0 = Release|Xbox
+		{E1E85081-E639-4A78-AF3C-B082C74F085D}.Release_LTCG.ActiveCfg = Release_LTCG|Xbox
+		{E1E85081-E639-4A78-AF3C-B082C74F085D}.Release_LTCG.Build.0 = Release_LTCG|Xbox
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal

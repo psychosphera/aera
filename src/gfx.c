@@ -428,7 +428,7 @@ static bool R_InitD3D8(void) {
     assert(d3ddev);
     r_d3d8Glob.d3ddev = d3ddev;
 
-    r_d3d9Glob.clear_color_argb =
+    r_d3d8Glob.clear_color_argb =
         R_ColorRGBAToD3DARGB(r_renderGlob.clear_color);
 
     HRESULT hr = IDirect3DDevice8_SetRenderState(d3ddev, D3DRS_BLENDOP, D3DBLENDOP_ADD);
@@ -759,7 +759,7 @@ A_NO_DISCARD bool R_CreateImage2D(const void* pixels, size_t pixels_size,
     ImageFormat        internal_format = format;
     IDirect3DTexture8* tex             = NULL;
 
-    HRESULT hr = IDirect3DDevice8_CreateTexture(r_d3d9Glob.d3ddev, width, height, 
+    HRESULT hr = IDirect3DDevice8_CreateTexture(r_d3d8Glob.d3ddev, width, height, 
                                                 1, 0, d3dfmt, D3DPOOL_MANAGED, &tex);
     assert(hr == D3D_OK);
     assert(tex);
@@ -1103,7 +1103,7 @@ void R_Clear(void) {
 #elif A_RENDER_BACKEND_D3D8
     HRESULT hr = IDirect3DDevice8_Clear(r_d3d8Glob.d3ddev, 0, NULL,
                                         D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,
-                                        r_d3d9Glob.clear_color_argb, 0.0f, 0);
+                                        r_d3d8Glob.clear_color_argb, 0.0f, 0);
     assert(hr == D3D_OK);
 #endif // A_RENDER_BACKEND_GL
 }
@@ -1349,12 +1349,12 @@ static void R_ShutdownD3D8(void) {
         r_d3d8Glob.d3ddev = NULL;
     }
 
-    if (r_d3d9Glob.d3d8) {
+    if (r_d3d8Glob.d3d8) {
         IDirect3D8_Release(r_d3d8Glob.d3d8);
         r_d3d8Glob.d3d8 = NULL;
     }
 
-    r_d3d9Glob.clear_color_argb = 0;
+    r_d3d8Glob.clear_color_argb = 0;
 #if !A_TARGET_PLATFORM_IS_XBOX
     r_d3d8Glob.hWnd = NULL;
 #endif // !A_TARGET_PLATFORM_IS_XBOX

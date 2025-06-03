@@ -77,7 +77,7 @@ bool R_CreateVertexBuffer(const void* data, size_t n, size_t capacity,
 #elif A_RENDER_BACKEND_D3D8
     IDirect3DVertexBuffer8* buffer = NULL;
     HRESULT hr = IDirect3DDevice8_CreateVertexBuffer(
-        r_d3d9Glob.d3ddev, capacity, 0, 0,
+        r_d3d8Glob.d3ddev, capacity, 0, 0,
         D3DPOOL_DEFAULT, &buffer
     );
     assert(hr == D3D_OK);
