@@ -663,7 +663,7 @@ static bool CL_LoadMap_Decompress(
 			(size_t)header->decompressed_file_size;
 #if !A_TARGET_PLATFORM_IS_XBOX
 		FileMapping f = DB_LoadMap_Mmap(map_name);
-		size_t compressed_map_size = FS_FileSize(&f);
+		size_t compressed_map_size = f.n;
 		Bytef* p = f.p;
 #elif 0 
 		StreamFile f = DB_LoadMap_Stream(map_name);

@@ -1,3 +1,4 @@
+
 cmake_minimum_required(VERSION 3.27)
 
 project(h1_map_viewer C)
@@ -76,7 +77,9 @@ set(COMMON_SRC
 
 set(PC_SRC src/con_console.c src/devcon.c src/devgui.c src/in_kbm.c)
 
-set(PC_LIBS SDL2::SDL2 Freetype::Freetype ZLIB::ZLIB)
+find_library(MATH_LIBRARY m)
+
+set(PC_LIBS SDL2::SDL2 Freetype::Freetype ZLIB::ZLIB ${MATH_LIBRARY})
 
 set(COMMON_COMPILE_DEFS       A_PROJECT_ROOT="${CMAKE_SOURCE_DIR}")
 set(COMMON_DEBUG_COMPILE_DEFS _DEBUG=1)

@@ -157,7 +157,7 @@
 #define A_OPTIONAL_INOUT
 #endif // A_TARGET_OS_IS_WINDOWS
 
-#if !A_CXX && _MSC_VER < 1800
+#if !A_CXX && defined(_MSC_VER) && _MSC_VER < 1800
 #define bool  char
 #define true  1
 #define false 0
