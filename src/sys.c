@@ -96,6 +96,8 @@ void Sys_Init(const char** argv) {
 #endif // !A_TARGET_PLATFORM_IS_XBOX
 }
 
+#define SYS_GPAD_AXIS_FLOAT(value) (32768.0f / (float)(value))
+
 // Returns true if an event was handled, false if not 
 // (most likely, if event queue was empty).
 #if !A_TARGET_PLATFORM_IS_XBOX
@@ -106,8 +108,7 @@ bool Sys_HandleEvent(void) {
         case SDL_KEYDOWN:
             if (ev.key.keysym.sym == SDLK_ESCAPE) {
                 Sys_NormalExit(1);
-            }
-            else {
+            } else {
                 IN_Key_Down(CL_ClientWithKbmFocus(),
                     IN_Key_SDLKToKeycode(ev.key.keysym.sym));
             }
@@ -147,6 +148,7 @@ bool Sys_HandleEvent(void) {
             // FIXME: add controller support for multiple local clients
         case SDL_CONTROLLERDEVICEREMOVED:
         case SDL_CONTROLLERDEVICEADDED:
+        case SDL_CONTROLLERBUTTONDOWN:
         case SDL_CONTROLLERBUTTONUP:
         case SDL_CONTROLLERAXISMOTION:
             SDL_GameController* controller = IN_GPad_SDLController(0);
@@ -172,6 +174,9 @@ bool Sys_HandleEvent(void) {
                     break;
 
                 button = IN_GPad_ButtonFromSDL(ev.cbutton.button);
+                if (button == IN_GPAD_BUTTON_BACK)
+                    Sys_NormalExit(1);
+
                 IN_GPad_Up(0, button);
                 break;
             case SDL_CONTROLLERAXISMOTION:
@@ -181,27 +186,27 @@ bool Sys_HandleEvent(void) {
                 float x = 0.0f, y = 0.0f, value = 0.0f;
                 switch (ev.caxis.axis) {
                 case SDL_CONTROLLER_AXIS_LEFTX:
-                    x = 1.0f / (float)((Sint32)ev.caxis.value + 32768);
+                    x = SYS_GPAD_AXIS_FLOAT(ev.caxis.value);
                     IN_GPad_MoveStick(0, IN_GPAD_STICK_LEFT, x, 0.0f);
                     break;
                 case SDL_CONTROLLER_AXIS_LEFTY:
-                    y = 1.0f / (float)((Sint32)ev.caxis.value + 32768);
+                    y = SYS_GPAD_AXIS_FLOAT(ev.caxis.value);
                     IN_GPad_MoveStick(0, IN_GPAD_STICK_LEFT, 0.0f, y);
                     break;
                 case SDL_CONTROLLER_AXIS_RIGHTX:
-                    x = 1.0f / (float)((Sint32)ev.caxis.value + 32768);
+                    x = SYS_GPAD_AXIS_FLOAT(ev.caxis.value);
                     IN_GPad_MoveStick(0, IN_GPAD_STICK_RIGHT, x, 0.0f);
                     break;
                 case SDL_CONTROLLER_AXIS_RIGHTY:
-                    y = 1.0f / (float)((Sint32)ev.caxis.value + 32768);
+                    y = SYS_GPAD_AXIS_FLOAT(ev.caxis.value);
                     IN_GPad_MoveStick(0, IN_GPAD_STICK_RIGHT, 0.0f, y);
                     break;
                 case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
-                    value = 1.0f / (float)((Sint32)ev.caxis.value + 32768);
+                    value = SYS_GPAD_AXIS_FLOAT(ev.caxis.value);
                     IN_GPad_MoveTrigger(0, IN_GPAD_TRIGGER_LEFT, value);
                     break;
                 case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
-                    value = 1.0f / (float)((Sint32)ev.caxis.value + 32768);
+                    value = SYS_GPAD_AXIS_FLOAT(ev.caxis.value);
                     IN_GPad_MoveTrigger(0, IN_GPAD_TRIGGER_RIGHT, value);
                     break;
                 default:

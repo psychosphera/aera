@@ -5,6 +5,7 @@
 #include "acommon/a_string.h"
 
 #include "com_defs.h"
+#include "com_print.h"
 #include "cl_client.h"
 #include "in_input.h"
 
@@ -27,9 +28,34 @@ static void IN_GPad_ShutdownLocalClient(size_t localClientNum) {
 
 #if !A_TARGET_PLATFORM_IS_XBOX
 GPadButtonCode IN_GPad_ButtonFromSDL(Uint8 button) {
-	(void)button;
-	assert(false && "unimplemented");
-	return IN_GPAD_BUTTON_NONE;
+	switch (button) {
+	case SDL_CONTROLLER_BUTTON_A:             return IN_GPAD_BUTTON_SOUTH;
+    case SDL_CONTROLLER_BUTTON_B:             return IN_GPAD_BUTTON_EAST;
+    case SDL_CONTROLLER_BUTTON_X:             return IN_GPAD_BUTTON_WEST;
+    case SDL_CONTROLLER_BUTTON_Y:             return IN_GPAD_BUTTON_NORTH;
+
+    case SDL_CONTROLLER_BUTTON_DPAD_UP:       return IN_GPAD_BUTTON_DPAD_UP;
+    case SDL_CONTROLLER_BUTTON_DPAD_DOWN:     return IN_GPAD_BUTTON_DPAD_DOWN;
+    case SDL_CONTROLLER_BUTTON_DPAD_LEFT:     return IN_GPAD_BUTTON_DPAD_LEFT;
+    case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:    return IN_GPAD_BUTTON_DPAD_RIGHT;
+										      
+    case SDL_CONTROLLER_BUTTON_START:         return IN_GPAD_BUTTON_START;
+    case SDL_CONTROLLER_BUTTON_BACK:          return IN_GPAD_BUTTON_BACK;
+
+    case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:  return IN_GPAD_BUTTON_LEFT_BUMPER;
+    case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: return IN_GPAD_BUTTON_RIGHT_BUMPER;
+
+    case SDL_CONTROLLER_BUTTON_LEFTSTICK:     return IN_GPAD_BUTTON_LEFT_STICK;
+    case SDL_CONTROLLER_BUTTON_RIGHTSTICK:    return IN_GPAD_BUTTON_RIGHT_STICK;
+
+    case SDL_CONTROLLER_BUTTON_GUIDE:       
+	case SDL_CONTROLLER_BUTTON_TOUCHPAD:
+		return IN_GPAD_BUTTON_NONE;
+
+	default:
+		assert(false && "invalid SDL controller button");
+		return IN_GPAD_BUTTON_NONE;
+	}
 }
 #endif // !A_TARGET_PLATFORM_IS_XBOX
 
@@ -139,6 +165,8 @@ bool IN_GPad_Down(size_t localClientNum, GPadButtonCode b) {
 	button->justDown = true;
 	button->toggle   = !button->toggle;
 
+	Com_DPrintln(CON_DEST_CLIENT, "IN_GPad_Down: pressed %d.", b);
+
 	return down;
 }
 
@@ -150,6 +178,9 @@ bool IN_GPad_Up(size_t localClientNum, GPadButtonCode b) {
 	bool up                  = IN_GPad_IsUp(localClientNum, b);
 	inl->buttons[b].down     = false;
 	inl->buttons[b].justDown = false;
+	
+	Com_DPrintln(CON_DEST_CLIENT, "IN_GPad_Down: released %d.", b);
+	
 	return up;
 }
 
@@ -177,7 +208,7 @@ static void IN_GPad_ClearCurrent(size_t localClientNum) {
 }
 
 #if A_TARGET_PLATFORM_IS_XBOX
-#define IN_GPAD_STICK_FLOAT(pos) (1.0f / (float)((pos) + 32768))
+#define IN_GPAD_STICK_FLOAT(pos) (32768.0f / (float)(pos))
 static WORD IN_GPad_ButtonCodeToXInput(GPadButtonCode b) {
 	switch (b) {
 	case IN_GPAD_BUTTON_DPAD_UP:     return XINPUT_GAMEPAD_DPAD_UP;
@@ -310,8 +341,8 @@ void IN_GPad_MoveStick(size_t localClientNum, GPadStickCode s, float x, float y)
 	if (inl->hasGPad == false)
 		return;
 
-	inl->sticks[s].x -= x;
-	inl->sticks[s].y -= y;
+	inl->sticks[s].x = x;
+	inl->sticks[s].y = y;
 }
 
 float IN_GPad_StickX(size_t localClientNum, GPadStickCode s) {

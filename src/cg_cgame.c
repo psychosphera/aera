@@ -19,6 +19,7 @@
 static float s_lastMouseX, s_lastMouseY;
 static bool  s_firstMouse;
 #endif // !A_TARGET_PLATFORM_IS_XBOX
+static float s_lastGPadX, s_lastGPadY;
 
 static cg_t s_cg[MAX_LOCAL_CLIENTS];
 
@@ -54,6 +55,8 @@ void CG_Init(void) {
 
 	Cmd_AddCommand("teleport", CG_Teleport_f);
 #endif // !A_TARGET_PLATFORM_IS_XBOX
+	s_lastGPadX = IN_GPad_StickX(0, IN_GPAD_STICK_RIGHT);
+	s_lastGPadY = IN_GPad_StickY(0, IN_GPAD_STICK_RIGHT);
 
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		cg_t* cg = CG_GetLocalClientGlobals(i);
@@ -237,7 +240,9 @@ void CG_Frame(uint64_t deltaTime) {
 
 			pm->pm.cmd.serverTime = Sys_Milliseconds();
 			Pmove(&pm->pm, &pm->pml);
-		} else if (IN_LocalClientHasGPad(localClientNum)) {
+		} 
+		
+		if (IN_LocalClientHasGPad(localClientNum)) {
 			float vel = 100.0f;
 			if (IN_GPad_IsDown(localClientNum, IN_GPAD_BUTTON_LEFT_STICK))
 				vel *= 1.5f;
@@ -249,6 +254,19 @@ void CG_Frame(uint64_t deltaTime) {
 				pm->pm.cmd.vel.y += vel;
 			if (IN_GPad_IsDown(localClientNum, IN_GPAD_BUTTON_EAST))
 				pm->pm.cmd.vel.y -= vel;
+
+            float x = IN_GPad_StickX(localClientNum, IN_GPAD_STICK_RIGHT);
+            float y = IN_GPad_StickY(localClientNum, IN_GPAD_STICK_RIGHT);
+
+			float xoff  = x - s_lastGPadX;
+			float yoff  = y - s_lastGPadY;
+			s_lastGPadX = x;
+			s_lastGPadY = y;
+
+			//xoff *= cg->sensitivity;
+			//yoff *= cg->sensitivity;
+			pm->pm.cmd.yaw   = xoff;
+			pm->pm.cmd.pitch = yoff;
 		}
 #else 
 		float vel = 100.0f;

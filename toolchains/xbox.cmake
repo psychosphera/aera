@@ -63,9 +63,11 @@ endif()
 
 include_directories(SYSTEM ${XDK_INCLUDE_DIR})
 link_directories(${XDK_LIB_DIR})
+link_libraries(xboxkrnl.lib)
 add_compile_definitions(_XBOX _MBCS _MSC_VER=1300)
 if(DEBUG)
 	add_compile_definitions(_DEBUG)
+	link_libraries(xbdm.lib)
 endif()
 
 set(CMAKE_SYSTEM_PROCESSOR X86)

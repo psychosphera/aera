@@ -79,7 +79,10 @@ set(PC_SRC src/con_console.c src/devcon.c src/devgui.c src/in_kbm.c)
 
 find_library(MATH_LIBRARY m)
 
-set(PC_LIBS SDL2::SDL2 Freetype::Freetype ZLIB::ZLIB ${MATH_LIBRARY})
+set(PC_LIBS SDL2::SDL2 Freetype::Freetype ZLIB::ZLIB)
+if (MATH_LIBRARY)
+	set(PC_LIBS ${PC_LIBS} ${MATH_LIBRARY})
+endif()
 
 set(COMMON_COMPILE_DEFS       A_PROJECT_ROOT="${CMAKE_SOURCE_DIR}")
 set(COMMON_DEBUG_COMPILE_DEFS _DEBUG=1)
@@ -426,10 +429,10 @@ endif()
 if (DEFINED PLATFORM_XBOX)
 	set(XBOX_DEBUG_LIBS   xapilibd.lib d3d8d.lib d3dx8d.lib xgraphicsd.lib 
                           dsoundd.lib dmusicd.lib xactengd.lib xsndtrkd.lib 
-                          xvoiced.lib xonlined.lib xboxkrnl.lib xbdm.lib)
+                          xvoiced.lib xonlined.lib xbdm.lib)
 	set(XBOX_RELEASE_LIBS xapilib.lib d3d8.lib d3dx8.lib xgraphics.lib
-                          dsound.lib dmusic.lib xacteng.lib xsndtrk.lib
-                          xvoice.lib xonline.lib xboxkrnl.lib xbdm.lib)
+                          dsound.lib dmusic.lib xactengi.lib xsndtrk.lib
+                          xvoice.lib xonline.lib)
 	
 	if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 		set(XBOX_LIBS ${XBOX_DEBUG_LIBS})

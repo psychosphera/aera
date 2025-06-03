@@ -6,6 +6,8 @@
 #include "a_string.h"
 
 #ifndef _WIN32
+#include <stdio.h>
+
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -41,6 +43,29 @@ A_NO_DISCARD void* Z_Realloc(void* p, size_t n) {
 void Z_Free(void* p) {
     free(p);
 }
+
+#if !defined(_WIN32)
+static char s_proc_path_buf[A_OS_MAX_PATH];
+
+bool Z_FileExists(const char* path) {
+    return access("/proc/self", F_OK) == 0;
+}
+
+const char* Z_BuildProcfsSelfPath(const char* path) {
+    if (Z_FileExists("/proc/self")) {
+        A_snprintf(s_proc_path_buf, sizeof(s_proc_path_buf), "/proc/self");
+    } else {
+        int pid = getpid();
+        A_snprintf(s_proc_path_buf, sizeof(s_proc_path_buf), "/proc/%d", pid);
+        bool b = Z_FileExists(s_proc_path_buf);
+        assert(b);
+        if (!b)
+            return NULL; 
+    }
+
+    return s_proc_path_buf;
+}
+#endif // !defined(_WIN32)
 
 #if defined(_WIN32) && !defined(_XBOX)
 A_NO_DISCARD void* Z_AllocAt(const void* p, size_t n) {
@@ -93,12 +118,44 @@ A_NO_DISCARD void* Z_AllocAt(const void* p, size_t n) {
     void* alloc = mmap(
         (void*)(intptr_t)p, n, PROT_READ | PROT_WRITE,
         MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-    return alloc == p ? alloc : NULL;
+
+    if (alloc == p)
+        return alloc;
+
+    FILE* f = fopen(Z_BuildProcfsSelfPath("maps"), "r");
+    assert(f);
+    if (f == NULL) {
+        munmap(alloc, n);
+        return NULL;
+    }
+
+    char buf[A_OS_MAX_PATH + 64];
+    while (fgets(buf, sizeof(buf), f) != NULL && !feof(f)) {
+        void* begin = NULL;
+        void* end   = NULL;
+
+        if (scanf(buf, "%p-%p", &begin, &end) != 2)
+            continue;
+
+        if (begin == NULL || end == NULL)
+            continue;
+
+        if (p >= begin && p < end) {
+            fclose(f);
+            assert((uintptr_t)p + n <= (uintptr_t)end);
+            if ((uintptr_t)p + n <= (uintptr_t)end)
+                return p; 
+            
+            munmap(alloc, n);
+            return NULL;
+        }
+    }
 }
 #endif // _WIN32
 
 A_NO_DISCARD void* Z_ZallocAt(const void* p, size_t n) {
     void* alloc = Z_AllocAt(p, n);
+    assert(alloc);
     if (alloc != p)
         return NULL;
 
@@ -108,12 +165,29 @@ A_NO_DISCARD void* Z_ZallocAt(const void* p, size_t n) {
 
 #ifdef _WIN32
 bool Z_FreeAt(const void* p, size_t n) {
-    A_UNUSED(n);
-    return VirtualFree((void*)(intptr_t)p, 0, MEM_RELEASE);
+    if (VirtualFree((void*)(intptr_t)p, 0, MEM_RELEASE) != FALSE)
+        return true;
+
+    MEMORY_BASIC_INFORMATION mi;
+    size_t s = VirtualQuery(p, &mi, sizeof(mi));
+    assert(s > 0);
+    if (s == 0)
+        return NULL;
+
+    BOOL b = VirtualFree(mi.AllocationBase, 0, MEM_RELEASE) != FALSE;
+    if (b == FALSE) {
+        DWORD err = GetLastError();
+        assert(false && err);
+        (void)err;
+    }
+    //assert(b != FALSE);
+    return b != FALSE;
 }
 #else
 bool Z_FreeAt(const void* p, size_t n) {
-    return munmap((void*)(intptr_t)p, n) == 0;
+    int i = munmap((void*)(intptr_t)p, n);
+    assert(i == 0);
+    return i == 0;
 }
 #endif // _WIN32
 
@@ -141,12 +215,14 @@ A_NO_DISCARD FileMapping Z_MapFile(const char* filename) {
     f.n = n;
 
     HANDLE hMap = CreateFileMappingA(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
+    assert(hMap);
     if (hMap == NULL)
         return f;
         
     f.__hMap = hMap;
 
     void* p = MapViewOfFile(hMap, FILE_MAP_READ, 0, 0, 0);
+    assert(p);
     f.p = p;
 
     return f;
@@ -154,16 +230,17 @@ A_NO_DISCARD FileMapping Z_MapFile(const char* filename) {
 #elif !A_TARGET_PLATFORM_IS_XBOX
 A_NO_DISCARD FileMapping Z_MapFile(const char* filename) {
     FileMapping f = { .p = NULL, .n = 0 };
-    struct stat st = { 0 };
 
     int fd = open(filename, O_RDONLY);
     if(fd < 0)
         return f;
 
+    struct stat st = { 0 };
     fstat(fd, &st);
     f.n = st.st_size;
 
     void* p = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    assert(p);
     f.p = p;
     // POSIX explicitly says it's safe to close fd after file is mmap'd
     close(fd);
@@ -173,20 +250,28 @@ A_NO_DISCARD FileMapping Z_MapFile(const char* filename) {
 
 #if A_TARGET_OS_IS_WINDOWS && !A_TARGET_PLATFORM_IS_XBOX
 bool Z_UnmapFile(A_INOUT FileMapping* f) {
+    if (f == NULL || (f->p == NULL && f->__hMap == NULL && f->__hFile == NULL)) {
+        return true; // nothing to unmap
+    }
+
     bool b = true;
-    if(UnmapViewOfFile(f->p) == 0)
+    if(UnmapViewOfFile(f->p) == FALSE)
         b = false;
+    assert(b);
     f->__hMap = NULL;
     
-    if(CloseHandle(f->__hFile) == 0)
+    if(CloseHandle(f->__hFile) == FALSE)
         b = false;
+    assert(b);
     f->__hFile = NULL;
-    f->p = NULL;
+    f->p       = NULL;
     
     return b;
 }
 #elif !A_TARGET_PLATFORM_IS_XBOX
 bool Z_UnmapFile(A_INOUT FileMapping* f) {
-    return munmap(f->p, f->n) == 0;
+    int i = munmap(f->p, f->n);
+    assert(i == 0);
+    return i == 0;
 }
 #endif // A_TARGET_OS_IS_WINDOWS && !A_TARGET_PLATFORM_IS_XBOX
