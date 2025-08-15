@@ -41,8 +41,11 @@ Xbox implementation is still very much a work in progress, so while it will *bui
 Since proper command line parsing hasn't been implemented yet, aera is hard-coded to use `c40.map`. You can either find the line `CL_LoadMap("c40.map")` in `cl_client.c` and change it to a different map, or just rename your map of choice to `c40.map`. Maps need to be in the `assets/maps` subdirectory.
 Only *Xbox* maps will currently work, not Gearbox (the original PC port) or MCC maps.
 
-If you did everything right, you'll end up being greeted with 
+If you did everything right, you'll end up being greeted with:
+
 <img src='images/map_demo.png'>
+
+Movement is WASD (naturally), space to ascend, ctrl to descend, shift to boost.
 
 ## FAQ
 Q. Is support for PC/MCC maps coming?
