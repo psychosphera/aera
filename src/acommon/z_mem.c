@@ -89,7 +89,7 @@ A_NO_DISCARD void* Z_AllocAt(const void* p, size_t n) {
     if ((size_t)p + n > (size_t)alloc + size)
         return NULL;
 
-    return p;
+    return (void*)p;
 }
 #elif defined(_XBOX)
 A_NO_DISCARD void* Z_AllocAt(const void* p, size_t n) {
@@ -165,6 +165,8 @@ A_NO_DISCARD void* Z_ZallocAt(const void* p, size_t n) {
 
 #ifdef _WIN32
 bool Z_FreeAt(const void* p, size_t n) {
+    (void)n;
+
     if (VirtualFree((void*)(intptr_t)p, 0, MEM_RELEASE) != FALSE)
         return true;
 
@@ -172,7 +174,7 @@ bool Z_FreeAt(const void* p, size_t n) {
     size_t s = VirtualQuery(p, &mi, sizeof(mi));
     assert(s > 0);
     if (s == 0)
-        return NULL;
+        return false;
 
     BOOL b = VirtualFree(mi.AllocationBase, 0, MEM_RELEASE) != FALSE;
     if (b == FALSE) {

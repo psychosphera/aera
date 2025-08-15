@@ -102,7 +102,122 @@ A_NO_DISCARD bool R_CreateBSPImage(
     }
 }
 
+#if A_RENDER_BACKEND_D3D9
+IDirect3DVertexDeclaration9* r_bspDecl   = NULL;
+IDirect3DVertexDeclaration9* r_modelDecl = NULL;
+#endif // A_RENDER_BACKEND_D3D9
+
 void R_InitMap(void) {
+#if A_RENDER_BACKEND_D3D9
+    D3DVERTEXELEMENT9 bsp_vertex_elements[] = {
+        {
+            .Stream     = 0,
+            .Offset     = offsetof(BSPRenderedVertex, pos),
+            .Type       = D3DDECLTYPE_FLOAT3,
+            .Method     = D3DDECLMETHOD_DEFAULT,
+            .Usage      = D3DDECLUSAGE_POSITION,
+            .UsageIndex = 0
+        },
+        {
+            .Stream     = 0,
+            .Offset     = offsetof(BSPRenderedVertex, normal),
+            .Type       = D3DDECLTYPE_FLOAT3,
+            .Method     = D3DDECLMETHOD_DEFAULT,
+            .Usage      = D3DDECLUSAGE_NORMAL,
+            .UsageIndex = 0
+        },
+        {
+            .Stream     = 0,
+            .Offset     = offsetof(BSPRenderedVertex, binormal),
+            .Type       = D3DDECLTYPE_FLOAT3,
+            .Method     = D3DDECLMETHOD_DEFAULT,
+            .Usage      = D3DDECLUSAGE_BINORMAL,
+            .UsageIndex = 0
+        },
+        {
+            .Stream     = 0,
+            .Offset     = offsetof(BSPRenderedVertex, tangent),
+            .Type       = D3DDECLTYPE_FLOAT3,
+            .Method     = D3DDECLMETHOD_DEFAULT,
+            .Usage      = D3DDECLUSAGE_TANGENT,
+            .UsageIndex = 0
+        },
+        {
+            .Stream     = 0,
+            .Offset     = offsetof(BSPRenderedVertex, tex_coords),
+            .Type       = D3DDECLTYPE_FLOAT2,
+            .Method     = D3DDECLMETHOD_DEFAULT,
+            .Usage      = D3DDECLUSAGE_TEXCOORD,
+            .UsageIndex = 0
+        },
+        {
+            .Stream     = 1,
+            .Offset     = offsetof(BSPLightmapVertex, normal),
+            .Type       = D3DDECLTYPE_FLOAT3,
+            .Method     = D3DDECLMETHOD_DEFAULT,
+            .Usage      = D3DDECLUSAGE_NORMAL,
+            .UsageIndex = 1
+        },
+        {
+            .Stream     = 1,
+            .Offset     = offsetof(BSPLightmapVertex, tex_coords),
+            .Type       = D3DDECLTYPE_FLOAT2,
+            .Method     = D3DDECLMETHOD_DEFAULT,
+            .Usage      = D3DDECLUSAGE_TEXCOORD,
+            .UsageIndex = 1
+        },
+        D3DDECL_END()
+    };
+    D3D_CALL(r_d3d9Glob.d3ddev, CreateVertexDeclaration, bsp_vertex_elements,
+                                                         &r_bspDecl);
+
+    D3DVERTEXELEMENT9 model_vertex_elements[] = {
+        {
+            .Stream     = 0,
+            .Offset     = offsetof(BSPModelDecompressedVertex, position),
+            .Type       = D3DDECLTYPE_FLOAT3,
+            .Method     = D3DDECLMETHOD_DEFAULT,
+            .Usage      = D3DDECLUSAGE_POSITION,
+            .UsageIndex = 0
+        },
+        {
+            .Stream     = 0,
+            .Offset     = offsetof(BSPModelDecompressedVertex, normal),
+            .Type       = D3DDECLTYPE_FLOAT3,
+            .Method     = D3DDECLMETHOD_DEFAULT,
+            .Usage      = D3DDECLUSAGE_NORMAL,
+            .UsageIndex = 0
+        },
+        {
+            .Stream     = 0,
+            .Offset     = offsetof(BSPModelDecompressedVertex, binormal),
+            .Type       = D3DDECLTYPE_FLOAT3,
+            .Method     = D3DDECLMETHOD_DEFAULT,
+            .Usage      = D3DDECLUSAGE_BINORMAL,
+            .UsageIndex = 0
+        },
+        {
+            .Stream     = 0,
+            .Offset     = offsetof(BSPModelDecompressedVertex, tangent),
+            .Type       = D3DDECLTYPE_FLOAT3,
+            .Method     = D3DDECLMETHOD_DEFAULT,
+            .Usage      = D3DDECLUSAGE_TANGENT,
+            .UsageIndex = 0
+        },
+        {
+            .Stream     = 0,
+            .Offset     = offsetof(BSPModelDecompressedVertex, texcoords),
+            .Type       = D3DDECLTYPE_FLOAT2,
+            .Method     = D3DDECLMETHOD_DEFAULT,
+            .Usage      = D3DDECLUSAGE_TEXCOORD,
+            .UsageIndex = 0
+        },
+        D3DDECL_END()
+    };
+    D3D_CALL(r_d3d9Glob.d3ddev, CreateVertexDeclaration, model_vertex_elements,
+                                                         &r_modelDecl);
+#endif // A_RENDER_BACKEND_D3D9
+
     char* vertSource  = DB_LoadShader("bsp.vs");
     char* pixelSource = DB_LoadShader("bsp.ps");
 
@@ -530,70 +645,8 @@ static void R_LoadMaterial(const BSPMaterial* bsp_material,
         assert(pVb);
         (void)pVb;
     }
-    D3DVERTEXELEMENT9 vertex_elements[] = {
-        {
-            .Stream     = 0,
-            .Offset     = offsetof(BSPRenderedVertex, pos),
-            .Type       = D3DDECLTYPE_FLOAT3,
-            .Method     = D3DDECLMETHOD_DEFAULT,
-            .Usage      = D3DDECLUSAGE_POSITION,
-            .UsageIndex = 0
-        },
-        {
-            .Stream     = 0,
-            .Offset     = offsetof(BSPRenderedVertex, normal),
-            .Type       = D3DDECLTYPE_FLOAT3,
-            .Method     = D3DDECLMETHOD_DEFAULT,
-            .Usage      = D3DDECLUSAGE_NORMAL,
-            .UsageIndex = 0
-        },
-        {
-            .Stream     = 0,
-            .Offset     = offsetof(BSPRenderedVertex, binormal),
-            .Type       = D3DDECLTYPE_FLOAT3,
-            .Method     = D3DDECLMETHOD_DEFAULT,
-            .Usage      = D3DDECLUSAGE_BINORMAL,
-            .UsageIndex = 0
-        },
-        {
-            .Stream     = 0,
-            .Offset     = offsetof(BSPRenderedVertex, tangent),
-            .Type       = D3DDECLTYPE_FLOAT3,
-            .Method     = D3DDECLMETHOD_DEFAULT,
-            .Usage      = D3DDECLUSAGE_TANGENT,
-            .UsageIndex = 0
-        },
-        {
-            .Stream     = 0,
-            .Offset     = offsetof(BSPRenderedVertex, tex_coords),
-            .Type       = D3DDECLTYPE_FLOAT2,
-            .Method     = D3DDECLMETHOD_DEFAULT,
-            .Usage      = D3DDECLUSAGE_TEXCOORD,
-            .UsageIndex = 0
-        },
-        {
-            .Stream     = 1,
-            .Offset     = offsetof(BSPLightmapVertex, normal),
-            .Type       = D3DDECLTYPE_FLOAT3,
-            .Method     = D3DDECLMETHOD_DEFAULT,
-            .Usage      = D3DDECLUSAGE_NORMAL,
-            .UsageIndex = 1
-        },
-        {
-            .Stream     = 1,
-            .Offset     = offsetof(BSPLightmapVertex, tex_coords),
-            .Type       = D3DDECLTYPE_FLOAT2,
-            .Method     = D3DDECLMETHOD_DEFAULT,
-            .Usage      = D3DDECLUSAGE_TEXCOORD,
-            .UsageIndex = 1
-        },
-        D3DDECL_END()
-    };
-    IDirect3DVertexDeclaration9* decl = NULL;
-    D3D_CALL(r_d3d9Glob.d3ddev, CreateVertexDeclaration, vertex_elements, 
-                                                         &decl);
-    assert(decl);
-    material->vertex_declaration.decl = decl;
+
+    material->vertex_declaration.decl = r_bspDecl;
 #elif A_RENDER_BACKEND_D3D8
     if (bsp_material->lightmap_vertices_count > 0) {
         b = R_CreateVertexBuffer(lightmap_vertices,
@@ -680,10 +733,12 @@ static GfxPrimitiveType R_PrimitiveTypeFromBSP(BSPModelTriBufferType type) {
 static void R_LoadModelPart(const BSPModelGeometryPart* bsp_part, GfxModelPart* part) {
     BSPModelDecompressedVertex* vertices = (BSPModelDecompressedVertex*)bsp_part->decompressed_vertices.pointer;
     int vertex_count = bsp_part->decompressed_vertices.count;
+    size_t vertices_size = vertex_count * sizeof(BSPModelDecompressedVertex);
     part->primitive_type = R_PrimitiveTypeFromBSP((BSPModelTriBufferType)bsp_part->tri_buffer_type);
+    part->position = bsp_part->centroid;
 
     GfxVertexBuffer vb;
-    bool b = R_CreateVertexBuffer(vertices, vertex_count, vertex_count, 0, sizeof(*vertices), &vb);
+    bool b = R_CreateVertexBuffer(vertices, vertices_size, vertices_size, 0, sizeof(*vertices), &vb);
     assert(b);
     GfxVertexBuffer* pVb = R_AddVertexBufferToVertexDeclaration(&part->vertex_declaration, &vb);
     assert(pVb);
@@ -718,54 +773,7 @@ static void R_LoadModelPart(const BSPModelGeometryPart* bsp_part, GfxModelPart* 
     GL_CALL(glEnableVertexAttribArray, 3);
     GL_CALL(glEnableVertexAttribArray, 4);
 #elif A_RENDER_BACKEND_D3D9 
-    D3DVERTEXELEMENT9 vertex_elements[] = {
-        {
-            .Stream = 0,
-            .Offset = offsetof(BSPModelDecompressedVertex, position),
-            .Type = D3DDECLTYPE_FLOAT3,
-            .Method = D3DDECLMETHOD_DEFAULT,
-            .Usage = D3DDECLUSAGE_POSITION,
-            .UsageIndex = 0
-        },
-        {
-            .Stream = 0,
-            .Offset = offsetof(BSPModelDecompressedVertex, normal),
-            .Type = D3DDECLTYPE_FLOAT3,
-            .Method = D3DDECLMETHOD_DEFAULT,
-            .Usage = D3DDECLUSAGE_NORMAL,
-            .UsageIndex = 0
-        },
-        {
-            .Stream = 0,
-            .Offset = offsetof(BSPModelDecompressedVertex, binormal),
-            .Type = D3DDECLTYPE_FLOAT3,
-            .Method = D3DDECLMETHOD_DEFAULT,
-            .Usage = D3DDECLUSAGE_BINORMAL,
-            .UsageIndex = 0
-        },
-        {
-            .Stream = 0,
-            .Offset = offsetof(BSPModelDecompressedVertex, tangent),
-            .Type = D3DDECLTYPE_FLOAT3,
-            .Method = D3DDECLMETHOD_DEFAULT,
-            .Usage = D3DDECLUSAGE_TANGENT,
-            .UsageIndex = 0
-        },
-        {
-            .Stream = 0,
-            .Offset = offsetof(BSPModelDecompressedVertex, texcoords),
-            .Type = D3DDECLTYPE_FLOAT2,
-            .Method = D3DDECLMETHOD_DEFAULT,
-            .Usage = D3DDECLUSAGE_TEXCOORD,
-            .UsageIndex = 0
-        },
-        D3DDECL_END()
-    };
-    IDirect3DVertexDeclaration9* decl = NULL;
-    D3D_CALL(r_d3d9Glob.d3ddev, CreateVertexDeclaration, vertex_elements,
-        &decl);
-    assert(decl);
-    part->vertex_declaration.decl = decl;
+    part->vertex_declaration.decl = r_modelDecl;
 #elif A_RENDER_BACKEND_D3D8
     part->vertex_declaration.format.Input[0].StreamIndex = 0;
     part->vertex_declaration.format.Input[0].Offset      = offsetof(BSPModelDecompressedVertex, position);
@@ -830,7 +838,7 @@ static void R_LoadObject(const BSPObject* bsp_object, GfxObject* object) {
 }
 
 static void R_LoadScenarioScenery(const BSPScenarioScenery* bsp_scenario_scenery, GfxScenery* scenery) {
-    scenery->pos = bsp_scenario_scenery->pos;
+    scenery->pos        = bsp_scenario_scenery->pos;
     scenery->rotation.x = bsp_scenario_scenery->yaw;
     scenery->rotation.y = bsp_scenario_scenery->pitch;
     scenery->rotation.z = bsp_scenario_scenery->roll;
@@ -856,19 +864,19 @@ void R_LoadMap(void) {
         R_LoadLightmap(bsp_lightmap, lightmap);
     }
 
-    //r_mapGlob.scenery_palette_count = CL_Map_ScenarioSceneryPaletteCount();
-    //r_mapGlob.scenery_palette = (GfxSceneryPalette*)VM_Zalloc(r_mapGlob.scenery_palette_count * sizeof(*r_mapGlob.scenery_palette), VM_ALLOC_MODEL);
-    //for (uint32_t i = 0; i < r_mapGlob.scenery_palette_count; i++) {
-    //    BSPScenarioSceneryPalette* bsp_scenery_palette = CL_Map_ScenarioSceneryPalette(i);
-    //    R_LoadSceneryPalette(bsp_scenery_palette, &r_mapGlob.scenery_palette[i]);
-    //}
+    r_mapGlob.scenery_palette_count = CL_Map_ScenarioSceneryPaletteCount();
+    r_mapGlob.scenery_palette = (GfxSceneryPalette*)VM_Zalloc(r_mapGlob.scenery_palette_count * sizeof(*r_mapGlob.scenery_palette), VM_ALLOC_MODEL);
+    for (uint32_t i = 0; i < r_mapGlob.scenery_palette_count; i++) {
+        BSPScenarioSceneryPalette* bsp_scenery_palette = CL_Map_ScenarioSceneryPalette(i);
+        R_LoadSceneryPalette(bsp_scenery_palette, &r_mapGlob.scenery_palette[i]);
+    }
 
-    //r_mapGlob.scenery_count = CL_Map_ScenarioSceneryCount();
-    //r_mapGlob.scenery = (GfxScenery*)VM_Zalloc(r_mapGlob.scenery_count * sizeof(*r_mapGlob.scenery), VM_ALLOC_MODEL);
-    //for (uint32_t i = 0; i < r_mapGlob.scenery_count; i++) {
-    //    BSPScenarioScenery* bsp_scenery = CL_Map_ScenarioScenery(i);
-    //    R_LoadScenarioScenery(bsp_scenery, &r_mapGlob.scenery[i]);
-    //}
+    r_mapGlob.scenery_count = CL_Map_ScenarioSceneryCount();
+    r_mapGlob.scenery = (GfxScenery*)VM_Zalloc(r_mapGlob.scenery_count * sizeof(*r_mapGlob.scenery), VM_ALLOC_MODEL);
+    for (uint32_t i = 0; i < r_mapGlob.scenery_count; i++) {
+        BSPScenarioScenery* bsp_scenery = CL_Map_ScenarioScenery(i);
+        R_LoadScenarioScenery(bsp_scenery, &r_mapGlob.scenery[i]);
+    }
 }
 
 static bool R_RenderShaderEnvironment(GfxShaderEnvironment* shader_environment, 
@@ -908,17 +916,17 @@ static bool R_RenderShaderEnvironment(GfxShaderEnvironment* shader_environment,
             return false;
     }
 
-    b = R_BindImage(&shader_environment->base_map,             0);
+    b = R_BindImage(&shader_environment->base_map,             SHADER_ENVIRONMENT_BASE_MAP_INDEX);
     assert(b);
-    b = R_BindImage(&shader_environment->primary_detail_map,   1);
+    b = R_BindImage(&shader_environment->primary_detail_map,   SHADER_ENVIRONMENT_PRIMARY_DETAIL_MAP_INDEX);
     assert(b);
-    b = R_BindImage(&shader_environment->secondary_detail_map, 2);
+    b = R_BindImage(&shader_environment->secondary_detail_map, SHADER_ENVIRONMENT_SECONDARY_DETAIL_MAP_INDEX);
     assert(b);
-    b = R_BindImage(&shader_environment->micro_detail_map,     3);
+    b = R_BindImage(&shader_environment->micro_detail_map,     SHADER_ENVIRONMENT_MICRO_DETAIL_MAP_INDEX);
     assert(b);
-    b = R_BindImage(&shader_environment->bump_map,             4);
+    b = R_BindImage(&shader_environment->bump_map,             SHADER_ENVIRONMENT_BUMP_MAP_INDEX);
     assert(b);
-    b = R_BindImage(&shader_environment->map,                  5);
+    b = R_BindImage(&shader_environment->map,                  SHADER_ENVIRONMENT_MAP_INDEX);
     assert(b);
 
     b = R_SetPolygonMode(mode);
@@ -975,11 +983,11 @@ static bool R_RenderShaderModel(GfxShaderModel* shader_model,
             return false;
     }
 
-    b = R_BindImage(&shader_model->base_map, 0);
+    b = R_BindImage(&shader_model->base_map,         SHADER_MODEL_BASE_MAP_INDEX);
     assert(b);
-    b = R_BindImage(&shader_model->multipurpose_map, 1);
+    b = R_BindImage(&shader_model->multipurpose_map, SHADER_MODEL_MULTIPURPOSE_MAP_INDEX);
     assert(b);
-    b = R_BindImage(&shader_model->detail_map, 2);
+    b = R_BindImage(&shader_model->detail_map,       SHADER_MODEL_DETAIL_MAP_INDEX);
     assert(b);
 
     b = R_SetPolygonMode(mode);
@@ -1082,9 +1090,16 @@ static void R_RenderModelPart(GfxModel* model, GfxModelPart* part, apoint3f_t po
     amat4f_t pos = A_MAT4F_IDENTITY;
     avec3f_t p   = A_vec3(position.x, position.y, position.z);
     pos = A_mat4f_translate_vec3(pos, p);
-    amat4f_t r = A_mat4f_euler(rotation);
-    amat4f_t m = A_mat4f_mul(pos, r);
-    R_ShaderSetUniformMat4fByName(&r_mapGlob.model_prog, "uModel", SHADER_TYPE_VERTEX, m);
+    pos = A_mat4f_translate_vec3(pos, *(avec3f_t*)&part->position);
+
+    //pos = A_mat4f_translate_vec3(pos, p);
+    //p.x = part->position.x;
+    //p.y = part->position.y;
+    //p.z = part->position.z;
+    //pos = A_mat4f_translate_vec3(pos, p);
+    //amat4f_t r = A_mat4f_euler(rotation);
+    //amat4f_t m = A_mat4f_mul(pos, r);
+    R_ShaderSetUniformMat4fByName(&r_mapGlob.model_prog, "uModel", SHADER_TYPE_VERTEX, pos);
 
     GfxShader* shader = &model->shaders[part->shader_index];
     R_RenderShader(shader, &part->vertex_declaration, part->primitive_type, 0, R_POLYGON_MODE_FILL);
@@ -1224,7 +1239,7 @@ void R_UnloadModel(A_IN GfxModel* model) {
             GfxModelPart* part = &geometry->parts[j];
             R_UnloadModelPart(part);
         }
-        VM_Free(geometry, VM_ALLOC_MODEL);
+        VM_Free(geometry->parts, VM_ALLOC_MODEL);
     }
     VM_Free(geometries, VM_ALLOC_MODEL);
 
@@ -1255,5 +1270,16 @@ void R_ShutdownMap(void) {
     if (CL_IsMapLoaded())
         R_UnloadMap();
 
+#if A_RENDER_BACKEND_D3D9
+    if (r_bspDecl) {
+        D3D_CALL(r_bspDecl, Release);
+        r_bspDecl = NULL;
+    }
+    if (r_modelDecl) {
+        D3D_CALL(r_modelDecl, Release);
+        r_modelDecl = NULL;
+    }
+#endif // A_RENDER_BACKEND_D3D9
+    //R_DeleteShaderProgram(&r_mapGlob.model_prog);
     R_DeleteShaderProgram(&r_mapGlob.prog);
 }

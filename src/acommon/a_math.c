@@ -199,9 +199,9 @@ A_NO_DISCARD avec4f_t A_vec4f_add(avec4f_t a, avec4f_t b) {
 }
 
 A_NO_DISCARD amat4f_t A_mat4f_translate_vec3(amat4f_t m, avec3f_t v) {
-	m.m[0][3] = v.x;
-	m.m[1][3] = v.y;
-	m.m[2][3] = v.z;
+	m.m[0][3] += v.x;
+	m.m[1][3] += v.y;
+	m.m[2][3] += v.z;
 	m.m[3][3] = 1.0f;
 	return m;
 }
@@ -241,25 +241,25 @@ A_NO_DISCARD amat4f_t A_mat4f_euler(avec3f_t angles) {
 	amat4f_t yaw = A_MAT4F_IDENTITY;
 	yaw.m[0][0] =  cx;
 	yaw.m[0][1] = -sx;
-	yaw.m[0][2] =  0;
+	yaw.m[0][2] =  0.0f;
 	yaw.m[1][0] =  sx;
 	yaw.m[1][1] =  cx;
-	yaw.m[1][2] =  0;
-	yaw.m[2][0] =  0;
-	yaw.m[2][1] =  0;
-	yaw.m[2][2] =  1;
+	yaw.m[1][2] =  0.0f;
+	yaw.m[2][0] =  0.0f;
+	yaw.m[2][1] =  0.0f;
+	yaw.m[2][2] =  1.0f;
 	
 	float sy = A_sinf(angles.y);
 	float cy = A_cosf(angles.y);
 	amat4f_t pitch = A_MAT4F_IDENTITY;
 	pitch.m[0][0] =  cy;
-	pitch.m[0][1] =  0;
+	pitch.m[0][1] =  0.0f;
 	pitch.m[0][2] =  sy;
-	pitch.m[1][0] =  0;
-	pitch.m[1][1] =  1;
-	pitch.m[1][2] =  0;
+	pitch.m[1][0] =  0.0f;
+	pitch.m[1][1] =  1.0f;
+	pitch.m[1][2] =  0.0f;
 	pitch.m[2][0] = -sy;
-	pitch.m[2][1] =  0;
+	pitch.m[2][1] =  0.0f;
 	pitch.m[2][2] =  cy;
 
 	float sz = A_sinf(angles.z);

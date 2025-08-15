@@ -17,11 +17,11 @@ A_NO_DISCARD float R_FovHorzToVertical(float fovx, float aspect_inv) {
 }
 
 A_NO_DISCARD float R_VidAspect(void) {
-    return (float)Dvar_GetInt(vid_width) / (float)Dvar_GetInt(vid_width);
+    return (float)Dvar_GetInt(vid_width) / (float)Dvar_GetInt(vid_height);
 }
 
 A_NO_DISCARD float R_VidAspectInv(void) {
-    return (float)Dvar_GetInt(vid_width) / (float)Dvar_GetInt(vid_width);
+    return (float)Dvar_GetInt(vid_height) / (float)Dvar_GetInt(vid_width);
 }
 
 bool R_CreateVertexBuffer(const void* data, size_t n, size_t capacity,

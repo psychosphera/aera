@@ -6,6 +6,17 @@
 
 #define R_MODEL_MAX_SHADERS 32
 
+#define SHADER_ENVIRONMENT_BASE_MAP_INDEX             0
+#define SHADER_ENVIRONMENT_PRIMARY_DETAIL_MAP_INDEX   1
+#define SHADER_ENVIRONMENT_SECONDARY_DETAIL_MAP_INDEX 2
+#define SHADER_ENVIRONMENT_MICRO_DETAIL_MAP_INDEX     3
+#define SHADER_ENVIRONMENT_BUMP_MAP_INDEX             4
+#define SHADER_ENVIRONMENT_MAP_INDEX                  5
+
+#define SHADER_MODEL_BASE_MAP_INDEX                   0
+#define SHADER_MODEL_MULTIPURPOSE_MAP_INDEX           1
+#define SHADER_MODEL_DETAIL_MAP_INDEX                 2
+
 typedef struct GfxShaderEnvironment {
     GfxImage                base_map, primary_detail_map, secondary_detail_map;
     GfxImage                micro_detail_map, bump_map, map;
@@ -51,6 +62,7 @@ typedef struct GfxModelPart {
     GfxPrimitiveType     primitive_type;
     GfxVertexDeclaration vertex_declaration;
     uint32_t             shader_index;
+    apoint3f_t           position;
 } GfxModelPart;
 
 typedef struct GfxModelGeometry {

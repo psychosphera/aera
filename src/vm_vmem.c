@@ -48,6 +48,8 @@ static VmAllocation* VM_FindAllocForPointer(void* p) {
 A_NO_DISCARD void* VM_Alloc(size_t n, VmAllocType type) {
     void* p = Z_Alloc(n);
     assert(p);
+    assert(p != 0xDDDDDDDD);
+    assert(p != 0xDDDDDDE1);
     VmAllocation* a = VM_FindFreeAlloction();
     assert(a);
     a->p = p;
@@ -63,6 +65,8 @@ A_NO_DISCARD void* VM_Alloc(size_t n, VmAllocType type) {
 A_NO_DISCARD void* VM_Zalloc(size_t n, VmAllocType type) {
     void* p = Z_Zalloc(n);
     assert(p);
+    assert(p != 0xDDDDDDDD);
+    assert(p != 0xDDDDDDE1);
     VmAllocation* a = VM_FindFreeAlloction();
     assert(a);
     a->p = p;
@@ -91,6 +95,11 @@ A_NO_DISCARD void* VM_AllocAt(const void* p, size_t n, VmAllocType type) {
 }
 
 bool VM_Free(void* p, VmAllocType type) {
+    assert(p != 0xDDDDDDDD);
+    assert(p != 0xDDDDDDE1);
+    if (p == NULL)
+        return true;
+
     VmAllocation* a = VM_FindAllocForPointer(p);
     assert(a);
     if (a == NULL) {
@@ -113,6 +122,8 @@ bool VM_Free(void* p, VmAllocType type) {
 }
 
 bool VM_FreeAt(void* p, VmAllocType type) {
+    assert(p != 0xDDDDDDDD);
+    assert(p != 0xDDDDDDE1);
     VmAllocation* a = VM_FindAllocForPointer(p);
     assert(a);
     if (a == NULL) {
@@ -127,10 +138,10 @@ bool VM_FreeAt(void* p, VmAllocType type) {
 
     Z_FreeAt(p, a->n);
     s_totalAllocForType[a->type] -= a->n;
-    s_totalAlloc -= a->n;
-    a->p = NULL;
-    a->n = 0;
-    a->type = VM_ALLOC_UNKNOWN;
+    s_totalAlloc                 -= a->n;
+    a->p                          = NULL;
+    a->n                          = 0;
+    a->type                       = VM_ALLOC_UNKNOWN;
     return true;
 }
 

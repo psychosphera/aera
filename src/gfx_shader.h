@@ -61,8 +61,8 @@ A_EXTERN_C A_NO_DISCARD bool R_CreateShaderProgram(
 );
 
 typedef enum ShaderType {
-    SHADER_TYPE_VERTEX,
-    SHADER_TYPE_PIXEL,
+    SHADER_TYPE_VERTEX = 0x01,
+    SHADER_TYPE_PIXEL  = 0x02,
 } ShaderType;
 
 #if !A_TARGET_PLATFORM_IS_XBOX

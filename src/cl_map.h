@@ -1124,6 +1124,12 @@ A_PACK(struct ModelRegion {
 typedef struct ModelRegion ModelRegion;
 A_STATIC_ASSERT(sizeof(ModelRegion) == 76);
 
+A_PACK(struct BSPModelTri {
+	uint16_t vert_indices[3];
+});
+typedef struct BSPModelTri BSPModelTri;
+A_STATIC_ASSERT(sizeof(BSPModelTri) == 6);
+
 typedef enum BSPModelGeometryPartFlags {
 	BSP_MODEL_GEOMETRY_PART_FLAG_STRIPPED_INTERNAL = 0x01,
 	BSP_MODEL_GEOMETRY_PART_FLAG_ZONER = 0x02,
@@ -1161,12 +1167,6 @@ A_PACK(struct BSPModelCompressedVertex {
 });
 typedef struct BSPModelCompressedVertex BSPModelCompressedVertex;
 A_STATIC_ASSERT(sizeof(BSPModelCompressedVertex) == 32);
-
-A_PACK(struct BSPModelTri {
-	uint16_t vertex_index[3];
-});
-typedef struct BSPModelTri BSPModelTri;
-A_STATIC_ASSERT(sizeof(BSPModelTri) == 6);
 
 A_PACK(struct BSPModelGeometryPart {
 	int          flags;

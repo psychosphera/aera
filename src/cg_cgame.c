@@ -19,7 +19,7 @@
 static float s_lastMouseX, s_lastMouseY;
 static bool  s_firstMouse;
 #endif // !A_TARGET_PLATFORM_IS_XBOX
-static float s_lastGPadX, s_lastGPadY;
+static float s_lastGPadLX, s_lastGPadLY, s_lastGPadRX, s_lastGPadRY;
 
 static cg_t s_cg[MAX_LOCAL_CLIENTS];
 
@@ -55,8 +55,8 @@ void CG_Init(void) {
 
 	Cmd_AddCommand("teleport", CG_Teleport_f);
 #endif // !A_TARGET_PLATFORM_IS_XBOX
-	s_lastGPadX = IN_GPad_StickX(0, IN_GPAD_STICK_RIGHT);
-	s_lastGPadY = IN_GPad_StickY(0, IN_GPAD_STICK_RIGHT);
+	s_lastGPadRX = IN_GPad_StickX(0, IN_GPAD_STICK_RIGHT);
+	s_lastGPadRY = IN_GPad_StickY(0, IN_GPAD_STICK_RIGHT);
 
 	for (size_t i = 0; i < MAX_LOCAL_CLIENTS; i++) {
 		cg_t* cg = CG_GetLocalClientGlobals(i);
@@ -68,9 +68,9 @@ void CG_Init(void) {
 		cg->camera.worldUp.y = 1.0f;
 		cg->camera.worldUp.z = 0.0f;
 
-		cg->camera.front.x =  0.0f;
+		/*cg->camera.front.x =  0.0f;
 		cg->camera.front.y =  0.0f;
-		cg->camera.front.z = -1.0f;
+		cg->camera.front.z = -1.0f;*/
 
 		cg->camera.up      = cg->camera.worldUp;
 		cg->camera.pitch   =  0.0f;
@@ -128,13 +128,17 @@ apoint3f_t CG_GetSpawnPos(size_t localClientNum) {
 }
 
 float CG_GetSpawnDir(size_t localClientNum) {
-	return CG_GetLocalClientGlobals(localClientNum)->spawn.front;
+	return 40.0f;
+	//return CG_GetLocalClientGlobals(localClientNum)->spawn.front;
 }
 
 void CG_Respawn(size_t localClientNum) {
 	CG_Teleport(localClientNum, CG_GetSpawnPos(localClientNum));
-	avec3f_t forward = A_vec3(0.0f, CG_GetSpawnDir(localClientNum), 0.0f);
+	avec3f_t forward = A_vec3(CG_GetSpawnDir(localClientNum), 0.0f, 200.0f);
 	PM_GetLocalClientGlobals(localClientNum)->pml.forward = forward;
+	PM_GetLocalClientGlobals(localClientNum)->pm.ps->viewyaw = CG_GetSpawnDir(localClientNum);
+	PM_GetLocalClientGlobals(localClientNum)->pm.cmd.yaw = CG_GetSpawnDir(localClientNum);
+    CG_GetLocalClientGlobals(localClientNum)->camera.front = forward;
 }
 
 extern dvar_t* r_fullscreen;
@@ -247,26 +251,32 @@ void CG_Frame(uint64_t deltaTime) {
 			if (IN_GPad_IsDown(localClientNum, IN_GPAD_BUTTON_LEFT_STICK))
 				vel *= 1.5f;
 
-			pm->pm.cmd.vel.z += IN_GPad_StickY(localClientNum, IN_GPAD_STICK_LEFT) * vel;
-			pm->pm.cmd.vel.x += IN_GPad_StickX(localClientNum, IN_GPAD_STICK_LEFT) * vel;
+			float x = A_CLAMP(IN_GPad_StickX(localClientNum, IN_GPAD_STICK_LEFT), -1.0f, 1.0f);
+            float y = A_CLAMP(IN_GPad_StickY(localClientNum, IN_GPAD_STICK_LEFT), -1.0f, 1.0f);
+            float xoff = x - s_lastGPadLX;
+            float yoff = y - s_lastGPadLY;
+			pm->pm.cmd.vel.z = xoff * vel;
+			pm->pm.cmd.vel.x = yoff * vel;
+			s_lastGPadLX = x;
+			s_lastGPadLY = y;
 
 			if (IN_GPad_IsDown(localClientNum, IN_GPAD_BUTTON_SOUTH))
-				pm->pm.cmd.vel.y += vel;
+				pm->pm.cmd.vel.y =  vel;
 			if (IN_GPad_IsDown(localClientNum, IN_GPAD_BUTTON_EAST))
-				pm->pm.cmd.vel.y -= vel;
+				pm->pm.cmd.vel.y = -vel;
 
-            float x = IN_GPad_StickX(localClientNum, IN_GPAD_STICK_RIGHT);
-            float y = IN_GPad_StickY(localClientNum, IN_GPAD_STICK_RIGHT);
+            x = A_CLAMP(IN_GPad_StickX(localClientNum, IN_GPAD_STICK_RIGHT), -1.0f, 1.0f);
+            y = A_CLAMP(IN_GPad_StickY(localClientNum, IN_GPAD_STICK_RIGHT), -1.0f, 1.0f);
 
-			float xoff  = x - s_lastGPadX;
-			float yoff  = y - s_lastGPadY;
-			s_lastGPadX = x;
-			s_lastGPadY = y;
+			xoff         = x - s_lastGPadRX;
+			yoff         = y - s_lastGPadRY;
+			s_lastGPadRX = xoff;
+			s_lastGPadRY = yoff;
 
-			//xoff *= cg->sensitivity;
-			//yoff *= cg->sensitivity;
-			pm->pm.cmd.yaw   = xoff;
-			pm->pm.cmd.pitch = yoff;
+			xoff *= cg->sensitivity;
+			yoff *= cg->sensitivity;
+			pm->pm.cmd.yaw   = x;
+			pm->pm.cmd.pitch = y;
 		}
 #else 
 		float vel = 100.0f;

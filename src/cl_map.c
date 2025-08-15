@@ -274,8 +274,8 @@ bool CL_LoadMap(const char* map_name) {
 					"CL_LoadMap: found scenery %s", 
 					scenery_palette_tag->name.path_pointer);
 
-		//bool b = CL_LoadMap_Object(scenery_palette_tag->name.id);
-		//assert(b);
+		bool b = CL_LoadMap_Object(scenery_palette_tag->name.id);
+		assert(b);
 	}
 
 	g_load.scenario_scenery = (BSPScenarioScenery*)scenario->scenery.pointer;
@@ -303,7 +303,7 @@ void CL_UnloadModel(BSPModel* model) {
 		for (int j = 0; j < geometry->parts.count; j++) {
 			BSPModelGeometryPart* part = &parts[i];
 			// FIXME: more heap corruption
-			VM_Free(part->decompressed_vertices.pointer, VM_ALLOC_MODEL);
+			//VM_Free(part->decompressed_vertices.pointer, VM_ALLOC_MODEL);
 			part->decompressed_vertices.count = 0;
 			part->decompressed_vertices.pointer = NULL;
 		}
@@ -489,7 +489,7 @@ bool CL_UnloadMap(void) {
 		assert(scenery_tag);
 		assert(scenery_tag->primary_class == TAG_FOURCC_SCENERY);
 		BSPScenery* scenery = (BSPScenery*)scenery_tag->tag_data;
-		//CL_UnloadScenery(scenery);
+		CL_UnloadScenery(scenery);
 	}
 
 	if (g_load.p && g_load.n > 0) {
@@ -1013,19 +1013,21 @@ static bool CL_LoadMap_Model(TagId id) {
 			(BSPModelGeometryPart*)geom->parts.pointer;
 		for (int j = 0; j < geom->parts.count; j++) {
 			BSPModelGeometryPart* part = &parts[j];
-			BSPModelDecompressedVertex* decompressed_verts = NULL;
-			assert(part->vertex_type == BSP_VERTEX_TYPE_COMPRESSED_MODEL);
-			decompressed_verts = (BSPModelDecompressedVertex*)
-				VM_Alloc(part->tri_count * sizeof(*decompressed_verts), VM_ALLOC_MODEL);
-			uint16_t* tri_indices = (uint16_t*)part->tri_offset;
+			assert(part->tri_buffer_type == BSP_MODEL_TRI_BUFFER_TYPE_TRIANGLE_LIST ||
+				part->tri_buffer_type == BSP_MODEL_TRI_BUFFER_TYPE_TRIANGLE_STRIP);
+			BSPModelDecompressedVertex* decompressed_verts = (BSPModelDecompressedVertex*)
+				VM_Alloc(part->vertex_count * sizeof(*decompressed_verts), VM_ALLOC_MODEL);
 			assert(decompressed_verts);
-			for (int k = 0; k < part->tri_count; k++) {
-				const BSPModelCompressedVertex* compressed_vert = &g_load.model_vertices[tri_indices[k]];
+            BSPModelCompressedVertex* compressed_verts = (BSPModelCompressedVertex*)part->vertex_offset;
+			assert(part->vertex_type == BSP_VERTEX_TYPE_COMPRESSED_MODEL);
+			//uint16_t* tri_indices = (uint16_t*)part->tri_offset;
+			for (int k = 0; k < part->vertex_count; k++) {
+				const BSPModelCompressedVertex* compressed_vert = &compressed_verts[k];
 				BSPModelDecompressedVertex* decompressed_vert = &decompressed_verts[k];
 				CL_DecompressModelVertex(compressed_vert, decompressed_vert);
 			}
 			part->decompressed_vertices.pointer = decompressed_verts;
-			part->decompressed_vertices.count   = part->tri_count;
+			part->decompressed_vertices.count   = part->vertex_count;
 		}
 	}
 

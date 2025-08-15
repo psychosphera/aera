@@ -3,7 +3,6 @@
 #include "com_defs.h"
 #include "gfx_defs.h"
 
-
 A_EXTERN_C A_NO_DISCARD bool R_CreateTextureAtlas(A_INOUT FontDef* f);
 A_EXTERN_C void R_DeleteTextureAtlas(A_INOUT FontDef* f);
 A_EXTERN_C void R_DrawText(

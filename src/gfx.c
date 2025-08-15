@@ -272,22 +272,25 @@ static IDirect3DDevice9* R_CreateDevice(HWND hWnd,
         D3DPRESENT_INTERVAL_ONE :
         D3DPRESENT_INTERVAL_IMMEDIATE;
 
-    const D3DPRESENT_PARAMETERS d3dpp = {
-        .Windowed                   = TRUE,
-        .hDeviceWindow              = hWnd,
+    D3DPRESENT_PARAMETERS d3dpp;
+    A_memset(&d3dpp, 0, sizeof(d3dpp));
+    d3dpp.Windowed               = TRUE;
+    d3dpp.hDeviceWindow          = hWnd;
+    d3dpp.SwapEffect             = D3DSWAPEFFECT_DISCARD;
+    d3dpp.EnableAutoDepthStencil = TRUE;
+    d3dpp.AutoDepthStencilFormat = D3DFMT_D16;
+    d3dpp.PresentationInterval   = interval;
         //.BackBufferWidth            = 0,
         //.BackBufferHeight           = 0,
         //.BackBufferFormat           = D3DFMT_UNKNOWN,
         //.BackBufferCount            = 1,
-        .SwapEffect                 = D3DSWAPEFFECT_DISCARD,
+        
         //.MultiSampleType            = D3DMULTISAMPLE_NONE,
         //.MultiSampleQuality         = 0,
-        .EnableAutoDepthStencil     = TRUE,
-        .AutoDepthStencilFormat     = D3DFMT_D16,
+
         //.FullScreen_RefreshRateInHz = 0,
         //.Flags                      = 0,
-        //.PresentationInterval       = interval
-    };
+   
     IDirect3DDevice9* d3ddev = NULL;
     HRESULT hr = D3D_CALL(d3d9, CreateDevice, adapter, D3DDEVTYPE_HAL,
                                               hWnd, flags, &d3dpp, &d3ddev);
@@ -546,6 +549,9 @@ static void R_RegisterDvars(void) {
 }
 
 void R_DrawFrame(size_t localClientNum) {
+    GfxCamera* camera = &CG_GetLocalClientGlobals(localClientNum)->camera;
+    avec3f_t* front = &camera->front;
+    Com_DPrintln(CON_DEST_CLIENT, "R_DrawFrame: camera %i dir = (%f, %f, %f)", localClientNum, front->x, front->y, front->z);
     R_DrawFrameInternal(localClientNum);
 }
 
@@ -865,9 +871,9 @@ A_NO_DISCARD bool R_ImageSubData(A_INOUT GfxImage* image,
     IDirect3DTexture9* tex = image->tex;
     D3DLOCKED_RECT locked_rect;
     RECT rect = {
-        .left = xoff,
-        .right = xoff + width,
-        .top = yoff,
+        .left   = xoff,
+        .right  = xoff + width,
+        .top    = yoff,
         .bottom = yoff + height
     };
     D3D_CALL(tex, LockRect, 0, &locked_rect, &rect, D3DLOCK_DISCARD);
@@ -1068,14 +1074,25 @@ void R_SetViewport(int x, int y, int w, int h) {
     GL_CALL(glViewport, x, y, w, h);
 #elif A_RENDER_BACKEND_D3D9
     D3DVIEWPORT9 viewport = {
-        .X = x,
-        .Y = y,
-        .Width = w,
+        .X      = x,
+        .Y      = y,
+        .Width  = w,
         .Height = h,
-        .MinZ = 0.0f,
-        .MaxZ = 0.0f
+        .MinZ   = 0.0f,
+        .MaxZ   = 1.0f
     };
     D3D_CALL(r_d3d9Glob.d3ddev, SetViewport, &viewport);
+#elif A_RENDER_BACKEND_D3D8
+    D3DVIEWPORT8 viewport = {
+        .X      = x,
+        .Y      = y,
+        .Width  = w,
+        .Height = h,
+        .MinZ   = 0.0f,
+        .MaxZ   = 1.0f
+    };
+    HRESULT hr = IDirect3DDevice8_SetViewport(r_d3d8Glob.d3ddev, &viewport);
+    assert(hr == D3D_OK);
 #endif // A_RENDER_BACKEND_GL
 }
 
@@ -1234,13 +1251,13 @@ bool R_DrawPrimitives(GfxPrimitiveType type, int primitive_count, int primitive_
 #elif A_RENDER_BACKEND_D3D
     D3DPRIMITIVETYPE primitive_type = R_PrimitiveTypeToD3D(type);
 #if A_RENDER_BACKEND_D3D9
-    D3D_CALL(r_d3d9Glob.d3ddev, DrawPrimitive, primitive_type,
-                                               off
-                                               primitive_count);
+    HRESULT hr = IDirect3DDevice9_DrawPrimitive(r_d3d9Glob.d3ddev, 
+                                                primitive_type,
+                                                off, primitive_count);
 #elif A_RENDER_BACKEND_D3D8
     HRESULT hr = IDirect3DDevice8_DrawPrimitive(r_d3d8Glob.d3ddev, primitive_type, off, primitive_count);
-    assert(hr == D3D_OK);
 #endif // A_RENDER_BACKEND_D3D9
+    assert(hr == D3D_OK);
 #endif // A_RENDER_BACKEND_GL
     return true;
 }
@@ -1289,11 +1306,15 @@ static void R_DrawFrameInternal(size_t localClientNum) {
     D3DXMATRIX view;
     D3DXMatrixLookAtLH(&view, (D3DXVECTOR3*)&pos, (D3DXVECTOR3*)&center, (D3DXVECTOR3*)&cg->camera.up);
 #endif // A_RENDER_BACKEND_GL
-    
 #if !A_TARGET_PLATFORM_IS_XBOX
     R_ShaderSetUniformMat4fByName(&r_mapGlob.prog, "uView", 
                                   SHADER_TYPE_VERTEX, *(amat4f_t*)&view);
+    R_ShaderSetUniformMat4fByName(&r_mapGlob.model_prog, "uView",
+                                  SHADER_TYPE_VERTEX, *(amat4f_t*)&view);
     R_ShaderSetUniformMat4fByName(&r_mapGlob.prog, "uPerspectiveProjection",
+                                  SHADER_TYPE_VERTEX,
+                                  cg->camera.perspectiveProjection);
+    R_ShaderSetUniformMat4fByName(&r_mapGlob.model_prog, "uPerspectiveProjection",
                                   SHADER_TYPE_VERTEX,
                                   cg->camera.perspectiveProjection);
 #else
