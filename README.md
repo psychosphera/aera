@@ -42,7 +42,7 @@ Since proper command line parsing hasn't been implemented yet, aera is hard-code
 Only *Xbox* maps will currently work, not Gearbox (the original PC port) or MCC maps.
 
 If you did everything right, you'll end up being greeted with 
-<img src='screenshots/map_demo.png'>
+<img src='images/map_demo.png'>
 
 ## FAQ
 Q. Is support for PC/MCC maps coming?
