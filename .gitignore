@@ -9,7 +9,6 @@ CMakePresets.json
 /assets/maps/*
 /assets/fonts/*
 /assets/tags/*
-*.png
 *.jpg
 *.ttf
 *.dll

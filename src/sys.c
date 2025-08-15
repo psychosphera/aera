@@ -65,7 +65,7 @@ void Sys_Init(const char** argv) {
 
 #if !A_TARGET_PLATFORM_IS_XBOX
     sys_sdlGlob.window = SDL_CreateWindow(
-        "Halo 1 Map Viewer",
+        "Aera",
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
         Dvar_GetInt(vid_width),
