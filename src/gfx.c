@@ -1083,14 +1083,13 @@ void R_SetViewport(int x, int y, int w, int h) {
     };
     D3D_CALL(r_d3d9Glob.d3ddev, SetViewport, &viewport);
 #elif A_RENDER_BACKEND_D3D8
-    D3DVIEWPORT8 viewport = {
-        .X      = x,
-        .Y      = y,
-        .Width  = w,
-        .Height = h,
-        .MinZ   = 0.0f,
-        .MaxZ   = 1.0f
-    };
+    D3DVIEWPORT8 viewport;
+    viewport.X      = x;
+    viewport.Y      = y;
+    viewport.Width  = w;
+    viewport.Height = h;
+    viewport.MinZ   = 0.0f;
+    viewport.MaxZ   = 1.0f;
     HRESULT hr = IDirect3DDevice8_SetViewport(r_d3d8Glob.d3ddev, &viewport);
     assert(hr == D3D_OK);
 #endif // A_RENDER_BACKEND_GL
