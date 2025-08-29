@@ -27,7 +27,7 @@
    ```
    Note that D3D8 will only work for 32-bit builds.
    ```bash
-   cmake -DAERA_BACKEND_GL=TRUE ..
+   cmake -DAERA_RENDER_BACKEND_GL=TRUE ..
    ```
 5. If you have any missing packages (SDL has quite a few dependencies, and you might not have all of them), install them with your system's package manager or vcpkg.
 6. Build CMake's output. This will depend on your generator. On Linux/macOS/other Unix, `make` will probably be the default. Windows often defaults to `msbuild`. You can force a different choice by passing `-G` to CMake (e.g. `cmake -GNinja <...>`)
